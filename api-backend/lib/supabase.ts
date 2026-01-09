@@ -1,17 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Vérifier que les variables d'environnement sont définies
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL');
-}
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY');
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+
+// Avertir si les variables ne sont pas configurées
+if (supabaseUrl.includes('placeholder') || supabaseAnonKey.includes('placeholder')) {
+  console.warn('⚠️ ATTENTION: Variables Supabase non configurées dans .env');
+  console.warn('📝 Ajoutez vos vraies clés Supabase dans .env');
 }
 
 // Client Supabase pour l'API (côté serveur avec service_role pour contourner RLS si nécessaire)
 export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  supabaseUrl,
+  supabaseServiceRoleKey,
   {
     auth: {
       autoRefreshToken: false,
@@ -22,8 +24,8 @@ export const supabaseAdmin = createClient(
 
 // Client Supabase pour le frontend (avec anon key)
 export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 // Types pour TypeScript (adaptés pour UUID)

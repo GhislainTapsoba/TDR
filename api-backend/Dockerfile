@@ -18,23 +18,12 @@ COPY . .
 
 # Variables d'environnement pour le build
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-key
+ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-key
 
-# Arguments de build (passés depuis docker-compose ou ligne de commande)
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXTAUTH_SECRET
-ARG NEXTAUTH_URL
-ARG NEXT_PUBLIC_FRONTEND_URL
-
-# Définir les variables d'environnement pour le build Next.js
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
-ENV NEXTAUTH_URL=$NEXTAUTH_URL
-ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
-
-# Build Next.js
-RUN npm run build
+# Build Next.js with environment variables from .env if it exists
+RUN /bin/bash -c "if [ -f .env ]; then set -a && source .env && set +a && npm run build; else npm run build; fi"
 
 # -------------------------------
 # Stage 2 : Runner (production)
