@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3001
     env_file:
       - ./api-backend/.env
     networks:
