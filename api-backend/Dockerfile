@@ -23,7 +23,7 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-key
 ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-key
 
 # Build Next.js with environment variables from .env if it exists
-RUN /bin/bash -c "if [ -f .env ]; then set -a && source .env && set +a && npm run build; else npm run build; fi"
+RUN /bin/sh -c "if [ -f .env ]; then set -a && . .env && set +a && npm run build; else npm run build; fi"
 
 # -------------------------------
 # Stage 2 : Runner (production)
