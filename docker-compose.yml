@@ -14,8 +14,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-    env_file:
-      - ./api-backend/.env
     expose:
       - "3001"
     networks:
@@ -35,8 +33,6 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - NEXT_PUBLIC_API_URL=http://localhost/api
-    env_file:
-      - ./web-frontend/.env
     expose:
       - "3000"
     networks:
