@@ -3,10 +3,10 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
+import { api, authApi } from "@/lib/api"
 
 interface User {
-  id: number
+  id: string
   name: string
   email: string
   role: "admin" | "chef_projet" | "employe"
@@ -44,7 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const data = await api.login(email, password) as { user: User; token: string }
+      const response = await authApi.login(email, password);
+      const data = response.data; // { success: true, user, token }
 
       setUser(data.user)
       setToken(data.token)
@@ -57,18 +58,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = async () => {
-    try {
-      await api.logout()
-    } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error)
-    } finally {
-      setUser(null)
-      setToken(null)
-      localStorage.removeItem("auth_token")
-      localStorage.removeItem("auth_user")
-      router.push("/login")
-    }
+  const logout = () => {
+    setUser(null)
+    setToken(null)
+    localStorage.removeItem("auth_token")
+    localStorage.removeItem("auth_user")
+    router.push("/login")
   }
 
   const updateUser = async (data: Partial<User> & { avatar?: File | null }) => {
@@ -80,7 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (data.avatar) formData.append("avatar", data.avatar)
 
     try {
-      const updatedUser = await api.updateUser(user.id, formData, token) as User
+      const response = await api.put('/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      const updatedUser = response.data as User
       setUser(updatedUser)
       localStorage.setItem("auth_user", JSON.stringify(updatedUser))
     } catch (error) {

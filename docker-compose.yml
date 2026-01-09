@@ -14,6 +14,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - NEXTAUTH_URL=http://localhost
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     expose:
       - "3000"
     networks:
@@ -33,6 +36,8 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - NEXT_PUBLIC_API_URL=http://localhost/api
+      - NEXTAUTH_URL=http://localhost
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     expose:
       - "3001"
     networks:

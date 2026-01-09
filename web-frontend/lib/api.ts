@@ -246,4 +246,8 @@ export const profileApi = {
     api.put(`/users/${userId}/password`, data),
 };
 
+export const authApi = {
+  login: (email: string, password: string) => api.post('/auth/login', { email, password }),
+};
+
 export default api;

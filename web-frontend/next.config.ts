@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   experimental: {
     webVitalsAttribution: ['CLS', 'LCP']
   },
-  
+
   async headers() {
     return [
       {
