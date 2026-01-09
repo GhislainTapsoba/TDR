@@ -1,260 +1,192 @@
--- =============================================
--- SCHEMA SQL POUR SUPABASE (VERSION COMPATIBLE)
--- Plateforme de Gestion de Projets
--- Utilise UUID au lieu de BIGINT pour compatibilité Supabase
--- =============================================
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Activer les extensions nécessaires
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- =============================================
--- TABLES
--- =============================================
-
--- Table users (compatible avec auth.users de Supabase)
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email VARCHAR(255) UNIQUE NOT NULL,
-  name VARCHAR(255),
-  password VARCHAR(255), -- Hash bcrypt du mot de passe
-  role VARCHAR(50) DEFAULT 'EMPLOYEE' CHECK (role IN ('ADMIN', 'PROJECT_MANAGER', 'EMPLOYEE', 'VIEWER')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.activity_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  action character varying NOT NULL,
+  entity_type character varying NOT NULL,
+  entity_id uuid NOT NULL,
+  details text,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT activity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- Table projects
-CREATE TABLE IF NOT EXISTS projects (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  start_date TIMESTAMPTZ,
-  end_date TIMESTAMPTZ,
-  due_date TIMESTAMPTZ,
-  status VARCHAR(50) DEFAULT 'PLANNING' CHECK (status IN ('PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CANCELLED')),
-  created_by_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  manager_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.comments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  content text NOT NULL,
+  task_id uuid NOT NULL,
+  author_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT comments_pkey PRIMARY KEY (id),
+  CONSTRAINT comments_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.tasks(id),
+  CONSTRAINT comments_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
-
--- Table project_members
-CREATE TABLE IF NOT EXISTS project_members (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  role VARCHAR(50) DEFAULT 'member',
-  joined_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(project_id, user_id)
+CREATE TABLE public.documents (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL,
+  file_url text NOT NULL,
+  file_type character varying,
+  file_size bigint,
+  description text,
+  project_id uuid,
+  task_id uuid,
+  uploaded_by uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT documents_pkey PRIMARY KEY (id),
+  CONSTRAINT documents_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
+  CONSTRAINT documents_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.tasks(id),
+  CONSTRAINT documents_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.users(id)
 );
-
--- Table stages
-CREATE TABLE IF NOT EXISTS stages (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  description TEXT,
-  "order" INTEGER NOT NULL DEFAULT 0,
-  duration INTEGER,
-  status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'BLOCKED')),
-  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.email_confirmations (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  token character varying NOT NULL UNIQUE,
+  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['TASK_ASSIGNMENT'::character varying, 'TASK_STATUS_CHANGE'::character varying, 'STAGE_STATUS_CHANGE'::character varying, 'PROJECT_CREATED'::character varying]::text[])),
+  user_id uuid NOT NULL,
+  entity_type character varying NOT NULL,
+  entity_id uuid NOT NULL,
+  metadata jsonb,
+  confirmed boolean DEFAULT false,
+  confirmed_at timestamp with time zone,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT email_confirmations_pkey PRIMARY KEY (id),
+  CONSTRAINT email_confirmations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- Table tasks
-CREATE TABLE IF NOT EXISTS tasks (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  status VARCHAR(50) DEFAULT 'TODO' CHECK (status IN ('TODO', 'IN_PROGRESS', 'IN_REVIEW', 'COMPLETED', 'CANCELLED')),
-  priority VARCHAR(50) DEFAULT 'MEDIUM' CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT')),
-  due_date TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  assigned_to_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  stage_id UUID REFERENCES stages(id) ON DELETE SET NULL,
-  created_by_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.email_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  recipient_id uuid,
+  recipient character varying NOT NULL,
+  subject character varying NOT NULL,
+  body text NOT NULL,
+  status character varying DEFAULT 'PENDING'::character varying CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'SENT'::character varying, 'DELIVERED'::character varying, 'OPENED'::character varying, 'CLICKED'::character varying, 'FAILED'::character varying, 'BOUNCED'::character varying]::text[])),
+  sent_at timestamp with time zone,
+  delivered_at timestamp with time zone,
+  opened_at timestamp with time zone,
+  clicked_at timestamp with time zone,
+  error_message text,
+  retry_count integer DEFAULT 0,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT email_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT email_logs_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.users(id)
 );
-
--- Table comments
-CREATE TABLE IF NOT EXISTS comments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  content TEXT NOT NULL,
-  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-  author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.notification_preferences (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  email_task_assigned boolean DEFAULT true,
+  email_task_updated boolean DEFAULT true,
+  email_task_due boolean DEFAULT true,
+  email_stage_completed boolean DEFAULT false,
+  email_project_created boolean DEFAULT true,
+  push_notifications boolean DEFAULT true,
+  daily_summary boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notification_preferences_pkey PRIMARY KEY (id),
+  CONSTRAINT notification_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- Table notifications
-CREATE TABLE IF NOT EXISTS notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  type VARCHAR(50) NOT NULL DEFAULT 'INFO' CHECK (type IN ('INFO', 'SUCCESS', 'WARNING', 'ERROR', 'TASK_ASSIGNED', 'TASK_UPDATED', 'TASK_COMPLETED', 'STAGE_COMPLETED', 'PROJECT_DEADLINE', 'MENTION', 'COMMENT')),
-  title VARCHAR(255) NOT NULL,
-  message TEXT NOT NULL,
-  is_read BOOLEAN DEFAULT FALSE,
-  metadata JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  type character varying NOT NULL DEFAULT 'INFO'::character varying CHECK (type::text = ANY (ARRAY['INFO'::character varying, 'SUCCESS'::character varying, 'WARNING'::character varying, 'ERROR'::character varying, 'TASK_ASSIGNED'::character varying, 'TASK_UPDATED'::character varying, 'TASK_COMPLETED'::character varying, 'STAGE_COMPLETED'::character varying, 'PROJECT_DEADLINE'::character varying, 'MENTION'::character varying, 'COMMENT'::character varying]::text[])),
+  title character varying NOT NULL,
+  message text NOT NULL,
+  is_read boolean DEFAULT false,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- Table email_logs
-CREATE TABLE IF NOT EXISTS email_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  recipient_id UUID REFERENCES users(id) ON DELETE SET NULL,
-  recipient VARCHAR(255) NOT NULL,
-  subject VARCHAR(255) NOT NULL,
-  body TEXT NOT NULL,
-  status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SENT', 'DELIVERED', 'OPENED', 'CLICKED', 'FAILED', 'BOUNCED')),
-  sent_at TIMESTAMPTZ,
-  delivered_at TIMESTAMPTZ,
-  opened_at TIMESTAMPTZ,
-  clicked_at TIMESTAMPTZ,
-  error_message TEXT,
-  retry_count INTEGER DEFAULT 0,
-  metadata JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.project_members (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  project_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role character varying DEFAULT 'member'::character varying,
+  joined_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT project_members_pkey PRIMARY KEY (id),
+  CONSTRAINT project_members_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
+  CONSTRAINT project_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- Table activity_logs
-CREATE TABLE IF NOT EXISTS activity_logs (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  action VARCHAR(50) NOT NULL,
-  entity_type VARCHAR(50) NOT NULL,
-  entity_id UUID NOT NULL,
-  details TEXT,
-  metadata JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.projects (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  title character varying NOT NULL,
+  description text,
+  start_date timestamp with time zone,
+  end_date timestamp with time zone,
+  due_date timestamp with time zone,
+  status character varying DEFAULT 'PLANNING'::character varying CHECK (status::text = ANY (ARRAY['PLANNING'::character varying, 'IN_PROGRESS'::character varying, 'ON_HOLD'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying]::text[])),
+  created_by_id uuid,
+  manager_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT projects_pkey PRIMARY KEY (id),
+  CONSTRAINT projects_created_by_id_fkey FOREIGN KEY (created_by_id) REFERENCES public.users(id),
+  CONSTRAINT projects_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id)
 );
-
--- =============================================
--- INDEXES pour optimisation
--- =============================================
-
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_projects_created_by ON projects(created_by_id);
-CREATE INDEX IF NOT EXISTS idx_projects_manager ON projects(manager_id);
-CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
-CREATE INDEX IF NOT EXISTS idx_project_members_project ON project_members(project_id);
-CREATE INDEX IF NOT EXISTS idx_project_members_user ON project_members(user_id);
-CREATE INDEX IF NOT EXISTS idx_stages_project ON stages(project_id);
-CREATE INDEX IF NOT EXISTS idx_stages_status ON stages(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_stage ON tasks(stage_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority);
-CREATE INDEX IF NOT EXISTS idx_comments_task ON comments(task_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
-CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at);
-CREATE INDEX IF NOT EXISTS idx_email_logs_recipient ON email_logs(recipient_id);
-CREATE INDEX IF NOT EXISTS idx_email_logs_status ON email_logs(status);
-CREATE INDEX IF NOT EXISTS idx_email_logs_created ON email_logs(created_at);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_user ON activity_logs(user_id);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
-CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at);
-
--- =============================================
--- FUNCTIONS & TRIGGERS
--- =============================================
-
--- Fonction pour mettre à jour updated_at automatiquement
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Triggers pour updated_at
-DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
-CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_stages_updated_at ON stages;
-CREATE TRIGGER update_stages_updated_at BEFORE UPDATE ON stages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_tasks_updated_at ON tasks;
-CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_comments_updated_at ON comments;
-CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-DROP TRIGGER IF EXISTS update_email_logs_updated_at ON email_logs;
-CREATE TRIGGER update_email_logs_updated_at BEFORE UPDATE ON email_logs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- =============================================
--- VUES UTILES
--- =============================================
-
--- Vue pour les statistiques de projets
-CREATE OR REPLACE VIEW project_stats AS
-SELECT
-  p.id,
-  p.title,
-  p.status,
-  COUNT(DISTINCT t.id) as total_tasks,
-  COUNT(DISTINCT CASE WHEN t.status = 'COMPLETED' THEN t.id END) as completed_tasks,
-  COUNT(DISTINCT CASE WHEN t.status = 'TODO' THEN t.id END) as pending_tasks,
-  COUNT(DISTINCT CASE WHEN t.due_date < NOW() AND t.status != 'COMPLETED' THEN t.id END) as overdue_tasks,
-  COUNT(DISTINCT pm.user_id) as team_members
-FROM projects p
-LEFT JOIN tasks t ON t.project_id = p.id
-LEFT JOIN project_members pm ON pm.project_id = p.id
-GROUP BY p.id, p.title, p.status;
-
--- Vue pour les notifications non lues par utilisateur
-CREATE OR REPLACE VIEW unread_notifications_count AS
-SELECT
-  user_id,
-  COUNT(*) as unread_count
-FROM notifications
-WHERE is_read = FALSE
-GROUP BY user_id;
-
--- =============================================
--- MIGRATION: Ajouter colonne password si elle n'existe pas
--- =============================================
-
--- Ajouter la colonne password à la table users (pour les bases existantes)
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'users' AND column_name = 'password'
-  ) THEN
-    ALTER TABLE users ADD COLUMN password VARCHAR(255);
-  END IF;
-END $$;
-
--- =============================================
--- DONNÉES DE TEST
--- =============================================
-
--- Créer quelques utilisateurs de test
--- Mot de passe pour tous: "password123" (hash bcrypt avec salt rounds = 10)
-INSERT INTO users (email, name, password, role) VALUES
-('admin@example.com', 'Admin User', '$2a$10$/OvNsoxV8e9.dGNKUntT5ehyurTBx0Pd1tWlEqGmwAfMc71relzMW', 'ADMIN'),
-('manager@example.com', 'Project Manager', '$2a$10$/OvNsoxV8e9.dGNKUntT5ehyurTBx0Pd1tWlEqGmwAfMc71relzMW', 'PROJECT_MANAGER'),
-('employee@example.com', 'Employee User', '$2a$10$/OvNsoxV8e9.dGNKUntT5ehyurTBx0Pd1tWlEqGmwAfMc71relzMW', 'EMPLOYEE')
-ON CONFLICT (email) DO NOTHING;
-
--- =============================================
--- SUCCÈS
--- =============================================
-
-DO $$
-BEGIN
-  RAISE NOTICE '✅ Schéma créé avec succès!';
-  RAISE NOTICE '📊 Tables créées: users, projects, tasks, notifications, email_logs, activity_logs, etc.';
-  RAISE NOTICE '🔍 Vues créées: project_stats, unread_notifications_count';
-  RAISE NOTICE '⚡ Triggers et indexes créés';
-  RAISE NOTICE '👤 Utilisateurs de test créés';
-END $$;
+CREATE TABLE public.stages (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  name character varying NOT NULL,
+  description text,
+  order integer NOT NULL DEFAULT 0,
+  duration integer,
+  status character varying DEFAULT 'PENDING'::character varying CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying, 'BLOCKED'::character varying]::text[])),
+  project_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by_id uuid,
+  CONSTRAINT stages_pkey PRIMARY KEY (id),
+  CONSTRAINT stages_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
+  CONSTRAINT stages_created_by_id_fkey FOREIGN KEY (created_by_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.tasks (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  title character varying NOT NULL,
+  description text,
+  status character varying DEFAULT 'TODO'::character varying CHECK (status::text = ANY (ARRAY['TODO'::character varying, 'IN_PROGRESS'::character varying, 'IN_REVIEW'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying]::text[])),
+  priority character varying DEFAULT 'MEDIUM'::character varying CHECK (priority::text = ANY (ARRAY['LOW'::character varying, 'MEDIUM'::character varying, 'HIGH'::character varying, 'URGENT'::character varying]::text[])),
+  due_date timestamp with time zone,
+  completed_at timestamp with time zone,
+  assigned_to_id uuid,
+  project_id uuid NOT NULL,
+  stage_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  created_by_id uuid,
+  CONSTRAINT tasks_pkey PRIMARY KEY (id),
+  CONSTRAINT tasks_assigned_to_id_fkey FOREIGN KEY (assigned_to_id) REFERENCES public.users(id),
+  CONSTRAINT tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
+  CONSTRAINT tasks_stage_id_fkey FOREIGN KEY (stage_id) REFERENCES public.stages(id),
+  CONSTRAINT tasks_created_by_id_fkey FOREIGN KEY (created_by_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_settings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL UNIQUE,
+  language character varying DEFAULT 'fr'::character varying,
+  timezone character varying DEFAULT 'Europe/Paris'::character varying,
+  notifications_enabled boolean DEFAULT true,
+  email_notifications boolean DEFAULT true,
+  theme character varying DEFAULT 'light'::character varying CHECK (theme::text = ANY (ARRAY['light'::character varying, 'dark'::character varying, 'auto'::character varying]::text[])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  date_format character varying DEFAULT 'DD/MM/YYYY'::character varying,
+  items_per_page integer DEFAULT 20 CHECK (items_per_page = ANY (ARRAY[10, 20, 50, 100])),
+  font_size character varying DEFAULT 'medium'::character varying CHECK (font_size::text = ANY (ARRAY['small'::character varying, 'medium'::character varying, 'large'::character varying]::text[])),
+  compact_mode boolean DEFAULT false,
+  CONSTRAINT user_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  email character varying NOT NULL UNIQUE,
+  name character varying,
+  role character varying DEFAULT 'EMPLOYEE'::character varying CHECK (role::text = ANY (ARRAY['ADMIN'::character varying, 'PROJECT_MANAGER'::character varying, 'EMPLOYEE'::character varying, 'VIEWER'::character varying]::text[])),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  password character varying,
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);

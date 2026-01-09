@@ -18,3 +18,18 @@ The lib/supabase.ts file was throwing an error if NEXT_PUBLIC_SUPABASE_URL was n
 - Test the Docker build: `docker-compose build api-backend`
 - If build succeeds, the application will use placeholder values if real env vars are not provided.
 - Ensure .env file has the correct Supabase credentials for production use.
+
+# Add Database to Docker Compose
+
+## Changes Made
+- Added PostgreSQL database service to docker-compose.yml
+- Configured database with name 'tdr_db', user 'postgres', password 'postgres'
+- Added volume for data persistence
+- Mounted schema_supabase.sql to auto-initialize database on first run
+- Updated service dependencies to ensure database starts before other services
+
+## Next Steps
+- Test docker-compose up to start all services including database
+- Verify database connection and schema initialization
+- Update environment variables if needed to connect to local database
+- Note: For full Supabase functionality locally, may need additional Supabase services (auth, rest API, etc.)

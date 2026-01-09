@@ -1,4 +1,20 @@
 services:
+  # Database
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: tdr_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./api-backend/supabase/schema_supabase.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    restart: unless-stopped
+
   # Backend API
   api-backend:
     build:
@@ -14,6 +30,8 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+    depends_on:
+      - db
 
   # Frontend
   web-frontend:
@@ -35,6 +53,7 @@ services:
     restart: unless-stopped
     depends_on:
       - api-backend
+      - db
 
   # Nginx Reverse Proxy
   nginx:
@@ -49,6 +68,10 @@ services:
     depends_on:
       - web-frontend
       - api-backend
+      - db
+
+volumes:
+  db_data:
 
 networks:
   app-network:
