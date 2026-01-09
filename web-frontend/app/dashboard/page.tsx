@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+
+export const dynamic = 'force-dynamic'
 import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
