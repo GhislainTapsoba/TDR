@@ -3,13 +3,13 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Installer dépendances système pour certains modules natifs
+# Installer dépendances système
 RUN apk add --no-cache libc6-compat python3 make g++
 
 # Copier les fichiers de dépendances
 COPY package.json package-lock.json* yarn.lock* pnpm-lock.yaml* ./
 
-# Installer dépendances selon le lockfile
+# Installer dépendances
 RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
     elif [ -f package-lock.json ]; then npm ci; \
     elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm install --frozen-lockfile; \
@@ -18,6 +18,9 @@ RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
 
 # Copier le code source
 COPY . .
+
+# Définir les variables d'environnement pour le build
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build Next.js
 RUN if [ -f yarn.lock ]; then yarn build; \
@@ -32,21 +35,25 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Créer utilisateur non-root
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copier les fichiers publics
-COPY --from=builder /app/public ./public
+# Copier les fichiers de configuration
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.* ./
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
-# Copier les fichiers standalone (générés par Next.js avec output: 'standalone')
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copier le build Next.js et les node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["npm", "start"]
