@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Backend API
+  api-backend:
+    build:
+      context: ./api-backend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - ./api-backend/.env
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # Frontend
+  web-frontend:
+    build:
+      context: ./web-frontend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost/api
+    env_file:
+      - ./web-frontend/.env.local
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      - api-backend
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - app-network
+    restart: unless-stopped
+    depends_on:
+      - web-frontend
+      - api-backend
+
+networks:
+  app-network:
+    driver: bridge
