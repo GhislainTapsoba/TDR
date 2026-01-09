@@ -6,11 +6,11 @@ services:
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
-      PORT: 3001
+      PORT: 3000
     env_file:
       - ./api-backend/.env
     expose:
-      - "3001"
+      - "3000"
     networks:
       - app-network
     restart: unless-stopped
@@ -24,12 +24,12 @@ services:
         NEXT_PUBLIC_API_URL: http://nginx/api
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 3001
       NEXT_PUBLIC_API_URL: http://nginx/api
     env_file:
       - ./web-frontend/.env.local
     expose:
-      - "3000"
+      - "3001"
     networks:
       - app-network
     restart: unless-stopped
