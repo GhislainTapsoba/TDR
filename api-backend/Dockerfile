@@ -2,7 +2,6 @@
 # Stage 1 : Builder
 # -------------------------------
 FROM node:20-alpine AS builder
-
 WORKDIR /app
 
 # Installer dépendances système pour modules natifs
@@ -17,7 +16,16 @@ RUN npm ci
 # Copier le reste du code
 COPY . .
 
-# Build TypeScript si tu as un build
+# -------------------------------
+# Variables d'environnement pour Next.js build
+# -------------------------------
+ENV NEXT_PUBLIC_SUPABASE_URL=https://zckxtpvggtojwrpdjage.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ENV NEXTAUTH_SECRET=8f3e9d2c1b4a5f6e7d8c9b0a1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f0e
+ENV NEXTAUTH_URL=http://localhost:3000
+ENV NEXT_PUBLIC_FRONTEND_URL=http://localhost:3001
+
+# Build TypeScript / Next.js
 RUN npm run build
 
 # -------------------------------
@@ -40,5 +48,5 @@ USER appuser
 
 EXPOSE 3000
 
-# Lancer l'API
-CMD ["node", "app/index.js"]   # <-- Remplace par ton point d'entrée exact
+# Lancer l'API / Frontend
+CMD ["node", "app/index.js"]
