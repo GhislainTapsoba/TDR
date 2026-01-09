@@ -16,16 +16,10 @@ RUN npm ci
 # Copier le reste du code
 COPY . .
 
-# -------------------------------
-# Variables d'environnement pour Next.js build
-# -------------------------------
-ENV NEXT_PUBLIC_SUPABASE_URL=https://zckxtpvggtojwrpdjage.supabase.co
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-ENV NEXTAUTH_SECRET=8f3e9d2c1b4a5f6e7d8c9b0a1f2e3d4c5b6a7f8e9d0c1b2a3f4e5d6c7b8a9f0e
-ENV NEXTAUTH_URL=http://localhost:3000
-ENV NEXT_PUBLIC_FRONTEND_URL=http://localhost:3001
+# Variables d'environnement pour le build
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build TypeScript / Next.js
+# Build Next.js
 RUN npm run build
 
 # -------------------------------
@@ -36,17 +30,28 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Créer utilisateur non-root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 appuser
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copier les fichiers construits depuis builder
-COPY --from=builder /app ./
+# Copier les fichiers de configuration
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.* ./
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
-USER appuser
+# Copier le build Next.js et les node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Copier les fichiers publics si ils existent
+COPY --from=builder --chown=nextjs:nodejs /app/public* ./public
+
+USER nextjs
 
 EXPOSE 3000
 
-# Lancer l'API / Frontend
-CMD ["node", "app/index.js"]
+ENV HOSTNAME="0.0.0.0"
+
+# Utiliser next start au lieu de node
+CMD ["npm", "start"]
