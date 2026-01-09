@@ -84,11 +84,11 @@ export async function POST(
     const recipients: Array<{ id: number; email: string; name: string }> = [];
 
     // Ajouter le créateur/chef de projet
-    if (project.created_by && project.created_by.email) {
+    if (project.created_by && (project.created_by as any).email) {
       recipients.push({
-        id: project.created_by.id,
-        email: project.created_by.email,
-        name: project.created_by.name || 'Chef de projet'
+        id: (project.created_by as any).id,
+        email: (project.created_by as any).email,
+        name: (project.created_by as any).name || 'Chef de projet'
       });
     }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
 import { supabase } from '@/lib/supabase'; // ton client Supabase
 import { sendEmail } from '@/lib/emailService';
-import { taskDueSoonTemplate } from '@/lib/emailTemplates'; // ou ton template correct
+import { stageStatusChangedByEmployeeTemplate } from '@/lib/emailTemplates';
 
 export async function PUT(
   request: NextRequest,
@@ -27,6 +27,18 @@ export async function PUT(
     if (fetchError) {
       console.error('Fetch original stage error:', fetchError);
       return NextResponse.json({ error: fetchError.message }, { status: 400 });
+    }
+
+    // Récupérer le projet pour le nom
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('name')
+      .eq('id', originalStage.project_id)
+      .single();
+
+    if (projectError) {
+      console.error('Fetch project error:', projectError);
+      // Continue without project name
     }
 
     // Mettre à jour l'étape
@@ -58,10 +70,19 @@ export async function PUT(
       const generalManagerEmail = process.env.GENERAL_MANAGER_EMAIL;
 
       if (projectManagerEmail || generalManagerEmail) {
-        const { subject, html } = taskDueSoonTemplate(updatedStage);
+        const html = stageStatusChangedByEmployeeTemplate({
+          employeeName: user.name || user.email,
+          stageName: updatedStage.name,
+          stageId: updatedStage.id.toString(),
+          projectTitle: project?.name || 'Projet',
+          projectId: originalStage.project_id.toString(),
+          oldStatus: originalStage.status,
+          newStatus: updatedStage.status,
+        });
+        const subject = `Changement de statut d'étape: ${updatedStage.name}`;
 
-        if (projectManagerEmail) await sendEmail(projectManagerEmail, subject, html);
-        if (generalManagerEmail) await sendEmail(generalManagerEmail, subject, html);
+        if (projectManagerEmail) await sendEmail({ to: projectManagerEmail, subject, html });
+        if (generalManagerEmail) await sendEmail({ to: generalManagerEmail, subject, html });
       }
     }
 

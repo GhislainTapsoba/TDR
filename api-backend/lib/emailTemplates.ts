@@ -180,7 +180,7 @@ export function taskUpdatedTemplate(data: {
   userName: string;
   taskTitle: string;
   changes: string;
-  taskId: number;
+  taskId: string;
   updatedBy: string;
 }): string {
   const content = `
@@ -210,7 +210,7 @@ export function stageCompletedTemplate(data: {
   completedBy: string;
   nextStageName?: string;
   tasksCreated: number;
-  projectId: number;
+  projectId: string;
 }): string {
   const content = `
     <h2>✅ Étape complétée</h2>
@@ -242,7 +242,7 @@ export function taskDueSoonTemplate(data: {
   taskTitle: string;
   dueDate: string;
   daysRemaining: number;
-  taskId: number;
+  taskId: string;
 }): string {
   const urgency = data.daysRemaining <= 1 ? 'URGENT' : 'IMPORTANT';
   const urgencyColor = data.daysRemaining <= 1 ? '#dc3545' : '#fd7e14';
@@ -280,7 +280,7 @@ export function projectCreatedTemplate(data: {
   startDate?: string;
   dueDate?: string;
   createdBy: string;
-  projectId: number;
+  projectId: string;
 }): string {
   const content = `
     <h2>🎉 Nouveau projet créé</h2>
