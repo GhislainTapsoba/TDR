@@ -7,7 +7,7 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { dashboardApi, activityLogsApi } from "@/lib/api"
+import { dashboardApi, activityLogsApi, ActivityLog } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { FolderKanban, CheckSquare, Clock, AlertTriangle, Users, TrendingUp, ActivityIcon } from "lucide-react"
 
@@ -30,7 +30,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({})
-  const [activities, setActivities] = useState<any[]>([])
+  const [activities, setActivities] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
 

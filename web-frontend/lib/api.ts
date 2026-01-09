@@ -98,7 +98,7 @@ export interface ActivityLog {
   entity_type: string;
   entity_id: number;
   details: string;
-  metadata: any;
+  metadata: Record<string, unknown>;
   created_at: string;
   user?: User;
 }
@@ -179,7 +179,7 @@ export const dashboardApi = {
 };
 
 export const projectsApi = {
-  getAll: (params?: any) => api.get<Project[]>('/projects', { params }),
+  getAll: (params?: Record<string, unknown>) => api.get<Project[]>('/projects', { params }),
   getById: (id: string) => api.get<Project>(`/projects/${id}`),
   create: (data: Partial<Project>) => api.post<Project>('/projects', data),
   update: (id: string, data: Partial<Project>) => api.put<Project>(`/projects/${id}`, data),
@@ -187,7 +187,7 @@ export const projectsApi = {
 };
 
 export const tasksApi = {
-  getAll: (params?: any) => api.get<Task[]>('/tasks', { params }),
+  getAll: (params?: Record<string, unknown>) => api.get<Task[]>('/tasks', { params }),
   getById: (id: string) => api.get<Task>(`/tasks/${id}`),
   create: (data: Partial<Task>) => api.post<Task>('/tasks', data),
   update: (id: string, data: Partial<Task>) => api.put<Task>(`/tasks/${id}`, data),
@@ -196,16 +196,16 @@ export const tasksApi = {
 };
 
 export const stagesApi = {
-  getAll: (params?: any) => api.get<Stage[]>('/stages', { params }),
+  getAll: (params?: Record<string, unknown>) => api.get<Stage[]>('/stages', { params }),
   getById: (id: string) => api.get<Stage>(`/stages/${id}`),
   create: (data: Partial<Stage>) => api.post<Stage>('/stages', data),
   update: (id: string, data: Partial<Stage>) => api.patch<Stage>(`/stages/${id}`, data),
   delete: (id: string) => api.delete(`/stages/${id}`),
-  complete: (id: string, tasks?: any[]) => api.post(`/stages/${id}/complete`, { tasks }),
+  complete: (id: string, tasks?: Task[]) => api.post(`/stages/${id}/complete`, { tasks }),
 };
 
 export const usersApi = {
-  getAll: (params?: any) => api.get<User[]>('/users', { params }),
+  getAll: (params?: Record<string, unknown>) => api.get<User[]>('/users', { params }),
   getById: (id: string) => api.get<User>(`/users/${id}`),
   create: (data: Partial<User>) => api.post<User>('/users', data),
   update: (id: string, data: Partial<User>) => api.put<User>(`/users/${id}`, data),
@@ -213,7 +213,7 @@ export const usersApi = {
 };
 
 export const activityLogsApi = {
-  getAll: (params?: any) => api.get<ActivityLog[]>('/activity-logs', { params }),
+  getAll: (params?: Record<string, unknown>) => api.get<ActivityLog[]>('/activity-logs', { params }),
 };
 
 export const notificationsApi = {
@@ -223,7 +223,7 @@ export const notificationsApi = {
 };
 
 export const documentsApi = {
-  getAll: (params?: any) => api.get<Document[]>('/documents', { params }),
+  getAll: (params?: Record<string, unknown>) => api.get<Document[]>('/documents', { params }),
   getById: (id: string) => api.get<Document>(`/documents/${id}`),
   create: (data: Partial<Document>) => api.post<Document>('/documents', data),
   delete: (id: string) => api.delete(`/documents/${id}`),

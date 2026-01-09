@@ -49,7 +49,6 @@ docker-compose down
 
 - Next.js 16 (App Router)
 - PostgreSQL + Supabase
-- NextAuth.js
 - Mailjet (emails)
 - TypeScript
 
