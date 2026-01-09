@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabase } from '@/supabase'; // ton client Supabase
+import { supabase } from '@/lib/supabase'; // ton client Supabase
 import { sendEmail } from '@/lib/emailService';
 import { taskDueSoonTemplate } from '@/lib/emailTemplates'; // ou ton template correct
 
