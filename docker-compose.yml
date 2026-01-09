@@ -13,9 +13,9 @@ services:
         - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
     environment:
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=3000
     expose:
-      - "3001"
+      - "3000"
     networks:
       - app-network
     restart: unless-stopped
@@ -31,10 +31,10 @@ services:
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3001
       - NEXT_PUBLIC_API_URL=http://localhost/api
     expose:
-      - "3000"
+      - "3001"
     networks:
       - app-network
     restart: unless-stopped
