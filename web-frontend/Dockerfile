@@ -16,7 +16,7 @@ RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
     else echo "Lockfile not found." && exit 1; \
     fi
 
-# Copier le code
+# Copier le code source
 COPY . .
 
 # Build Next.js
@@ -32,22 +32,21 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
 # Créer utilisateur non-root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copier les fichiers nécessaires depuis le builder
+# Copier les fichiers publics
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone/ ./  # si build standalone
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
 
-# Dossier .next pour cache
-RUN mkdir -p .next && chown nextjs:nodejs .next
+# Copier les fichiers standalone (générés par Next.js avec output: 'standalone')
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
+
 EXPOSE 3000
 
 CMD ["node", "server.js"]
