@@ -18,12 +18,33 @@ COPY . .
 
 # Variables d'environnement pour le build
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-key
-ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-key
 
-# Build Next.js with environment variables from .env if it exists
-RUN /bin/sh -c "if [ -f .env ]; then set -a && . .env && set +a && npm run build; else npm run build; fi"
+# Arguments de build (passés depuis docker-compose)
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG SUPABASE_SERVICE_ROLE_KEY
+ARG NEXTAUTH_SECRET
+ARG NEXTAUTH_URL
+ARG NEXT_PUBLIC_FRONTEND_URL
+ARG MAILJET_API_KEY
+ARG MAILJET_SECRET_KEY
+ARG MAIL_FROM_EMAIL
+ARG MAIL_FROM_NAME
+
+# Définir les variables d'environnement pour le build Next.js
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+ENV NEXTAUTH_URL=$NEXTAUTH_URL
+ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
+ENV MAILJET_API_KEY=$MAILJET_API_KEY
+ENV MAILJET_SECRET_KEY=$MAILJET_SECRET_KEY
+ENV MAIL_FROM_EMAIL=$MAIL_FROM_EMAIL
+ENV MAIL_FROM_NAME=$MAIL_FROM_NAME
+
+# Build Next.js
+RUN npm run build
 
 # -------------------------------
 # Stage 2 : Runner (production)
@@ -32,7 +53,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Créer utilisateur non-root
@@ -56,5 +77,4 @@ EXPOSE 3000
 
 ENV HOSTNAME="0.0.0.0"
 
-# Utiliser next start au lieu de node
 CMD ["npm", "start"]

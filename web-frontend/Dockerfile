@@ -19,8 +19,18 @@ RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \
 # Copier le code source
 COPY . .
 
-# Définir les variables d'environnement pour le build
+# Variables d'environnement pour le build
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Arguments de build (passés depuis docker-compose)
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+# Définir les variables pour le build
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 # Build Next.js
 RUN if [ -f yarn.lock ]; then yarn build; \
@@ -34,7 +44,7 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3001
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Créer utilisateur non-root
@@ -52,7 +62,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3001
 
 ENV HOSTNAME="0.0.0.0"
 
