@@ -126,7 +126,57 @@ export interface Document {
   updated_at: string;
 }
 
+export interface DashboardStats {
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalTasks: number;
+  activeTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+  overdueTasks: number;
+  myTasks: number;
+  recentActivity: ActivityLog[];
+}
+
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  language: string;
+  timezone: string;
+  notifications_enabled: boolean;
+  email_notifications: boolean;
+  theme: string;
+  date_format: string;
+  items_per_page: number;
+  font_size: string;
+  compact_mode: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationPreferences {
+  id: string;
+  user_id: string;
+  email_task_assigned: boolean;
+  email_task_updated: boolean;
+  email_task_due: boolean;
+  email_stage_completed: boolean;
+  email_project_created: boolean;
+  push_notifications: boolean;
+  daily_summary: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // API Functions
+export const dashboardApi = {
+  getStats: () => api.get<DashboardStats>('/dashboard/stats'),
+  getRecentActivity: (limit?: number) => api.get<ActivityLog[]>('/dashboard/activity', { 
+    params: { limit } 
+  }),
+};
+
 export const projectsApi = {
   getAll: (params?: any) => api.get<Project[]>('/projects', { params }),
   getById: (id: string) => api.get<Project>(`/projects/${id}`),
@@ -177,36 +227,6 @@ export const documentsApi = {
   create: (data: Partial<Document>) => api.post<Document>('/documents', data),
   delete: (id: string) => api.delete(`/documents/${id}`),
 };
-
-export interface UserSettings {
-  id: string;
-  user_id: string;
-  language: string;
-  timezone: string;
-  notifications_enabled: boolean;
-  email_notifications: boolean;
-  theme: string;
-  date_format: string;
-  items_per_page: number;
-  font_size: string;
-  compact_mode: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface NotificationPreferences {
-  id: string;
-  user_id: string;
-  email_task_assigned: boolean;
-  email_task_updated: boolean;
-  email_task_due: boolean;
-  email_stage_completed: boolean;
-  email_project_created: boolean;
-  push_notifications: boolean;
-  daily_summary: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 export const settingsApi = {
   get: () => api.get<UserSettings>('/settings'),

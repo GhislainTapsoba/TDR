@@ -7,7 +7,7 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { api } from "@/lib/api"
+import { dashboardApi, activityLogsApi } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { FolderKanban, CheckSquare, Clock, AlertTriangle, Users, TrendingUp, ActivityIcon } from "lucide-react"
 
@@ -37,9 +37,14 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsData, activitiesData] = await Promise.all([api.getDashboardStats(), api.getDashboardActivities()])
-        setStats(statsData as DashboardStats)
-        setActivities((activitiesData as { activities: any[] }).activities || [])
+        // Utiliser dashboardApi au lieu de api
+        const [statsResponse, activitiesResponse] = await Promise.all([
+          dashboardApi.getStats(),
+          dashboardApi.getRecentActivity(10)
+        ])
+        
+        setStats(statsResponse.data as DashboardStats)
+        setActivities(activitiesResponse.data || [])
       } catch (error) {
         console.error("Erreur lors du chargement du dashboard:", error)
       } finally {
@@ -275,7 +280,7 @@ export default function DashboardPage() {
                   <div key={activity.id} className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">{activity.description}</p>
+                      <p className="text-sm text-foreground">{activity.details || activity.action}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-xs text-muted-foreground">
                           {activity.user?.name ?? "—"}
