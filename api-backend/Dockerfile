@@ -1,49 +1,44 @@
 # -------------------------------
-# Stage 1 : Build
+# Stage 1 : Builder
 # -------------------------------
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
-# Créer le dossier de travail
 WORKDIR /app
 
-# Copier uniquement les fichiers de dépendances pour accélérer le cache
+# Installer dépendances système pour modules natifs
+RUN apk add --no-cache libc6-compat python3 make g++
+
+# Copier package.json et package-lock.json
 COPY package*.json ./
 
-# Installer toutes les dépendances (dev + prod) pour pouvoir générer Prisma
+# Installer dépendances
 RUN npm ci
 
-# Copier le reste du code source
+# Copier le reste du code
 COPY . .
 
-# Générer le client Prisma
-RUN npx prisma generate
-
-# Build de l'application (si tu as un build TypeScript ou Next.js)
+# Build TypeScript si tu as un build
 RUN npm run build
 
 # -------------------------------
-# Stage 2 : Production
+# Stage 2 : Runner (production)
 # -------------------------------
-FROM node:18-alpine
-
+FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Installer uniquement les dépendances de production
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Copier le build et les fichiers nécessaires depuis le builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/dist ./dist   # ou le dossier build de ton app
-COPY --from=builder /app/package.json ./package.json
-
-# Variables d'environnement par défaut
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Exposer le port
+# Créer utilisateur non-root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 appuser
+
+# Copier les fichiers construits depuis builder
+COPY --from=builder /app ./
+
+USER appuser
+
 EXPOSE 3000
 
-# Démarrer l'application
-CMD ["npm", "start"]
+# Lancer l'API
+CMD ["node", "app/index.js"]   # <-- Remplace par ton point d'entrée exact
