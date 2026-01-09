@@ -1,0 +1,215 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { api } from "@/lib/api"
+import { MainLayout } from "@/components/layout/main-layout"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Search, Calendar, Users, BarChart3, AlertTriangle } from "lucide-react"
+import Link from "next/link"
+import { format } from "date-fns"
+import { fr } from "date-fns/locale"
+
+interface Project {
+  id: number
+  title: string
+  description: string
+  start_date: string
+  end_date: string
+  status: "planifie" | "en_cours" | "en_pause" | "termine" | "annule"
+  chef_projet_id: number
+  chef_projet: {
+    id: number
+    name: string
+    email: string
+  } | null
+  stats?: {
+    total_tasks: number
+    completed_tasks: number
+    progress_percentage: number
+    is_overdue: boolean
+  }
+}
+
+const statusLabels = {
+  planifie: "Planifié",
+  en_cours: "En cours",
+  en_pause: "En pause",
+  termine: "Terminé",
+  annule: "Annulé",
+}
+
+const statusColors = {
+  planifie: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  en_cours: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  en_pause: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  termine: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  annule: "bg-red-500/10 text-red-400 border-red-500/20",
+}
+
+export default function ProjectsPage() {
+  const { data: session } = useSession();
+  const user = session?.user;
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+
+  useEffect(() => {
+    fetchProjects()
+  }, [])
+
+  const fetchProjects = async () => {
+    try {
+      const response = await api.getProjects() as { projects: Project[] };
+      setProjects(response.projects || []);
+    } catch (error) {
+      console.error("Erreur lors du chargement des projets:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredProjects = projects.filter((project) => {
+    const matchesSearch =
+      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesStatus = statusFilter === "all" || project.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
+
+  return (
+    <MainLayout>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Projets</h1>
+              <p className="text-muted-foreground">Gérez et suivez tous vos projets</p>
+            </div>
+            {/* @ts-ignore */}
+            {(user?.role === "admin" || user?.role === "chef_projet") && (
+              <Link href="/projects/new">
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouveau projet
+                </Button>
+              </Link>
+            )}
+          </div>
+
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher un projet..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filtrer par statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value="planifie">Planifié</SelectItem>
+                <SelectItem value="en_cours">En cours</SelectItem>
+                <SelectItem value="en_pause">En pause</SelectItem>
+                <SelectItem value="termine">Terminé</SelectItem>
+                <SelectItem value="annule">Annulé</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {filteredProjects.map((project) => (
+              <Link key={project.id} href={`/projects/${project.id}`}>
+                <Card className="h-full hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1 flex-1">
+                        <CardTitle className="text-lg text-foreground line-clamp-1">{project.title}</CardTitle>
+                        <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+                      </div>
+                      {project.stats?.is_overdue && (
+                        <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 ml-2" />
+                      )}
+                    </div>
+                    <Badge className={statusColors[project.status]}>{statusLabels[project.status]}</Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4" />
+                      <span>
+                        {format(new Date(project.start_date), "dd MMM", { locale: fr })} -{" "}
+                        {format(new Date(project.end_date), "dd MMM yyyy", { locale: fr })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      <span>Chef: {project.chef_projet?.name || "Non assigné"}</span>
+                    </div>
+
+                    {project.stats && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Progression</span>
+                          <span className="text-foreground font-medium">{project.stats.progress_percentage}%</span>
+                        </div>
+                        <div className="w-full bg-secondary rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${project.stats.progress_percentage}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>
+                            {project.stats.completed_tasks}/{project.stats.total_tasks} tâches
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {filteredProjects.length === 0 && (
+            <div className="text-center py-12">
+              <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                <BarChart3 className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Aucun projet trouvé</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm || statusFilter !== "all"
+                  ? "Aucun projet ne correspond à vos critères de recherche."
+                  : "Commencez par créer votre premier projet."}
+              </p>
+              {/* @ts-ignore */}
+              {(user?.role === "admin" || user?.role === "chef_projet") && !searchTerm && statusFilter === "all" && (
+                <Link href="/projects/new">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Créer un projet
+                  </Button>
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </MainLayout>
+  )
+}
