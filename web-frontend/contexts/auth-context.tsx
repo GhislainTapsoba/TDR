@@ -3,6 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useSession, signOut, signIn } from "next-auth/react"
 import { api, authApi } from "@/lib/api"
 
 interface User {
@@ -30,40 +31,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const { data: session, status } = useSession()
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("auth_token")
-    const storedUser = localStorage.getItem("auth_user")
+    if (status === 'loading') return
 
-    if (storedToken && storedUser) {
-      setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+    if (session?.user && session.accessToken) {
+      const sessionUser: User = {
+        id: session.user.id as string,
+        name: session.user.name as string,
+        email: session.user.email as string,
+        role: session.user.role as User['role'],
+        is_active: true, // Assume active if logged in
+        avatar: null,
+      }
+      setUser(sessionUser)
+      setToken(session.accessToken as string)
+      // Sync to localStorage for API calls
+      localStorage.setItem("token", session.accessToken as string)
+      localStorage.setItem("user", JSON.stringify(sessionUser))
+    } else {
+      setUser(null)
+      setToken(null)
+      localStorage.removeItem("token")
+      localStorage.removeItem("user")
     }
     setLoading(false)
-  }, [])
+  }, [session, status])
 
   const login = async (email: string, password: string) => {
-    try {
-      const response = await authApi.login(email, password);
-      const data = response.data; // { success: true, user, token }
+    const result = await signIn('credentials', {
+      redirect: false,
+      email,
+      password,
+    });
 
-      setUser(data.user)
-      setToken(data.token)
-      localStorage.setItem("auth_token", data.token)
-      localStorage.setItem("auth_user", JSON.stringify(data.user))
-
-      router.push("/dashboard")
-    } catch (error) {
-      throw error
+    if (result?.error) {
+      throw new Error(result.error);
     }
+
+    // The session will be updated automatically via useSession
+    router.push("/dashboard")
   }
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null)
     setToken(null)
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("auth_user")
-    router.push("/login")
+    localStorage.removeItem("token")
+    localStorage.removeItem("user")
+    await signOut({ callbackUrl: '/login' })
   }
 
   const updateUser = async (data: Partial<User> & { avatar?: File | null }) => {
@@ -80,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
       const updatedUser = response.data as User
       setUser(updatedUser)
-      localStorage.setItem("auth_user", JSON.stringify(updatedUser))
+      localStorage.setItem("user", JSON.stringify(updatedUser))
     } catch (error) {
       console.error("Erreur lors de la mise à jour de l'utilisateur:", error)
       throw error
