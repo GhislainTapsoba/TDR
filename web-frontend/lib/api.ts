@@ -136,8 +136,15 @@ export interface DashboardStats {
   completedTasks: number;
   pendingTasks: number;
   overdueTasks: number;
+  myProjects: number;
   myTasks: number;
+  pending_my_tasks: number;
+  in_progress_my_tasks: number;
   recentActivity: ActivityLog[];
+  tasksByStatus: Record<string, number>;
+  projectsByStatus: Record<string, number>;
+  recentProjects: Project[];
+  recentTasks: Task[];
 }
 
 export interface UserSettings {

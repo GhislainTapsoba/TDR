@@ -15,4 +15,6 @@
 - [x] Update docker-compose.yml to use http URLs
 - [x] Fix NextAuth authorize to use internal docker URL for API calls
 - [x] Extend NextAuth User type to include token
+- [x] Fix dashboard stats API to return correct structure and user-specific data
+- [x] Update DashboardStats interface to match API response
 - [x] Redeploy the app with docker-compose up --build

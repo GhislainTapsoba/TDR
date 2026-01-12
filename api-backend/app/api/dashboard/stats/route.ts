@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
+import { verifyAuth } from '@/lib/verifyAuth';
+import { mapDbRoleToUserRole } from '@/lib/permissions';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -10,17 +12,37 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/dashboard/stats - Récupérer les statistiques du dashboard
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await verifyAuth(request);
+    if (!authResult) {
+      return corsResponse(
+        { error: 'Unauthorized' },
+        request,
+        { status: 401 }
+      );
+    }
+
+    const { id: userId, role: userRole } = authResult;
+    const mappedRole = mapDbRoleToUserRole(userRole);
+
     // Récupérer les counts en parallèle
     const [
       { count: projectsCount },
       { count: tasksCount },
       { count: completedTasksCount },
       { count: usersCount },
+      { count: myProjectsCount },
+      { count: myTasksCount },
+      { count: pendingTasksCount },
+      { count: inProgressTasksCount },
     ] = await Promise.all([
       supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'COMPLETED'),
       supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('manager_id', userId),
+      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('assigned_to_id', userId),
+      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('assigned_to_id', userId).eq('status', 'TODO'),
+      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('assigned_to_id', userId).eq('status', 'IN_PROGRESS'),
     ]);
 
     // Récupérer les projets récents
@@ -98,12 +120,19 @@ export async function GET(request: NextRequest) {
     };
 
     const stats = {
-      counts: {
-        projects: projectsCount || 0,
-        tasks: tasksCount || 0,
-        completedTasks: completedTasksCount || 0,
-        users: usersCount || 0,
-      },
+      totalProjects: projectsCount || 0,
+      activeProjects: projectStatusCounts.IN_PROGRESS || 0,
+      completedProjects: projectStatusCounts.COMPLETED || 0,
+      totalTasks: tasksCount || 0,
+      completedTasks: completedTasksCount || 0,
+      pendingTasks: statusCounts.TODO || 0,
+      activeTasks: statusCounts.IN_PROGRESS || 0,
+      overdueTasks: 0, // TODO: implement overdue logic
+      myProjects: myProjectsCount || 0,
+      myTasks: myTasksCount || 0,
+      pending_my_tasks: pendingTasksCount || 0,
+      in_progress_my_tasks: inProgressTasksCount || 0,
+      recentActivity: [], // TODO: implement
       tasksByStatus: statusCounts,
       projectsByStatus: projectStatusCounts,
       recentProjects: recentProjects || [],
