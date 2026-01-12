@@ -3,6 +3,8 @@
 
  ✅ Supprimer le dossier api-backend/app/api/auth/[...nextauth]
 
+ ✅ Supprimer api-backend/app/api/[...nextauth]/route.ts
+
  Vérifier qu'il ne reste aucune référence à NextAuth dans le backend
 
 🧩 2. Ajouter NextAuth au frontend
@@ -15,10 +17,10 @@
 
 🌍 3. Variables d’environnement (frontend)
 
- ✅ Modifier web-frontend/.env
+ ✅ Modifier docker-compose.yml
 
 NEXTAUTH_URL=http://194.195.211.111
-NEXTAUTH_SECRET=nouvelle_cle_secrete
+NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
 NEXT_PUBLIC_API_URL=http://194.195.211.111/api
 
  Supprimer toute URL localhost ou /server
@@ -30,11 +32,11 @@ NEXT_PUBLIC_API_URL=http://194.195.211.111/api
  ✅ Vérifier que /api pointe vers le backend
 
 location /api/auth {
-  proxy_pass http://web-frontend:3000;
+  proxy_pass http://web-frontend:3001;
 }
 
 location /api {
-  proxy_pass http://api-backend:3001;
+  proxy_pass http://api-backend:3000;
 }
 
 🔐 5. Login frontend
