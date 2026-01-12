@@ -1,93 +1,96 @@
-import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
-import { handleCorsOptions, corsResponse } from '@/lib/cors';
-import { SignJWT } from 'jose';
 
-// Gérer les requêtes OPTIONS (preflight CORS)
-export async function OPTIONS(request: NextRequest) {
-    return handleCorsOptions(request);
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: NextRequest) {
-    try {
-        const { email, password } = await request.json();
+  try {
+    const { email, password } = await request.json();
 
-        // Validation
-        if (!email || !password) {
-            return corsResponse(
-                { error: 'Email et mot de passe requis' },
-                request,
-                { status: 400 }
-            );
-        }
+    console.log('🔐 Backend - Tentative de connexion:', email);
 
-        // Récupérer l'utilisateur
-        const { data: user, error } = await supabaseAdmin
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .single();
-
-        if (error || !user) {
-            return corsResponse(
-                { error: 'Email ou mot de passe incorrect' },
-                request,
-                { status: 401 }
-            );
-        }
-
-        // Vérifier le mot de passe
-        if (!user.password) {
-            return corsResponse(
-                { error: 'Mot de passe non configuré pour cet utilisateur' },
-                request,
-                { status: 401 }
-            );
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordValid) {
-            return corsResponse(
-                { error: 'Email ou mot de passe incorrect' },
-                request,
-                { status: 401 }
-            );
-        }
-
-        // Ne pas renvoyer le mot de passe au client
-        const { password: _, ...userWithoutPassword } = user;
-
-        // Créer un JWT token
-        const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
-        const token = await new SignJWT({
-            sub: user.id.toString(),
-            email: user.email,
-            name: user.name,
-            role: user.role,
-        })
-            .setProtectedHeader({ alg: 'HS256' })
-            .setIssuedAt()
-            .setExpirationTime('30d')
-            .sign(secret);
-
-        return corsResponse(
-            {
-                success: true,
-                user: userWithoutPassword,
-                token: token,
-            },
-            request,
-            { status: 200 }
-        );
-
-    } catch (error) {
-        console.error('Erreur login:', error);
-        return corsResponse(
-            { error: 'Erreur lors de la connexion' },
-            request,
-            { status: 500 }
-        );
+    // Validation
+    if (!email || !password) {
+      console.error('❌ Email ou mot de passe manquant');
+      return NextResponse.json(
+        { success: false, error: 'Email et mot de passe requis' },
+        { status: 400 }
+      );
     }
+
+    // Récupérer l'utilisateur depuis Supabase
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !user) {
+      console.error('❌ Utilisateur non trouvé:', error?.message);
+      return NextResponse.json(
+        { success: false, error: 'Email ou mot de passe incorrect' },
+        { status: 401 }
+      );
+    }
+
+    // Vérifier le mot de passe
+    if (!user.password) {
+      console.error('❌ Mot de passe non configuré');
+      return NextResponse.json(
+        { success: false, error: 'Mot de passe non configuré pour cet utilisateur' },
+        { status: 401 }
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      console.error('❌ Mot de passe incorrect');
+      return NextResponse.json(
+        { success: false, error: 'Email ou mot de passe incorrect' },
+        { status: 401 }
+      );
+    }
+
+    console.log('✅ Authentification réussie:', user.email);
+
+    // Ne pas renvoyer le mot de passe
+    const { password: _, ...userWithoutPassword } = user;
+
+    return NextResponse.json(
+      {
+        success: true,
+        user: userWithoutPassword,
+      },
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error('💥 Erreur serveur:', error);
+    return NextResponse.json(
+      { success: false, error: 'Erreur lors de la connexion' },
+      { status: 500 }
+    );
+  }
+}
+
+// Gérer les requêtes OPTIONS pour CORS
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }

@@ -28,7 +28,7 @@ export default function RootLayout({
             <Toaster />
           </NextAuthProvider>
         </Suspense>
-        <Analytics />
+        {/* <Analytics /> Désactivé en développement local */}
       </body>
     </html>
   )

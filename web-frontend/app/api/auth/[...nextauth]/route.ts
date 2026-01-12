@@ -7,23 +7,53 @@ const authOptions: AuthOptions = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: {},
-        password: {},
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
-          {
+        if (!credentials?.email || !credentials?.password) {
+          console.log("❌ Credentials manquantes");
+          return null;
+        }
+
+        console.log("🔐 Tentative de connexion:", credentials.email);
+        console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
+
+        try {
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
+          console.log("📡 Appel vers:", apiUrl);
+
+          const res = await fetch(apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(credentials),
-          }
-        );
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
 
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data.success) return null;
-        return data.user;
+          console.log("📊 Statut réponse:", res.status);
+
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error("❌ Erreur API:", errorText);
+            return null;
+          }
+
+          const data = await res.json();
+          console.log("✅ Données reçues:", data);
+
+          if (!data.success || !data.user) {
+            console.error("❌ Authentification échouée:", data);
+            return null;
+          }
+
+          console.log("✅ Utilisateur authentifié:", data.user.email);
+          return data.user;
+        } catch (error) {
+          console.error("💥 Erreur lors de l'authentification:", error);
+          return null;
+        }
       },
     }),
   ],
@@ -33,6 +63,8 @@ const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
         token.role = user.role;
       }
       return token;
@@ -40,11 +72,18 @@ const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
         session.user.role = token.role as string;
       }
       return session;
     },
   },
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
+  debug: true, // Active les logs en développement
 };
 
 const handler = NextAuth(authOptions);

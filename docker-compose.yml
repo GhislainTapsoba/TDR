@@ -4,19 +4,17 @@ services:
     build:
       context: ./api-backend
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-        - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-        - NEXTAUTH_URL=${NEXTAUTH_URL}
-        - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - NEXT_PUBLIC_API_URL=http://localhost:3000
-      - NEXTAUTH_URL=http://localhost
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXT_PUBLIC_SUPABASE_URL=https://zckxtpvggtojwrpdjage.supabase.co
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpja3h0cHZnZ3RvandycGRqYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NjMyNTAsImV4cCI6MjA4MTQzOTI1MH0.Y1nqQDoo_Qx0ZAAWfViJD3KDWTlPE1Gv7sLdDLaio5Q
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - NEXTAUTH_SECRET=b5a17ad16cec8dc05e4ba5f3a61f54e2083787a1d980696981769fb635ef18c9
+      - MAILJET_API_KEY=${MAILJET_API_KEY}
+      - MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}
+      - MAIL_FROM_EMAIL=${MAIL_FROM_EMAIL}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
     expose:
       - "3000"
     networks:
@@ -28,16 +26,15 @@ services:
     build:
       context: ./web-frontend
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-        - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-        - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     environment:
       - NODE_ENV=production
       - PORT=3001
       - NEXT_PUBLIC_API_URL=http://194.195.211.111/api
+      - NEXT_PUBLIC_SUPABASE_URL=https://zckxtpvggtojwrpdjage.supabase.co
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpja3h0cHZnZ3RvandycGRqYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NjMyNTAsImV4cCI6MjA4MTQzOTI1MH0.Y1nqQDoo_Qx0ZAAWfViJD3KDWTlPE1Gv7sLdDLaio5Q
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - NEXTAUTH_URL=http://194.195.211.111
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_SECRET=b5a17ad16cec8dc05e4ba5f3a61f54e2083787a1d980696981769fb635ef18c9
     expose:
       - "3001"
     networks:
