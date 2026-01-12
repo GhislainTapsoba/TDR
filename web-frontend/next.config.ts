@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Désactiver Vercel Analytics
+  output: 'standalone', // IMPORTANT pour Docker
+
   experimental: {
     webVitalsAttribution: ['CLS', 'LCP']
   },

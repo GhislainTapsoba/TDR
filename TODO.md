@@ -1,0 +1,4 @@
+- [x] Update web-frontend/next.config.ts to include output: 'standalone'
+- [x] Update web-frontend/Dockerfile for standalone build and runtime
+- [ ] Rebuild the Docker containers with docker-compose up --build (requires Docker Desktop running)
+- [ ] Test the login functionality to verify environment variables are set and logs appear
