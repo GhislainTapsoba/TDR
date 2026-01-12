@@ -7,25 +7,27 @@ import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { dashboardApi, activityLogsApi, ActivityLog } from "@/lib/api"
+import { dashboardApi, activityLogsApi, ActivityLog, Project, Task } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { FolderKanban, CheckSquare, Clock, AlertTriangle, Users, TrendingUp, ActivityIcon } from "lucide-react"
 
 interface DashboardStats {
-  total_projects?: number
-  active_projects?: number
-  completed_projects?: number
-  overdue_projects?: number
-  total_tasks?: number
-  completed_tasks?: number
-  overdue_tasks?: number
-  my_projects?: number
-  my_tasks?: number
-  pending_tasks?: number
-  in_progress_tasks?: number
-  total_users?: number
-  projects_by_status?: Record<string, number>
-  tasks_by_priority?: Record<string, number>
+  totalProjects?: number
+  activeProjects?: number
+  completedProjects?: number
+  overdueTasks?: number
+  totalTasks?: number
+  completedTasks?: number
+  pendingTasks?: number
+  myProjects?: number
+  myTasks?: number
+  pending_my_tasks?: number
+  in_progress_my_tasks?: number
+  totalUsers?: number
+  projectsByStatus?: Record<string, number>
+  tasksByStatus?: Record<string, number>
+  recentProjects?: Project[]
+  recentTasks?: Task[]
 }
 
 export default function DashboardPage() {
@@ -35,8 +37,6 @@ export default function DashboardPage() {
   const { user } = useAuth()
 
   useEffect(() => {
-    if (loading) return
-
     const fetchData = async () => {
       try {
         // Utiliser dashboardApi au lieu de api
@@ -55,35 +55,35 @@ export default function DashboardPage() {
     }
 
     fetchData()
-  }, [loading])
+  }, [])
 
   const getStatsCards = () => {
     if (user?.role === "admin") {
       return [
         {
           title: "Projets totaux",
-          value: stats.total_projects || 0,
-          description: `${stats.active_projects || 0} en cours`,
+          value: stats.totalProjects || 0,
+          description: `${stats.activeProjects || 0} en cours`,
           icon: FolderKanban,
           color: "text-chart-1",
         },
         {
           title: "Tâches totales",
-          value: stats.total_tasks || 0,
-          description: `${stats.completed_tasks || 0} terminées`,
+          value: stats.totalTasks || 0,
+          description: `${stats.completedTasks || 0} terminées`,
           icon: CheckSquare,
           color: "text-chart-2",
         },
         {
           title: "En retard",
-          value: (stats.overdue_projects || 0) + (stats.overdue_tasks || 0),
-          description: "Projets et tâches",
+          value: stats.overdueTasks || 0,
+          description: "Tâches en retard",
           icon: AlertTriangle,
           color: "text-destructive",
         },
         {
           title: "Utilisateurs",
-          value: stats.total_users || 0,
+          value: stats.totalUsers || 0,
           description: "Membres actifs",
           icon: Users,
           color: "text-chart-4",
@@ -93,28 +93,28 @@ export default function DashboardPage() {
       return [
         {
           title: "Mes projets",
-          value: stats.my_projects || 0,
-          description: `${stats.active_projects || 0} en cours`,
+          value: stats.myProjects || 0,
+          description: `${stats.activeProjects || 0} en cours`,
           icon: FolderKanban,
           color: "text-chart-1",
         },
         {
           title: "Tâches projet",
-          value: stats.total_tasks || 0,
-          description: `${stats.completed_tasks || 0} terminées`,
+          value: stats.totalTasks || 0,
+          description: `${stats.completedTasks || 0} terminées`,
           icon: CheckSquare,
           color: "text-chart-2",
         },
         {
           title: "Mes tâches",
-          value: stats.my_tasks || 0,
-          description: `${stats.pending_tasks || 0} en attente`,
+          value: stats.myTasks || 0,
+          description: `${stats.pending_my_tasks || 0} en attente`,
           icon: Clock,
           color: "text-chart-3",
         },
         {
           title: "En retard",
-          value: stats.overdue_tasks || 0,
+          value: stats.overdueTasks || 0,
           description: "Tâches urgentes",
           icon: AlertTriangle,
           color: "text-destructive",
@@ -124,28 +124,28 @@ export default function DashboardPage() {
       return [
         {
           title: "Mes tâches",
-          value: stats.my_tasks || 0,
+          value: stats.myTasks || 0,
           description: "Total assignées",
           icon: CheckSquare,
           color: "text-chart-1",
         },
         {
           title: "En attente",
-          value: stats.pending_tasks || 0,
+          value: stats.pending_my_tasks || 0,
           description: "À commencer",
           icon: Clock,
           color: "text-chart-2",
         },
         {
           title: "En cours",
-          value: stats.in_progress_tasks || 0,
+          value: stats.in_progress_my_tasks || 0,
           description: "En progression",
           icon: TrendingUp,
           color: "text-chart-3",
         },
         {
           title: "Terminées",
-          value: stats.completed_tasks || 0,
+          value: stats.completedTasks || 0,
           description: "Accomplies",
           icon: CheckSquare,
           color: "text-chart-4",
@@ -155,8 +155,8 @@ export default function DashboardPage() {
   }
 
   const getProgressPercentage = () => {
-    const total = stats.total_tasks || stats.my_tasks || 0
-    const completed = stats.completed_tasks || 0
+    const total = stats.totalTasks || stats.myTasks || 0
+    const completed = stats.completedTasks || 0
     return total > 0 ? Math.round((completed / total) * 100) : 0
   }
 
@@ -235,11 +235,11 @@ export default function DashboardPage() {
                 <Progress value={getProgressPercentage()} className="h-2" />
               </div>
 
-              {stats.projects_by_status && (
+              {stats.projectsByStatus && (
                 <div>
                   <h4 className="text-sm font-medium mb-3">Statut des projets</h4>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(stats.projects_by_status).map(([status, count]) => (
+                    {Object.entries(stats.projectsByStatus).map(([status, count]) => (
                       <Badge key={status} variant="secondary" className="capitalize">
                         {status.replace("_", " ")}: {count}
                       </Badge>
@@ -248,17 +248,17 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {stats.tasks_by_priority && (
+              {stats.tasksByStatus && (
                 <div>
-                  <h4 className="text-sm font-medium mb-3">Priorité des tâches</h4>
+                  <h4 className="text-sm font-medium mb-3">Statut des tâches</h4>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(stats.tasks_by_priority).map(([priority, count]) => (
+                    {Object.entries(stats.tasksByStatus).map(([status, count]) => (
                       <Badge
-                        key={priority}
-                        variant={priority === "high" ? "destructive" : priority === "medium" ? "default" : "secondary"}
+                        key={status}
+                        variant={status === "TODO" ? "secondary" : status === "IN_PROGRESS" ? "default" : "outline"}
                         className="capitalize"
                       >
-                        {priority === "high" ? "Haute" : priority === "medium" ? "Moyenne" : "Basse"}: {count}
+                        {status.replace("_", " ").toLowerCase()}: {count}
                       </Badge>
                     ))}
                   </div>

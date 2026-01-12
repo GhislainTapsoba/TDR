@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
       myTasks: myTasksCount || 0,
       pending_my_tasks: pendingTasksCount || 0,
       in_progress_my_tasks: inProgressTasksCount || 0,
+      totalUsers: usersCount || 0,
       recentActivity: [], // TODO: implement
       tasksByStatus: statusCounts,
       projectsByStatus: projectStatusCounts,

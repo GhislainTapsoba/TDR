@@ -17,4 +17,8 @@
 - [x] Extend NextAuth User type to include token
 - [x] Fix dashboard stats API to return correct structure and user-specific data
 - [x] Update DashboardStats interface to match API response
+- [x] Fix dashboard loading issue (useEffect condition preventing fetch)
+- [x] Update dashboard to use correct property names (camelCase)
+- [x] Add totalUsers to API response
+- [x] Test the dashboard display for different roles
 - [x] Redeploy the app with docker-compose up --build
