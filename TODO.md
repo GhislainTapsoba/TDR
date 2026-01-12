@@ -20,5 +20,6 @@
 - [x] Fix dashboard loading issue (useEffect condition preventing fetch)
 - [x] Update dashboard to use correct property names (camelCase)
 - [x] Add totalUsers to API response
+- [x] Fix NEXTAUTH_URL and API URLs for local development in docker-compose
 - [x] Test the dashboard display for different roles
 - [x] Redeploy the app with docker-compose up --build
