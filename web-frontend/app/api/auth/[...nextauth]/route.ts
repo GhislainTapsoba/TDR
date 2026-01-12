@@ -20,7 +20,7 @@ const authOptions: AuthOptions = {
         console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
 
         try {
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
+          const apiUrl = "http://194.195.211.111:3000/api/login"; // Correct endpoint from user's TODO
           console.log("📡 Appel vers:", apiUrl);
 
           const res = await fetch(apiUrl, {
@@ -43,13 +43,20 @@ const authOptions: AuthOptions = {
           const data = await res.json();
           console.log("✅ Données reçues:", data);
 
-          if (!data.success || !data.user) {
-            console.error("❌ Authentification échouée:", data);
+          // Check for user and token as returned by the new /api/login endpoint
+          if (!data.user || !data.token) {
+            console.error("❌ Authentification échouée: données manquantes (user ou token)", data);
             return null;
           }
 
           console.log("✅ Utilisateur authentifié:", data.user.email);
-          return data.user;
+          return {
+            id: data.user.id,
+            name: data.user.name,
+            email: data.user.email,
+            role: data.user.role,
+            token: data.token, // Include token for session
+          };
         } catch (error) {
           console.error("💥 Erreur lors de l'authentification:", error);
           return null;
@@ -66,6 +73,8 @@ const authOptions: AuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
+        // @ts-ignore
+        token.accessToken = user.token; // Store token from custom login
       }
       return token;
     },
@@ -75,6 +84,8 @@ const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.role = token.role as string;
+        // @ts-ignore
+        session.accessToken = token.accessToken; // Expose token in session
       }
       return session;
     },
