@@ -37,11 +37,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (status === 'loading') return
 
     if (session?.user && session.accessToken) {
+      const mapRole = (dbRole: string): User['role'] => {
+        switch (dbRole) {
+          case 'ADMIN': return 'admin'
+          case 'PROJECT_MANAGER': return 'chef_projet'
+          case 'EMPLOYEE': return 'employe'
+          default: return 'employe'
+        }
+      }
+
       const sessionUser: User = {
         id: session.user.id as string,
         name: session.user.name as string,
         email: session.user.email as string,
-        role: session.user.role as User['role'],
+        role: mapRole(session.user.role as string),
         is_active: true, // Assume active if logged in
         avatar: null,
       }
