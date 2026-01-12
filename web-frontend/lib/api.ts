@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// NEXT_PUBLIC_API_URL contient déjà /api (exemple: http://localhost/api)
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// NEXT_PUBLIC_API_URL contient déjà /api (exemple: /api pour production avec proxy)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export const api = axios.create({
   baseURL: API_URL,

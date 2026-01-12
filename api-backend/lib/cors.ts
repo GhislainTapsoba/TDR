@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Configuration CORS
 const ALLOWED_ORIGINS = [
+  'http://localhost',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
   process.env.NEXT_PUBLIC_FRONTEND_URL,

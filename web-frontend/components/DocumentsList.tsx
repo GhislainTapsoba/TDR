@@ -69,7 +69,7 @@ export default function DocumentsList({ projectId, taskId, canUpload = false, ca
       const formData = new FormData();
       formData.append('file', uploadFile);
 
-      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/documents/upload`, {
+      const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/documents/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,

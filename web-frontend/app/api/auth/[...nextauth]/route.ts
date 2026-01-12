@@ -20,8 +20,8 @@ const authOptions: AuthOptions = {
         console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
 
         try {
-          // Utiliser l'URL interne pour le serveur (docker network)
-          const apiUrl = `http://api-backend:3000/auth/login`;
+          // Utiliser l'URL de l'API
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
           console.log("📡 Appel vers:", apiUrl);
 
           const res = await fetch(apiUrl, {
@@ -92,6 +92,7 @@ const authOptions: AuthOptions = {
     async session({ session, token }) {
       if (token && session.user) {
         const mapRole = (dbRole: string): string => {
+          console.log("DEBUG: dbRole received from token:", dbRole); // Add this line
           switch (dbRole) {
             case 'ADMIN': return 'admin'
             case 'PROJECT_MANAGER': return 'chef_projet'
