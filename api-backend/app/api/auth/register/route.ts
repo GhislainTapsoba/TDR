@@ -1,86 +1,52 @@
-import { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
-import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
-// Gérer les requêtes OPTIONS (preflight CORS)
-export async function OPTIONS(request: NextRequest) {
-  return handleCorsOptions(request);
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { email, password, name, role } = await request.json();
+    const { name, email, password } = await req.json();
 
-    // Validation
-    if (!email || !password) {
-      return corsResponse(
-        { error: 'Email et mot de passe requis' },
-        request,
-        { status: 400 }
-      );
+    if (!name || !email || !password) {
+      return NextResponse.json({ error: 'Tous les champs sont requis.' }, { status: 400 });
     }
 
-    if (password.length < 6) {
-      return corsResponse(
-        { error: 'Le mot de passe doit contenir au moins 6 caractères' },
-        request,
-        { status: 400 }
-      );
+    // Basic email validation
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+        return NextResponse.json({ error: 'Format d\'email invalide.' }, { status: 400 });
     }
 
-    // Vérifier si l'email existe déjà
-    const { data: existingUser } = await supabaseAdmin
+    // Check if user already exists
+    const { data: existingUser, error: existingUserError } = await supabaseAdmin
       .from('users')
-      .select('id')
+      .select('email')
       .eq('email', email)
       .single();
 
     if (existingUser) {
-      return corsResponse(
-        { error: 'Cet email est déjà utilisé' },
-        request,
-        { status: 409 }
-      );
+      return NextResponse.json({ error: 'Un utilisateur avec cet email existe déjà.' }, { status: 409 });
     }
 
-    // Hasher le mot de passe
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Créer l'utilisateur
-    const { data: newUser, error } = await supabaseAdmin
+    // Insert new user
+    const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
-      .insert({
-        email,
-        password: hashedPassword,
-        name: name || null,
-        role: role || 'EMPLOYEE'
-      })
+      .insert([
+        { name, email, password: hashedPassword, role: 'EMPLOYEE' }
+      ])
       .select()
       .single();
 
-    if (error) {
-      throw error;
+    if (insertError) {
+      console.error('Error creating user:', insertError);
+      return NextResponse.json({ error: 'Erreur lors de la création de l\'utilisateur.' }, { status: 500 });
     }
 
-    // Ne pas renvoyer le mot de passe au client
-    const { password: _, ...userWithoutPassword } = newUser;
-
-    return corsResponse(
-      {
-        success: true,
-        user: userWithoutPassword
-      },
-      request,
-      { status: 201 }
-    );
+    return NextResponse.json({ message: 'Utilisateur créé avec succès.', user: newUser }, { status: 201 });
 
   } catch (error) {
-    console.error('Erreur registration:', error);
-    return corsResponse(
-      { error: 'Erreur lors de l\'inscription' },
-      request,
-      { status: 500 }
-    );
+    console.error('Registration error:', error);
+    return NextResponse.json({ error: 'Erreur interne du serveur.' }, { status: 500 });
   }
 }
