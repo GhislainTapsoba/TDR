@@ -129,7 +129,7 @@ export default function LoginPage() {
             <div className="mt-4 text-center text-sm">
               Pas encore de compte?{" "}
               <Link href="/register" className="underline">
-                S&aposinscrire
+                S'inscrire
               </Link>
             </div>
           </CardContent>

@@ -10,8 +10,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Tous les champs sont requis.' }, { status: 400 });
     }
 
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+
     // Basic email validation
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
         return NextResponse.json({ error: 'Format d\'email invalide.' }, { status: 400 });
     }
 
@@ -19,7 +22,7 @@ export async function POST(req: Request) {
     const { data: existingUser, error: existingUserError } = await supabaseAdmin
       .from('users')
       .select('email')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (existingUser) {
@@ -33,7 +36,7 @@ export async function POST(req: Request) {
     const { data: newUser, error: insertError } = await supabaseAdmin
       .from('users')
       .insert([
-        { name, email, password: hashedPassword, role: 'EMPLOYEE' }
+        { name, email: normalizedEmail, password: hashedPassword, role: 'EMPLOYEE' }
       ])
       .select()
       .single();

@@ -11,7 +11,10 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
-    console.log('🔐 Backend - Tentative de connexion:', email);
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+
+    console.log('🔐 Backend - Tentative de connexion:', normalizedEmail);
 
     // Validation
     if (!email || !password) {
@@ -26,7 +29,7 @@ export async function POST(request: NextRequest) {
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email)
+      .eq('email', normalizedEmail)
       .single();
 
     if (error || !user) {
