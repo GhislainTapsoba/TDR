@@ -13,13 +13,17 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
+        console.log('[Auth authorize] Function called.');
         if (!credentials?.email || !credentials?.password) {
+          console.log('[Auth authorize] Missing credentials.');
           return null
         }
         
         try {
           // TODO 7 — URL backend CORRECTE
-          const res = await fetch("http://api-backend:3000/api/login", {
+          const loginUrl = "http://api-backend:3000/api/login";
+          console.log(`[Auth authorize] Fetching ${loginUrl}`);
+          const res = await fetch(loginUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -30,14 +34,18 @@ export const authOptions: NextAuthOptions = {
             }),
           });
           
+          console.log(`[Auth authorize] Response status from /api/login: ${res.status}`);
           // TODO 8 — authorize() DOIT retourner un user
           if (!res.ok) {
+            console.log('[Auth authorize] Response not OK.');
             return null;
           }
 
           const data = await res.json();
+          console.log('[Auth authorize] Response data from /api/login:', data);
 
           if (data.user && data.token) {
+            console.log('[Auth authorize] Success, returning user object.');
             return {
               id: data.user.id,
               name: data.user.name,
@@ -47,10 +55,11 @@ export const authOptions: NextAuthOptions = {
             };
           }
           
+          console.log('[Auth authorize] Failed, data object is missing user or token.');
           return null;
 
         } catch (e) {
-          console.error("Authorize error:", e);
+          console.error("[Auth authorize] CATCH BLOCK ERROR:", e);
           return null;
         }
       }

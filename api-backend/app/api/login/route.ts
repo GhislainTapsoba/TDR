@@ -14,10 +14,13 @@ export async function POST(req: Request) {
   }
 
   try {
+    console.log('[API /login] Endpoint hit.');
     // TODO 2 — Lire email & password depuis JSON
     const { email, password } = await req.json();
+    console.log(`[API /login] Attempting to log in with email: ${email}`);
 
     if (!email || !password) {
+      console.log('[API /login] Missing email or password.');
       return new Response(JSON.stringify({ error: 'Email and password are required' }), {
         status: 400,
         headers: {
@@ -35,6 +38,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error || !user || !user.password) {
+      console.log('[API /login] User not found or no password set in DB.');
       return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
         status: 401,
         headers: {
@@ -45,8 +49,10 @@ export async function POST(req: Request) {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log(`[API /login] Password validation result: ${isPasswordValid}`);
 
     if (!isPasswordValid) {
+      console.log('[API /login] Invalid password.');
       return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
         status: 401,
         headers: {
@@ -78,6 +84,7 @@ export async function POST(req: Request) {
       token: jwtToken,
     };
 
+    console.log('[API /login] Login successful. Returning user data and token.');
     // TODO 5 — Activer CORS
     return new Response(JSON.stringify(responseData), {
       status: 200,
@@ -88,7 +95,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[API /login] CATCH BLOCK ERROR:', error);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
       status: 500,
       headers: {
