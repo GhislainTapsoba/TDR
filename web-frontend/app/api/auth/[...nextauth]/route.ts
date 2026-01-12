@@ -20,12 +20,15 @@ const authOptions: AuthOptions = {
         console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
 
         try {
-          const apiUrl = "http://194.195.211.111:3000/api/login"; // Correct endpoint from user's TODO
+          // CORRECTION: Utiliser l'URL via Nginx
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
           console.log("📡 Appel vers:", apiUrl);
 
           const res = await fetch(apiUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+            },
             body: JSON.stringify({
               email: credentials.email,
               password: credentials.password,
@@ -36,27 +39,30 @@ const authOptions: AuthOptions = {
 
           if (!res.ok) {
             const errorText = await res.text();
-            console.error("❌ Erreur API:", errorText);
+            console.error("❌ Erreur API:", res.status, errorText);
             return null;
           }
 
           const data = await res.json();
-          console.log("✅ Données reçues:", data);
+          console.log("✅ Données reçues:", JSON.stringify(data, null, 2));
 
-          // Check for user and token as returned by the new /api/login endpoint
-          if (!data.user || !data.token) {
-            console.error("❌ Authentification échouée: données manquantes (user ou token)", data);
+          // Vérifier le format de réponse du backend
+          if (!data.success || !data.user) {
+            console.error("❌ Format de réponse invalide:", data);
             return null;
           }
 
           console.log("✅ Utilisateur authentifié:", data.user.email);
+
+          // Retourner l'utilisateur (le token est optionnel pour NextAuth JWT)
           return {
             id: data.user.id,
-            name: data.user.name,
             email: data.user.email,
+            name: data.user.name,
             role: data.user.role,
-            token: data.token, // Include token for session
+            token: data.token, // Optionnel : si vous avez besoin du token ailleurs
           };
+
         } catch (error) {
           console.error("💥 Erreur lors de l'authentification:", error);
           return null;
@@ -64,7 +70,10 @@ const authOptions: AuthOptions = {
       },
     }),
   ],
-  session: { strategy: "jwt" },
+  session: { 
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 jours
+  },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, user }) {
@@ -73,8 +82,10 @@ const authOptions: AuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
-        // @ts-ignore
-        token.accessToken = user.token; // Store token from custom login
+        // @ts-ignore - Stocker le token si nécessaire
+        if (user.token) {
+          token.accessToken = user.token;
+        }
       }
       return token;
     },
@@ -84,8 +95,10 @@ const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.role = token.role as string;
-        // @ts-ignore
-        session.accessToken = token.accessToken; // Expose token in session
+        // @ts-ignore - Exposer le token dans la session
+        if (token.accessToken) {
+          session.accessToken = token.accessToken;
+        }
       }
       return session;
     },
@@ -94,7 +107,7 @@ const authOptions: AuthOptions = {
     signIn: '/login',
     error: '/login',
   },
-  debug: true, // Active les logs en développement
+  debug: true, // Logs détaillés
 };
 
 const handler = NextAuth(authOptions);
