@@ -91,10 +91,19 @@ const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
+        const mapRole = (dbRole: string): string => {
+          switch (dbRole) {
+            case 'ADMIN': return 'admin'
+            case 'PROJECT_MANAGER': return 'chef_projet'
+            case 'EMPLOYEE': return 'employe'
+            default: return 'employe'
+          }
+        }
+
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
-        session.user.role = token.role as string;
+        session.user.role = mapRole(token.role as string);
         // @ts-ignore - Exposer le token dans la session
         if (token.accessToken) {
           session.accessToken = token.accessToken;
