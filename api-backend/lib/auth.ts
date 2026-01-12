@@ -1,7 +1,8 @@
-import { NextAuthOptions } from 'next-auth'
+import { NextAuthOptions, User } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { supabaseAdmin } from './supabase'
 import bcrypt from 'bcryptjs'
+import jwt from 'jsonwebtoken'
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -12,7 +13,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         console.log('[Auth authorize] Function called.');
         if (!credentials?.email || !credentials?.password) {
           console.log('[Auth authorize] Missing credentials.');
@@ -55,12 +56,20 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          console.log('[Auth authorize] Login successful. Returning user object.');
+          console.log('[Auth authorize] Login successful. Generating custom token.');
+          
+          const customToken = jwt.sign(
+            { id: user.id, email: user.email, role: user.role, sub: user.id },
+            process.env.NEXTAUTH_SECRET!,
+            { expiresIn: '30d' }
+          );
+
           return {
             id: user.id.toString(),
             email: user.email,
             name: user.name,
             role: user.role,
+            customToken: customToken,
           };
         } catch (e) {
           console.error("[Auth authorize] CATCH BLOCK ERROR:", e);
@@ -78,13 +87,22 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        // @ts-ignore
+        if (user.customToken) {
+          // @ts-ignore
+          token.customToken = user.customToken
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
+        // @ts-ignore
         session.user.id = token.id as string;
+        // @ts-ignore
         session.user.role = token.role as string;
+        // @ts-ignore
+        session.customToken = token.customToken as string;
       }
       return session;
     }
