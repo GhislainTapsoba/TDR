@@ -173,7 +173,7 @@ export interface NotificationPreferences {
 // API Functions
 export const dashboardApi = {
   getStats: () => api.get<DashboardStats>('/dashboard/stats'),
-  getRecentActivity: (limit?: number) => api.get<ActivityLog[]>('/dashboard/activity', { 
+  getRecentActivity: (limit?: number) => api.get<ActivityLog[]>('/activity-logs', { 
     params: { limit } 
   }),
 };
