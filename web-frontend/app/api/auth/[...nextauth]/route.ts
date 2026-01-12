@@ -20,8 +20,8 @@ const authOptions: AuthOptions = {
         console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
 
         try {
-          // CORRECTION: Utiliser l'URL via Nginx
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
+          // Utiliser l'URL interne pour le serveur (docker network)
+          const apiUrl = `http://api-backend:3000/auth/login`;
           console.log("📡 Appel vers:", apiUrl);
 
           const res = await fetch(apiUrl, {

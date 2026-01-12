@@ -12,5 +12,7 @@
 - [x] Update logout function to use signOut from NextAuth
 - [x] Remove duplicate NextAuth routes in backend (api/auth/[...nextauth] and api/[...nextauth])
 - [x] Prevent API calls in dashboard until auth context is loaded
-- [x] Update docker-compose.yml to use https URLs for NEXTAUTH_URL and NEXT_PUBLIC_API_URL
+- [x] Update docker-compose.yml to use http URLs
+- [x] Fix NextAuth authorize to use internal docker URL for API calls
+- [x] Extend NextAuth User type to include token
 - [x] Redeploy the app with docker-compose up --build
