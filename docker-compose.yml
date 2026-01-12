@@ -5,6 +5,7 @@ services:
       context: ./api-backend
       dockerfile: Dockerfile
       args:
+        - NEXT_PUBLIC_API_URL=http://localhost:3000/api
         - NEXT_PUBLIC_SUPABASE_URL=https://zckxtpvggtojwrpdjage.supabase.co
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpja3h0cHZnZ3RvandycGRqYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NjMyNTAsImV4cCI6MjA4MTQzOTI1MH0.Y1nqQDoo_Qx0ZAAWfViJD3KDWTlPE1Gv7sLdDLaio5Q
         - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -18,6 +19,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api
       - NEXT_PUBLIC_SUPABASE_URL=https://zckxtpvggtojwrpdjage.supabase.co
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpja3h0cHZnZ3RvandycGRqYWdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NjMyNTAsImV4cCI6MjA4MTQzOTI1MH0.Y1nqQDoo_Qx0ZAAWfViJD3KDWTlPE1Gv7sLdDLaio5Q
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
