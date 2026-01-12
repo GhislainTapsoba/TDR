@@ -35,6 +35,8 @@ export default function DashboardPage() {
   const { user } = useAuth()
 
   useEffect(() => {
+    if (loading) return
+
     const fetchData = async () => {
       try {
         // Utiliser dashboardApi au lieu de api
@@ -42,7 +44,7 @@ export default function DashboardPage() {
           dashboardApi.getStats(),
           dashboardApi.getRecentActivity(10)
         ])
-        
+
         setStats(statsResponse.data as DashboardStats)
         setActivities(activitiesResponse.data || [])
       } catch (error) {
@@ -53,7 +55,7 @@ export default function DashboardPage() {
     }
 
     fetchData()
-  }, [])
+  }, [loading])
 
   const getStatsCards = () => {
     if (user?.role === "admin") {
