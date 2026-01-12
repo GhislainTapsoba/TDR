@@ -16,35 +16,42 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
+        
+        try {
+          // TODO 7 — URL backend CORRECTE
+          const res = await fetch("http://api-backend:3000/api/login", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
+          
+          // TODO 8 — authorize() DOIT retourner un user
+          if (!res.ok) {
+            return null;
+          }
 
-        const { data: user, error } = await supabaseAdmin
-          .from('users')
-          .select('*')
-          .eq('email', credentials.email)
-          .single()
+          const data = await res.json();
 
-        if (error || !user) {
-          return null
-        }
-
-        if (!user.password) {
+          if (data.user && data.token) {
+            return {
+              id: data.user.id,
+              name: data.user.name,
+              email: data.user.email,
+              role: data.user.role,
+              token: data.token,
+            };
+          }
+          
           return null;
-        }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
+        } catch (e) {
+          console.error("Authorize error:", e);
+          return null;
         }
       }
     })
@@ -58,6 +65,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id
         token.role = user.role
+        // @ts-ignore
+        token.accessToken = user.token
       }
       return token
     },
@@ -67,6 +76,8 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
         session.user.email = token.email as string
         session.user.name = token.name as string | null
+        // @ts-ignore
+        session.accessToken = token.accessToken
       }
       return session
     }
