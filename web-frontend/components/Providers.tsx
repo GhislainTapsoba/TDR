@@ -7,9 +7,7 @@ function SessionTokenHandler({ children }: { children: ReactNode }) {
   const { data: session } = useSession();
 
   useEffect(() => {
-    // @ts-ignore - The session object is augmented in the backend callbacks
     if (session?.customToken) {
-      // @ts-ignore
       localStorage.setItem('token', session.customToken);
     }
   }, [session]);

@@ -87,9 +87,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
-        // @ts-ignore
         if (user.customToken) {
-          // @ts-ignore
           token.customToken = user.customToken
         }
       }
@@ -97,11 +95,8 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        // @ts-ignore
         session.user.id = token.id as string;
-        // @ts-ignore
         session.user.role = token.role as string;
-        // @ts-ignore
         session.customToken = token.customToken as string;
       }
       return session;

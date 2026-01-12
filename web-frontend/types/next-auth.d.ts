@@ -8,6 +8,7 @@ declare module 'next-auth' {
             name: string;
             role: string;
         };
+        customToken?: string;
     }
 
     interface User {
@@ -24,5 +25,6 @@ declare module 'next-auth/jwt' {
         role: string;
         email: string;
         name: string;
+        customToken?: string;
     }
 }
