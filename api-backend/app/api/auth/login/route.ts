@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,6 +62,13 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Authentification réussie:', user.email);
 
+    // Générer un token JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET!,
+      { expiresIn: '30d' }
+    );
+
     // Ne pas renvoyer le mot de passe
     const { password: _, ...userWithoutPassword } = user;
 
@@ -68,8 +76,9 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         user: userWithoutPassword,
+        token,
       },
-      { 
+      {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
