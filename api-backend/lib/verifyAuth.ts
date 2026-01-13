@@ -32,7 +32,7 @@ export async function verifyAuth(request: NextRequest) {
             role: payload.role as string,
         };
     } catch (error) {
-        process.stderr.write(`ERROR: verifyAuth failed: ${error}\n`);
+
         return null;
     }
 }

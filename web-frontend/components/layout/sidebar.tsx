@@ -79,7 +79,7 @@ export function Sidebar() {
 
   // @ts-ignore
   const filteredNavigation = navigation.filter((item) => user && item.roles.includes(user.role))
-  console.log({ user, filteredNavigation });
+
 
   return (
     <div

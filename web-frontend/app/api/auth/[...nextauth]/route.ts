@@ -72,7 +72,7 @@ const authOptions: AuthOptions = {
             id: String(data.user.id),
             email: data.user.email,
             name: data.user.name || '',
-            role: data.user.role || 'user',
+            role: data.user.role?.toLowerCase() || 'user', // Convert role to lowercase for frontend
             accessToken: data.token,
           };
 
