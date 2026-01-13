@@ -9,6 +9,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./api-backend/supabase/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./api-backend/supabase/init-user.sql:/docker-entrypoint-initdb.d/init-user.sql
     networks:
       - app-network
     healthcheck:
