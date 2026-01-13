@@ -115,9 +115,9 @@ export async function PUT(request: NextRequest) {
     const preferences = preferencesRows[0];
 
     await db.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata)
        VALUES ($1, 'update', 'notification_preferences', $2, $3, $4)`,
-      [user.id, preferences.id, 'Préférences de notifications mises à jour', JSON.stringify(updateData)]
+      [user.id, preferences.id, 'Préférences de notifications mises à jour', JSON.stringify(body)]
     );
 
     return corsResponse(preferences, request);

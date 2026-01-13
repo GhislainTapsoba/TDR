@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
       [task_id, dependent_task_id]
     );
 
-    if (existingDepCount > 0) {
+    if ((existingDepCount ?? 0) > 0) {
       return corsResponse(
         { error: 'Cette dépendance existe déjà' },
         request,

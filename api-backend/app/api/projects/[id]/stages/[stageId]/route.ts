@@ -6,10 +6,10 @@ import { stageStatusChangedByEmployeeTemplate } from '@/lib/emailTemplates';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; stageId: string } }
+  { params }: { params: Promise<{ id: string; stageId: string }> }
 ) {
   try {
-    const { stageId } = params;
+    const { stageId } = await params;
     const user = await verifyAuth(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -96,10 +96,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; stageId: string } }
+  { params }: { params: Promise<{ id: string; stageId: string }> }
 ) {
   try {
-    const { stageId } = params;
+    const { stageId } = await params;
     const user = await verifyAuth(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -12,7 +12,7 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/projects/[id] - Récupérer un projet par ID (avec vérification d'accès)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -26,7 +26,7 @@ export async function GET(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const { rows, rowCount } = await db.query(
       `SELECT p.*, u.name as manager_name 
@@ -79,7 +79,7 @@ export async function GET(
 // PATCH /api/projects/[id] - Mettre à jour un projet
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -95,7 +95,7 @@ export async function PATCH(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const { rows: projectRows, rowCount: projectCount } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [id]);
@@ -108,8 +108,8 @@ export async function PATCH(
       return corsResponse({ error: 'Vous ne pouvez modifier que vos propres projets' }, request, { status: 403 });
     }
 
-    const updateFields = [];
-    const queryParams = [];
+    const updateFields: string[] = [];
+    const queryParams: any[] = [];
     let paramIndex = 1;
     
     const fieldsToUpdate = ['title', 'description', 'start_date', 'end_date', 'due_date', 'status', 'manager_id'];
@@ -155,7 +155,7 @@ export async function PATCH(
 // PUT /api/projects/[id] - Mettre à jour un projet (alias de PATCH)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return PATCH(request, { params });
 }
@@ -163,7 +163,7 @@ export async function PUT(
 // DELETE /api/projects/[id] - Supprimer un projet
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -179,7 +179,7 @@ export async function DELETE(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const { rows: projectRows, rowCount: projectCount } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [id]);
 

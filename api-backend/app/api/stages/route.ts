@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Pour les autres rôles, filtrer par accès au projet
+      queryText = baseQuery;
       const { rows: projectMembers } = await db.query('SELECT project_id FROM project_members WHERE user_id = $1', [userId]);
       const memberProjectIds = projectMembers.map(pm => pm.project_id);
 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
       if (finalAccessibleProjectIds.length === 0) {
         return corsResponse([], request);
       }
-      
+
       whereClauses.push(`s.project_id = ANY($${paramIndex++})`);
       queryParams.push(finalAccessibleProjectIds);
 

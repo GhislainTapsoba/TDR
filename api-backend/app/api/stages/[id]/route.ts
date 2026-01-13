@@ -14,7 +14,7 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/stages/[id] - Récupérer une étape par ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -28,7 +28,7 @@ export async function GET(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const { rows, rowCount } = await db.query(
       `SELECT s.*, u.name as created_by_name 
@@ -78,7 +78,7 @@ export async function GET(
 // PATCH /api/stages/[id] - Mettre à jour une étape
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -93,7 +93,7 @@ export async function PATCH(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const { rows: oldStageRows } = await db.query('SELECT * FROM stages WHERE id = $1', [id]);
@@ -141,9 +141,9 @@ export async function PATCH(
     const stage = updatedStageRows[0];
 
     await db.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata)
        VALUES ($1, 'update', 'stage', $2, $3, $4)`,
-      [userId, id, `Mise à jour de l'étape: ${stage.name}`, JSON.stringify({ changes: updateData })]
+      [userId, id, `Mise à jour de l'étape: ${stage.name}`, JSON.stringify({ changes: body })]
     );
     
     const hasStatusChange = !!(body.status && oldStage.status !== body.status);
@@ -214,7 +214,7 @@ export async function PATCH(
 // DELETE /api/stages/[id] - Supprimer une étape
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -229,7 +229,7 @@ export async function DELETE(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const { rows: stageRows } = await db.query('SELECT name, project_id FROM stages WHERE id = $1', [id]);
     if (stageRows.length === 0) {

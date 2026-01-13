@@ -14,10 +14,10 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/documents/[id] - Récupérer un document par ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const { rows, rowCount } = await db.query(
       `SELECT d.*, 
@@ -61,7 +61,7 @@ export async function GET(
 // PATCH /api/documents/[id] - Mettre à jour un document
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -69,7 +69,7 @@ export async function PATCH(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const updateFields = [];
@@ -142,7 +142,7 @@ export async function PATCH(
 // DELETE /api/documents/[id] - Supprimer un document
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -150,7 +150,7 @@ export async function DELETE(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     
     // Get document info before deleting
     const { rows: docRows, rowCount: docCount } = await db.query('SELECT name, storage_path FROM documents WHERE id = $1', [id]);

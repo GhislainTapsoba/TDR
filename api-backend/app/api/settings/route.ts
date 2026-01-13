@@ -120,9 +120,9 @@ export async function PUT(request: NextRequest) {
     const settings = settingsRows[0];
 
     await db.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata)
        VALUES ($1, 'update', 'settings', $2, $3, $4)`,
-      [user.id, settings.id, 'Paramètres mis à jour', JSON.stringify(updateData)]
+      [user.id, settings.id, 'Paramètres mis à jour', JSON.stringify(body)]
     );
 
     return corsResponse(settings, request);

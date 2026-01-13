@@ -14,6 +14,7 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<boolean> {
+  let emailLog: any = null;
   try {
     // Vérifier si Mailjet est configuré
     if (!process.env.MAILJET_API_KEY || !process.env.MAILJET_SECRET_KEY) {
@@ -35,7 +36,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
         options.metadata ? JSON.stringify(options.metadata) : null,
       ]
     );
-    const emailLog = emailLogRows[0];
+    emailLog = emailLogRows[0];
 
     // Envoyer l'email avec Mailjet
     const auth = Buffer.from(`${process.env.MAILJET_API_KEY}:${process.env.MAILJET_SECRET_KEY}`).toString('base64');

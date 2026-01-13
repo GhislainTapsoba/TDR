@@ -12,7 +12,7 @@ export async function OPTIONS(request: NextRequest) {
 // PUT /api/users/[id]/password - Changer le mot de passe
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -20,7 +20,7 @@ export async function PUT(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Un utilisateur ne peut changer que son propre mot de passe
     // (sauf si c'est un ADMIN qui peut changer n'importe quel mot de passe)

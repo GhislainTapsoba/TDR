@@ -7,12 +7,8 @@ import formidable, { File } from 'formidable';
 import fs from 'fs';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
-// Disable the default body parser to handle file streams
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Use Node.js runtime to handle file streams
+export const runtime = 'nodejs';
 
 // Handle CORS preflight requests
 export async function OPTIONS(request: NextRequest) {

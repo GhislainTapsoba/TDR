@@ -13,7 +13,7 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/users/[id] - Récupérer un utilisateur par ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -27,7 +27,7 @@ export async function GET(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     
     const query = 'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1';
     const { rows, rowCount } = await db.query(query, [id]);
@@ -50,7 +50,7 @@ export async function GET(
 // PATCH /api/users/[id] - Mettre à jour un utilisateur
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -64,7 +64,7 @@ export async function PATCH(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const updateFields = [];
@@ -125,7 +125,7 @@ export async function PATCH(
 // DELETE /api/users/[id] - Supprimer un utilisateur
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -139,7 +139,7 @@ export async function DELETE(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     
     const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [id]);
 

@@ -71,7 +71,7 @@ export async function PUT(request: NextRequest) {
         [email, user.id]
       );
 
-      if (existingUserCount > 0) {
+      if ((existingUserCount ?? 0) > 0) {
         return corsResponse(
           { error: 'Cet email est déjà utilisé par un autre utilisateur' },
           request,
@@ -109,9 +109,9 @@ export async function PUT(request: NextRequest) {
     const updatedUser = updatedUserRows[0];
 
     await db.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata)
        VALUES ($1, 'update', 'user_profile', $2, $3, $4)`,
-      [user.id, user.id, 'Profil mis à jour', JSON.stringify(updateData)], // updateData would be from original code, now constructed from updateFields
+      [user.id, user.id, 'Profil mis à jour', JSON.stringify(body)]
     );
 
     return corsResponse(updatedUser, request);

@@ -14,7 +14,7 @@ export async function OPTIONS(request: NextRequest) {
 // POST /api/stages/[id]/complete - Marquer une étape comme terminée
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -22,7 +22,7 @@ export async function POST(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const { rows: stageRows } = await db.query('SELECT * FROM stages WHERE id = $1', [id]);
     if (stageRows.length === 0) {

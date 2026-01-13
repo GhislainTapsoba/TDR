@@ -14,7 +14,7 @@ export async function OPTIONS(request: NextRequest) {
 // POST /api/tasks/[id]/reject - Refuser une tâche assignée
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -22,7 +22,8 @@ export async function POST(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id: taskId } = context.params;
+    const { id: taskId } = await context.params;
+    const taskIdNum = parseInt(taskId);
     const body = await request.json();
     const { rejectionReason } = body;
 
@@ -30,7 +31,7 @@ export async function POST(
       return corsResponse({ error: 'La raison du refus est obligatoire' }, request, { status: 400 });
     }
 
-    const { rows: taskRows } = await db.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
+    const { rows: taskRows } = await db.query('SELECT * FROM tasks WHERE id = $1', [taskIdNum]);
     if (taskRows.length === 0) {
       return corsResponse({ error: 'Tâche non trouvée' }, request, { status: 404 });
     }
@@ -76,16 +77,16 @@ export async function POST(
         managerName: recipient.name
       });
 
-      await sendEmail({ to: recipient.email, subject: `❌ Tâche refusée: ${task.title}`, html: emailHtml, userId: recipient.id, metadata: { task_id: task.id, project_id: project.id, action: 'TASK_REJECTED', rejected_by: user.id, rejection_reason: rejectionReason } });
+      await sendEmail({ to: recipient.email, subject: `❌ Tâche refusée: ${task.title}`, html: emailHtml, userId: recipient.id.toString(), metadata: { task_id: task.id.toString(), project_id: project.id.toString(), action: 'TASK_REJECTED', rejected_by: user.id.toString(), rejection_reason: rejectionReason } });
     }
 
     await db.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details)
        VALUES ($1, 'reject', 'task', $2, $3)`,
-      [user.id, taskId, `Tâche refusée: ${task.title}${rejectionReason ? ` - Raison: ${rejectionReason}` : ''}`]
+      [user.id.toString(), taskId, `Tâche refusée: ${task.title}${rejectionReason ? ` - Raison: ${rejectionReason}` : ''}`]
     );
 
-    return corsResponse({ success: true, message: 'Tâche refusée avec succès. Les responsables ont été notifiés.', task: { id: task.id, title: task.title, status: task.status } }, request);
+    return corsResponse({ success: true, message: 'Tâche refusée avec succès. Les responsables ont été notifiés.', task: { id: task.id.toString(), title: task.title, status: task.status } }, request);
   } catch (error) {
     console.error('POST /api/tasks/[id]/reject error:', error);
     return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
