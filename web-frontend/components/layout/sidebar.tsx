@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
@@ -19,6 +19,9 @@ import {
   Briefcase,
   Download,
 } from "lucide-react"
+
+const SIDEBAR_COOKIE_NAME = 'sidebar_state'
+const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 
 const navigation = [
   {
@@ -72,23 +75,22 @@ const navigation = [
 ]
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const cookieValue = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+        ?.split('=')[1]
+      return cookieValue === 'true'
+    }
+    return false
+  })
   const pathname = usePathname()
   const { data: session } = useSession();
   const user = session?.user;
 
   // @ts-ignore
   const filteredNavigation = navigation.filter((item) => user && item.roles.includes(user.role))
-
-  React.useEffect(() => {
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
-      ?.split('=')[1]
-    if (cookieValue) {
-      setCollapsed(cookieValue === 'true')
-    }
-  }, [])
 
 
   return (
