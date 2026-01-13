@@ -11,8 +11,12 @@ const authOptions: AuthOptions = {
         password: {},
       },
       async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -21,7 +25,20 @@ const authOptions: AuthOptions = {
         );
 
         if (!res.ok) return null;
-        return await res.json();
+
+        const data = await res.json();
+
+        if (!data.success || !data.user) {
+          return null;
+        }
+
+        return {
+          id: String(data.user.id),
+          email: data.user.email,
+          name: data.user.name || '',
+          role: data.user.role || 'user',
+          accessToken: data.token,
+        };
       },
     }),
   ],
