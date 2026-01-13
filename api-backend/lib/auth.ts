@@ -82,7 +82,17 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60, // 30 jours
   },
+  pages: {
+    signIn: '/login',
+  },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl + '/dashboard'
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
@@ -101,9 +111,6 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     }
-  },
-  pages: {
-    signIn: '/auth/signin'
   },
   // Configuration pour le cross-origin avec frontend séparé
   cookies: {

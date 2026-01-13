@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const result = await signIn('credentials', {
-      redirect: '/dashboard',
+      callbackUrl: '/dashboard',
       email,
       password,
     });
