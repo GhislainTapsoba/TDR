@@ -20,8 +20,8 @@ const authOptions: AuthOptions = {
         console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
 
         try {
-          // Utiliser l'URL de l'API
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
+        // Utiliser l'URL interne pour les appels serveur
+          const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
           console.log("📡 Appel vers:", apiUrl);
 
           const res = await fetch(apiUrl, {
@@ -70,9 +70,22 @@ const authOptions: AuthOptions = {
       },
     }),
   ],
-  session: { 
+  session: {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 jours
+    updateAge: 24 * 60 * 60, // 1 jour
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '194.195.211.111' : undefined,
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
@@ -82,7 +95,6 @@ const authOptions: AuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
-        // @ts-ignore - Stocker le token si nécessaire
         if (user.token) {
           token.accessToken = user.token;
         }
@@ -105,7 +117,6 @@ const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.role = mapRole(token.role as string);
-        // @ts-ignore - Exposer le token dans la session
         if (token.accessToken) {
           session.accessToken = token.accessToken;
         }

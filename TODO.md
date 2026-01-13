@@ -21,4 +21,20 @@
 ## Steps
 - [x] Update web-frontend/lib/api.ts: Change default API_URL to '/api'
 - [x] Update docker-compose.yml: Set NEXT_PUBLIC_API_URL=/api for web-frontend, remove from api-backend
+- [x] Update NextAuth authorize to use INTERNAL_API_URL for server-side API calls
+- [x] Add INTERNAL_API_URL=http://api-backend:3000/api to docker-compose web-frontend environment
 - [x] Rebuild and redeploy containers (user will handle)
+
+# TODO: Fix Automatic Disconnection Issue
+
+## Problem
+Users are being disconnected automatically, likely due to NextAuth session cookies not persisting correctly with the nginx proxy setup.
+
+## Steps
+- [x] Update NextAuth configuration to include cookies settings with proper domain and security options.
+- [x] Add updateAge to session configuration for periodic JWT refresh.
+- [ ] Rebuild and redeploy containers (user will handle).
+- [ ] Test the authentication persistence.
+
+## Files to Edit
+- web-frontend/app/api/auth/[...nextauth]/route.ts
