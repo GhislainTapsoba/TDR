@@ -68,6 +68,7 @@ const authOptions: AuthOptions = {
             email: data.user.email,
             name: data.user.name || '',
             role: data.user.role || 'user',
+            accessToken: data.token,
           };
 
         } catch (error) {
@@ -91,6 +92,7 @@ const authOptions: AuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: false,
+        domain: '194.195.211.111',
       },
     },
   },
@@ -102,6 +104,7 @@ const authOptions: AuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
+        token.accessToken = (user as any).accessToken;
       }
       return token;
     },
@@ -112,6 +115,7 @@ const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.role = token.role as string;
+        (session as any).accessToken = token.accessToken;
       }
       return session;
     },
