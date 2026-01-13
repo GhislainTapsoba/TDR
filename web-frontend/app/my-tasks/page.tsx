@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { api } from "@/lib/api"
+import { tasksApi } from "@/lib/api"
+import { useSession } from "next-auth/react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -108,19 +109,23 @@ function TaskCard({ task }: { task: Task }) {
 
 
 export default function MyTasksPage() {
+  const { data: session } = useSession()
+  const user = session?.user
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
 
   useEffect(() => {
-    fetchMyTasks()
-  }, [])
+    if (user?.id) {
+      fetchMyTasks()
+    }
+  }, [user?.id])
 
   const fetchMyTasks = async () => {
     try {
-      const response = await api.getMyTasks() as { tasks: Task[] };
-      setTasks(response.tasks || []);
+      const response = await tasksApi.getAll({ assigned_to: user?.id });
+      setTasks(response.data as any || []);
     } catch (error) {
       console.error("Erreur lors du chargement de mes tâches:", error)
       setTasks([]);
@@ -132,11 +137,11 @@ export default function MyTasksPage() {
   const updateTaskStatus = async (taskId: number, newStatus: string) => {
     // Optimistic update
     const oldTasks = tasks;
-    setTasks(prevTasks => prevTasks.map(task => 
+    setTasks(prevTasks => prevTasks.map(task =>
       task.id === taskId ? { ...task, status: newStatus as any } : task
     ));
     try {
-      await api.updateTaskStatus(taskId, newStatus);
+      await tasksApi.update(taskId.toString(), { status: newStatus });
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error)
       setTasks(oldTasks); // Rollback on error

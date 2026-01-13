@@ -74,6 +74,12 @@ const navigation = [
   },
 ]
 
+const roleLabels: Record<string, string> = {
+  admin: "Administrateur",
+  employe: "Employé",
+  chef_projet: "Chef de projet",
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession();
@@ -105,7 +111,7 @@ export function Sidebar() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
               {/* @ts-ignore */}
-              <p className="text-xs text-sidebar-foreground/60 capitalize">{user.role?.replace("_", " ")}</p>
+              <p className="text-xs text-sidebar-foreground/60">{roleLabels[user.role] || user.role?.replace("_", " ")}</p>
             </div>
           </div>
         </div>

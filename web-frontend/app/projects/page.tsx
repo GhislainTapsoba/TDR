@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { api } from "@/lib/api"
+import { projectsApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -65,8 +65,8 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await api.getProjects() as { projects: Project[] };
-      setProjects(response.projects || []);
+      const response = await projectsApi.getAll();
+      setProjects(response.data as any || []);
     } catch (error) {
       console.error("Erreur lors du chargement des projets:", error)
     } finally {
