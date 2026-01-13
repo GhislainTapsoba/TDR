@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
-import { sendEmail } from '@/lib/emailService';
-import { projectCreatedNotificationTemplate } from '@/lib/emailTemplates';
-import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
 import { sendActionNotification } from '@/lib/notificationService';
+import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -28,87 +26,56 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    let queryText: string;
+    const queryParams: any[] = [];
+
+    let paramIndex = 1;
+
+    // Base query with join
+    const baseQuery = `
+      SELECT p.*, u.name as manager_name 
+      FROM projects p 
+      LEFT JOIN users u ON p.manager_id = u.id
+    `;
 
     // Si ADMIN, retourner tous les projets
     if (userRole === 'admin') {
-      let query = supabaseAdmin.from('projects').select(`
-        *,
-        manager:users!manager_id(name)
-      `);
-
+      queryText = baseQuery;
       if (status) {
-        query = query.eq('status', status);
+        queryText += ` WHERE p.status = ${paramIndex++}`;
+        queryParams.push(status);
+      }
+    } else {
+      // Pour les autres rôles, filtrer par assignation
+      const { rows: projectMembers } = await db.query('SELECT project_id FROM project_members WHERE user_id = ', [user.id]);
+      const memberProjectIds = projectMembers.map(pm => pm.project_id);
+
+      const { rows: assignedTasks } = await db.query('SELECT DISTINCT project_id FROM tasks WHERE assigned_to_id = ', [user.id]);
+      const taskProjectIds = assignedTasks.map(t => t.project_id);
+      
+      const allAccessibleProjectIds = [...new Set([...memberProjectIds, ...taskProjectIds])];
+
+      queryText = baseQuery + ` WHERE (p.created_by_id = ${paramIndex} OR p.manager_id = ${paramIndex++}`;
+      queryParams.push(user.id);
+      
+      if (allAccessibleProjectIds.length > 0) {
+        queryText += ` OR p.id = ANY(${paramIndex++}))`;
+        queryParams.push(allAccessibleProjectIds);
+      } else {
+        queryText += `)`;
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Transform data to use manager_name instead of manager_id
-      const transformedData = data?.map(project => ({
-        ...project,
-        manager_name: project.manager?.name || null
-      }));
-      transformedData?.forEach(project => {
-        delete project.manager_id;
-        delete project.manager;
-      });
-
-      return corsResponse(transformedData || [], request);
+      if (status) {
+        queryText += ` AND p.status = ${paramIndex++}`;
+        queryParams.push(status);
+      }
     }
 
-    // Pour les autres rôles, filtrer par assignation
-    // Récupérer les IDs des projets accessibles via project_members
-    const { data: projectMembers, error: membersError } = await supabaseAdmin
-      .from('project_members')
-      .select('project_id')
-      .eq('user_id', user.id);
+    queryText += ' ORDER BY p.created_at DESC';
 
-    if (membersError) throw membersError;
+    const { rows: projects } = await db.query(queryText, queryParams);
 
-    const memberProjectIds = projectMembers?.map(pm => pm.project_id) || [];
-
-    // Récupérer les IDs des projets où l'utilisateur a des tâches assignées
-    const { data: assignedTasks, error: tasksError } = await supabaseAdmin
-      .from('tasks')
-      .select('project_id')
-      .eq('assigned_to_id', user.id);
-
-    if (tasksError) throw tasksError;
-
-    const taskProjectIds = assignedTasks?.map(t => t.project_id) || [];
-
-    // Combiner tous les IDs de projets accessibles
-    const allAccessibleProjectIds = [...new Set([...memberProjectIds, ...taskProjectIds])];
-
-    // Récupérer les projets où l'utilisateur est créateur, manager, membre OU a des tâches assignées
-    let query = supabaseAdmin
-      .from('projects')
-      .select(`
-        *,
-        manager:users!manager_id(name)
-      `)
-      .or(`created_by_id.eq.${user.id},manager_id.eq.${user.id}${allAccessibleProjectIds.length > 0 ? `,id.in.(${allAccessibleProjectIds.join(',')})` : ''}`);
-
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    // Transform data to use manager_name instead of manager_id
-    const transformedData = data?.map(project => ({
-      ...project,
-      manager_name: project.manager?.name || null
-    }));
-    transformedData?.forEach(project => {
-      delete project.manager_id;
-      delete project.manager;
-    });
-
-    return corsResponse(transformedData || [], request);
+    return corsResponse(projects || [], request);
   } catch (error) {
     console.error('Get projects error:', error);
     return corsResponse(
@@ -134,36 +101,34 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    
+    const insertQuery = `
+      INSERT INTO projects (title, description, start_date, end_date, due_date, status, created_by_id, manager_id)
+      VALUES (, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `;
+    const { rows } = await db.query(insertQuery, [
+      body.title,
+      body.description || null,
+      body.start_date || null,
+      body.end_date || null,
+      body.due_date || null,
+      body.status || 'PLANNING',
+      body.created_by_id || user.id || null,
+      body.manager_id || null,
+    ]);
 
-    const { data, error } = await supabaseAdmin
-      .from('projects')
-      .insert({
-        title: body.title,
-        description: body.description || null,
-        start_date: body.start_date || null,
-        end_date: body.end_date || null,
-        due_date: body.due_date || null,
-        status: body.status || 'PLANNING',
-        created_by_id: body.created_by_id || user.id || null,
-        manager_id: body.manager_id || null,
-      })
-      .select(`
-        *,
-        manager:users!manager_id(name)
-      `)
-      .single();
-
-    if (error) throw error;
+    const newProject = rows[0];
 
     // Envoyer les notifications selon les règles métier
-    const { data: managerInfo } = data.manager_id
-      ? await supabaseAdmin
-          .from('users')
-          .select('id, name, email, role')
-          .eq('id', data.manager_id)
-          .single()
-      : { data: null };
-
+    let managerInfo = null;
+    if (newProject.manager_id) {
+        const { rows: managerRows } = await db.query('SELECT id, name, email, role FROM users WHERE id = ', [newProject.manager_id]);
+        if (managerRows.length > 0) {
+            managerInfo = managerRows[0];
+        }
+    }
+    
     const affectedUsers = managerInfo ? [managerInfo] : [];
 
     await sendActionNotification({
@@ -176,23 +141,21 @@ export async function POST(request: NextRequest) {
       },
       entity: {
         type: 'project',
-        id: data.id,
-        data: data
+        id: newProject.id,
+        data: newProject
       },
       affectedUsers,
-      projectId: data.id,
+      projectId: newProject.id,
       metadata: {}
     });
 
-    // Transform data to use manager_name instead of manager_id
-    const transformedData = {
-      ...data,
-      manager_name: data.manager?.name || null
-    };
-    delete transformedData.manager_id;
-    delete transformedData.manager;
+    // We can join in the initial query to get manager_name, let's refetch for simplicity for now
+    const { rows: projectWithManager } = await db.query(
+      'SELECT p.*, u.name as manager_name FROM projects p LEFT JOIN users u ON p.manager_id = u.id WHERE p.id = ',
+      [newProject.id]
+    );
 
-    return corsResponse(transformedData, request, { status: 201 });
+    return corsResponse(projectWithManager[0], request, { status: 201 });
   } catch (error) {
     console.error('Create project error:', error);
     return corsResponse(
@@ -202,3 +165,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

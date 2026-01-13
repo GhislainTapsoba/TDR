@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
@@ -16,50 +16,31 @@ export async function GET(request: NextRequest) {
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    // Récupérer les settings
-    const { data: settings, error } = await supabaseAdmin
-      .from('user_settings')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    const { rows: settingsRows, rowCount: settingsCount } = await db.query(
+      'SELECT * FROM user_settings WHERE user_id = $1',
+      [user.id]
+    );
 
-    if (error) {
+    if (settingsCount === 0) {
       // Si pas de settings, créer des settings par défaut
-      if (error.code === 'PGRST116') {
-        const { data: newSettings, error: createError } = await supabaseAdmin
-          .from('user_settings')
-          .insert({
-            user_id: user.id,
-            language: 'fr',
-            timezone: 'Europe/Paris',
-            notifications_enabled: true,
-            email_notifications: true,
-            theme: 'light',
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating settings:', createError);
-          return corsResponse(
-            { error: 'Erreur lors de la création des paramètres' },
-            request,
-            { status: 500 }
-          );
-        }
-
-        return corsResponse(newSettings, request);
-      }
-
-      console.error('Error fetching settings:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération des paramètres' },
-        request,
-        { status: 500 }
+      const { rows: newSettingsRows } = await db.query(
+        `INSERT INTO user_settings (user_id, language, timezone, notifications_enabled, email_notifications, theme)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [user.id, 'fr', 'Europe/Paris', true, true, 'light']
       );
+      if (newSettingsRows.length === 0) {
+        console.error('Error creating settings: no row returned');
+        return corsResponse(
+          { error: 'Erreur lors de la création des paramètres' },
+          request,
+          { status: 500 }
+        );
+      }
+      return corsResponse(newSettingsRows[0], request);
     }
 
-    return corsResponse(settings, request);
+    return corsResponse(settingsRows[0], request);
   } catch (error) {
     console.error('GET /api/settings error:', error);
     return corsResponse(
@@ -91,16 +72,11 @@ export async function PUT(request: NextRequest) {
       compact_mode,
     } = body;
 
-    // Vérifier que au moins un champ est fourni
     if (
-      language === undefined &&
-      timezone === undefined &&
-      notifications_enabled === undefined &&
-      email_notifications === undefined &&
-      theme === undefined &&
-      date_format === undefined &&
-      items_per_page === undefined &&
-      font_size === undefined &&
+      language === undefined && timezone === undefined &&
+      notifications_enabled === undefined && email_notifications === undefined &&
+      theme === undefined && date_format === undefined &&
+      items_per_page === undefined && font_size === undefined &&
       compact_mode === undefined
     ) {
       return corsResponse(
@@ -110,44 +86,44 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Construire l'objet de mise à jour
-    const updateData: any = {};
-    if (language !== undefined) updateData.language = language;
-    if (timezone !== undefined) updateData.timezone = timezone;
-    if (notifications_enabled !== undefined) updateData.notifications_enabled = notifications_enabled;
-    if (email_notifications !== undefined) updateData.email_notifications = email_notifications;
-    if (theme !== undefined) updateData.theme = theme;
-    if (date_format !== undefined) updateData.date_format = date_format;
-    if (items_per_page !== undefined) updateData.items_per_page = items_per_page;
-    if (font_size !== undefined) updateData.font_size = font_size;
-    if (compact_mode !== undefined) updateData.compact_mode = compact_mode;
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
 
-    // Mettre à jour les settings
-    const { data: settings, error } = await supabaseAdmin
-      .from('user_settings')
-      .update(updateData)
-      .eq('user_id', user.id)
-      .select()
-      .single();
+    if (language !== undefined) { updateFields.push(`language = ${paramIndex++}`); queryParams.push(language); }
+    if (timezone !== undefined) { updateFields.push(`timezone = ${paramIndex++}`); queryParams.push(timezone); }
+    if (notifications_enabled !== undefined) { updateFields.push(`notifications_enabled = ${paramIndex++}`); queryParams.push(notifications_enabled); }
+    if (email_notifications !== undefined) { updateFields.push(`email_notifications = ${paramIndex++}`); queryParams.push(email_notifications); }
+    if (theme !== undefined) { updateFields.push(`theme = ${paramIndex++}`); queryParams.push(theme); }
+    if (date_format !== undefined) { updateFields.push(`date_format = ${paramIndex++}`); queryParams.push(date_format); }
+    if (items_per_page !== undefined) { updateFields.push(`items_per_page = ${paramIndex++}`); queryParams.push(items_per_page); }
+    if (font_size !== undefined) { updateFields.push(`font_size = ${paramIndex++}`); queryParams.push(font_size); }
+    if (compact_mode !== undefined) { updateFields.push(`compact_mode = ${paramIndex++}`); queryParams.push(compact_mode); }
 
-    if (error) {
-      console.error('Error updating settings:', error);
+    queryParams.push(user.id);
+    const updateQuery = `
+      UPDATE user_settings 
+      SET ${updateFields.join(', ')} 
+      WHERE user_id = ${paramIndex}
+      RETURNING *
+    `;
+
+    const { rows: settingsRows, rowCount: settingsCount } = await db.query(updateQuery, queryParams);
+
+    if (settingsCount === 0) {
       return corsResponse(
-        { error: 'Erreur lors de la mise à jour des paramètres' },
+        { error: 'Paramètres utilisateur non trouvés pour cet utilisateur' },
         request,
-        { status: 500 }
+        { status: 404 }
       );
     }
+    const settings = settingsRows[0];
 
-    // Log de l'activité
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: user.id,
-      action: 'update',
-      entity_type: 'settings',
-      entity_id: settings.id,
-      details: 'Paramètres mis à jour',
-      metadata: updateData,
-    });
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+       VALUES ($1, 'update', 'settings', $2, $3, $4)`,
+      [user.id, settings.id, 'Paramètres mis à jour', JSON.stringify(updateData)]
+    );
 
     return corsResponse(settings, request);
   } catch (error) {

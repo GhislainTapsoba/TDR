@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
@@ -16,52 +16,31 @@ export async function GET(request: NextRequest) {
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    // Récupérer les préférences de notifications
-    const { data: preferences, error } = await supabaseAdmin
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    const { rows: preferencesRows, rowCount: preferencesCount } = await db.query(
+      'SELECT * FROM notification_preferences WHERE user_id = $1',
+      [user.id]
+    );
 
-    if (error) {
+    if (preferencesCount === 0) {
       // Si pas de préférences, créer des préférences par défaut
-      if (error.code === 'PGRST116') {
-        const { data: newPreferences, error: createError } = await supabaseAdmin
-          .from('notification_preferences')
-          .insert({
-            user_id: user.id,
-            email_task_assigned: true,
-            email_task_updated: true,
-            email_task_due: true,
-            email_stage_completed: false,
-            email_project_created: true,
-            push_notifications: true,
-            daily_summary: false,
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating notification preferences:', createError);
-          return corsResponse(
-            { error: 'Erreur lors de la création des préférences de notifications' },
-            request,
-            { status: 500 }
-          );
-        }
-
-        return corsResponse(newPreferences, request);
-      }
-
-      console.error('Error fetching notification preferences:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération des préférences de notifications' },
-        request,
-        { status: 500 }
+      const { rows: newPreferencesRows } = await db.query(
+        `INSERT INTO notification_preferences (user_id, email_task_assigned, email_task_updated, email_task_due, email_stage_completed, email_project_created, push_notifications, daily_summary)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [user.id, true, true, true, false, true, true, false]
       );
+      if (newPreferencesRows.length === 0) {
+        console.error('Error creating notification preferences: no row returned');
+        return corsResponse(
+          { error: 'Erreur lors de la création des préférences de notifications' },
+          request,
+          { status: 500 }
+        );
+      }
+      return corsResponse(newPreferencesRows[0], request);
     }
 
-    return corsResponse(preferences, request);
+    return corsResponse(preferencesRows[0], request);
   } catch (error) {
     console.error('GET /api/notification-preferences error:', error);
     return corsResponse(
@@ -91,14 +70,10 @@ export async function PUT(request: NextRequest) {
       daily_summary,
     } = body;
 
-    // Vérifier que au moins un champ est fourni
     if (
-      email_task_assigned === undefined &&
-      email_task_updated === undefined &&
-      email_task_due === undefined &&
-      email_stage_completed === undefined &&
-      email_project_created === undefined &&
-      push_notifications === undefined &&
+      email_task_assigned === undefined && email_task_updated === undefined &&
+      email_task_due === undefined && email_stage_completed === undefined &&
+      email_project_created === undefined && push_notifications === undefined &&
       daily_summary === undefined
     ) {
       return corsResponse(
@@ -108,42 +83,42 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Construire l'objet de mise à jour
-    const updateData: any = {};
-    if (email_task_assigned !== undefined) updateData.email_task_assigned = email_task_assigned;
-    if (email_task_updated !== undefined) updateData.email_task_updated = email_task_updated;
-    if (email_task_due !== undefined) updateData.email_task_due = email_task_due;
-    if (email_stage_completed !== undefined) updateData.email_stage_completed = email_stage_completed;
-    if (email_project_created !== undefined) updateData.email_project_created = email_project_created;
-    if (push_notifications !== undefined) updateData.push_notifications = push_notifications;
-    if (daily_summary !== undefined) updateData.daily_summary = daily_summary;
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
 
-    // Mettre à jour les préférences
-    const { data: preferences, error } = await supabaseAdmin
-      .from('notification_preferences')
-      .update(updateData)
-      .eq('user_id', user.id)
-      .select()
-      .single();
+    if (email_task_assigned !== undefined) { updateFields.push(`email_task_assigned = $${paramIndex++}`); queryParams.push(email_task_assigned); }
+    if (email_task_updated !== undefined) { updateFields.push(`email_task_updated = $${paramIndex++}`); queryParams.push(email_task_updated); }
+    if (email_task_due !== undefined) { updateFields.push(`email_task_due = $${paramIndex++}`); queryParams.push(email_task_due); }
+    if (email_stage_completed !== undefined) { updateFields.push(`email_stage_completed = $${paramIndex++}`); queryParams.push(email_stage_completed); }
+    if (email_project_created !== undefined) { updateFields.push(`email_project_created = $${paramIndex++}`); queryParams.push(email_project_created); }
+    if (push_notifications !== undefined) { updateFields.push(`push_notifications = $${paramIndex++}`); queryParams.push(push_notifications); }
+    if (daily_summary !== undefined) { updateFields.push(`daily_summary = $${paramIndex++}`); queryParams.push(daily_summary); }
 
-    if (error) {
-      console.error('Error updating notification preferences:', error);
+    queryParams.push(user.id); // last parameter is user_id for WHERE clause
+    const updateQuery = `
+      UPDATE notification_preferences 
+      SET ${updateFields.join(', ')} 
+      WHERE user_id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const { rows: preferencesRows, rowCount: preferencesCount } = await db.query(updateQuery, queryParams);
+
+    if (preferencesCount === 0) {
       return corsResponse(
-        { error: 'Erreur lors de la mise à jour des préférences de notifications' },
+        { error: 'Préférences de notifications non trouvées pour cet utilisateur' },
         request,
-        { status: 500 }
+        { status: 404 }
       );
     }
+    const preferences = preferencesRows[0];
 
-    // Log de l'activité
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: user.id,
-      action: 'update',
-      entity_type: 'notification_preferences',
-      entity_id: preferences.id,
-      details: 'Préférences de notifications mises à jour',
-      metadata: updateData,
-    });
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+       VALUES ($1, 'update', 'notification_preferences', $2, $3, $4)`,
+      [user.id, preferences.id, 'Préférences de notifications mises à jour', JSON.stringify(updateData)]
+    );
 
     return corsResponse(preferences, request);
   } catch (error) {

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { verifyAuth } from '@/lib/verifyAuth';
 import { mapDbRoleToUserRole } from '@/lib/permissions';
@@ -24,100 +24,68 @@ export async function GET(request: NextRequest) {
     const { id: userId, role: userRole } = authResult;
     const mappedRole = mapDbRoleToUserRole(userRole);
 
-    // Récupérer les counts en parallèle
     const [
-      { count: projectsCount },
-      { count: tasksCount },
-      { count: completedTasksCount },
-      { count: usersCount },
-      { count: myProjectsCount },
-      { count: myTasksCount },
-      { count: pendingTasksCount },
-      { count: inProgressTasksCount },
+      projectsCountResult,
+      tasksCountResult,
+      completedTasksCountResult,
+      usersCountResult,
+      myProjectsCountResult,
+      myTasksCountResult,
+      pendingTasksCountResult,
+      inProgressTasksCountResult,
+      recentProjectsResult,
+      recentTasksResult,
+      tasksByStatusResult,
+      projectsByStatusResult,
     ] = await Promise.all([
-      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('status', 'COMPLETED'),
-      supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('projects').select('*', { count: 'exact', head: true }).eq('manager_id', userId),
-      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('assigned_to_id', userId),
-      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('assigned_to_id', userId).eq('status', 'TODO'),
-      supabaseAdmin.from('tasks').select('*', { count: 'exact', head: true }).eq('assigned_to_id', userId).eq('status', 'IN_PROGRESS'),
+      db.query('SELECT COUNT(*)::int FROM projects'),
+      db.query('SELECT COUNT(*)::int FROM tasks'),
+      db.query("SELECT COUNT(*)::int FROM tasks WHERE status = 'COMPLETED'"),
+      db.query('SELECT COUNT(*)::int FROM users'),
+      db.query('SELECT COUNT(*)::int FROM projects WHERE manager_id = $1', [userId]),
+      db.query('SELECT COUNT(*)::int FROM tasks WHERE assigned_to_id = $1', [userId]),
+      db.query("SELECT COUNT(*)::int FROM tasks WHERE assigned_to_id = $1 AND status = 'TODO'", [userId]),
+      db.query("SELECT COUNT(*)::int FROM tasks WHERE assigned_to_id = $1 AND status = 'IN_PROGRESS'", [userId]),
+      db.query(`
+        SELECT p.*, m.name as manager_name, c.name as created_by_name
+        FROM projects p
+        LEFT JOIN users m ON p.manager_id = m.id
+        LEFT JOIN users c ON p.created_by_id = c.id
+        ORDER BY p.created_at DESC
+        LIMIT 5
+      `),
+      db.query(`
+        SELECT t.*, a.name as assigned_to_name, c.name as created_by_name
+        FROM tasks t
+        LEFT JOIN users a ON t.assigned_to_id = a.id
+        LEFT JOIN users c ON t.created_by_id = c.id
+        ORDER BY t.created_at DESC
+        LIMIT 5
+      `),
+      db.query('SELECT status, COUNT(*)::int FROM tasks GROUP BY status'),
+      db.query('SELECT status, COUNT(*)::int FROM projects GROUP BY status'),
     ]);
 
-    // Récupérer les projets récents
-    const { data: recentProjectsData } = await supabaseAdmin
-      .from('projects')
-      .select(`
-        *,
-        manager:users!manager_id(name),
-        created_by:users!created_by_id(name)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(5);
+    const projectsCount = projectsCountResult.rows[0].count;
+    const tasksCount = tasksCountResult.rows[0].count;
+    const completedTasksCount = completedTasksCountResult.rows[0].count;
+    const usersCount = usersCountResult.rows[0].count;
+    const myProjectsCount = myProjectsCountResult.rows[0].count;
+    const myTasksCount = myTasksCountResult.rows[0].count;
+    const pendingTasksCount = pendingTasksCountResult.rows[0].count;
+    const inProgressTasksCount = inProgressTasksCountResult.rows[0].count;
+    const recentProjects = recentProjectsResult.rows;
+    const recentTasks = recentTasksResult.rows;
 
-    // Transform recent projects
-    const recentProjects = recentProjectsData?.map(project => ({
-      ...project,
-      manager_name: project.manager?.name || null,
-      created_by_name: project.created_by?.name || null
-    }));
-    recentProjects?.forEach(project => {
-      delete project.manager_id;
-      delete project.created_by_id;
-      delete project.manager;
-      delete project.created_by;
-    });
-
-    // Récupérer les tâches récentes
-    const { data: recentTasksData } = await supabaseAdmin
-      .from('tasks')
-      .select(`
-        *,
-        assigned_to:users!assigned_to_id(name),
-        created_by:users!created_by_id(name)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    // Transform recent tasks
-    const recentTasks = recentTasksData?.map(task => ({
-      ...task,
-      assigned_to_name: task.assigned_to?.name || null,
-      created_by_name: task.created_by?.name || null
-    }));
-    recentTasks?.forEach(task => {
-      delete task.assigned_to_id;
-      delete task.created_by_id;
-      delete task.assigned_to;
-      delete task.created_by;
-    });
-
-    // Récupérer les tâches par statut
-    const { data: tasksByStatus } = await supabaseAdmin
-      .from('tasks')
-      .select('status');
-
-    const statusCounts = {
-      TODO: tasksByStatus?.filter(t => t.status === 'TODO').length || 0,
-      IN_PROGRESS: tasksByStatus?.filter(t => t.status === 'IN_PROGRESS').length || 0,
-      IN_REVIEW: tasksByStatus?.filter(t => t.status === 'IN_REVIEW').length || 0,
-      COMPLETED: tasksByStatus?.filter(t => t.status === 'COMPLETED').length || 0,
-      CANCELLED: tasksByStatus?.filter(t => t.status === 'CANCELLED').length || 0,
+    const statusCounts: { [key: string]: number } = {
+      TODO: 0, IN_PROGRESS: 0, IN_REVIEW: 0, COMPLETED: 0, CANCELLED: 0
     };
+    tasksByStatusResult.rows.forEach(row => { statusCounts[row.status] = row.count; });
 
-    // Récupérer les projets par statut
-    const { data: projectsByStatus } = await supabaseAdmin
-      .from('projects')
-      .select('status');
-
-    const projectStatusCounts = {
-      PLANNING: projectsByStatus?.filter(p => p.status === 'PLANNING').length || 0,
-      IN_PROGRESS: projectsByStatus?.filter(p => p.status === 'IN_PROGRESS').length || 0,
-      ON_HOLD: projectsByStatus?.filter(p => p.status === 'ON_HOLD').length || 0,
-      COMPLETED: projectsByStatus?.filter(p => p.status === 'COMPLETED').length || 0,
-      CANCELLED: projectsByStatus?.filter(p => p.status === 'CANCELLED').length || 0,
+    const projectStatusCounts: { [key: string]: number } = {
+      PLANNING: 0, IN_PROGRESS: 0, ON_HOLD: 0, COMPLETED: 0, CANCELLED: 0
     };
+    projectsByStatusResult.rows.forEach(row => { projectStatusCounts[row.status] = row.count; });
 
     const stats = {
       totalProjects: projectsCount || 0,

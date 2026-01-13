@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import bcrypt from 'bcryptjs';
 import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
@@ -13,7 +13,7 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/users/[id] - Récupérer un utilisateur par ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -27,27 +27,16 @@ export async function GET(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = await params;
+    const { id } = params;
     
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .select('id, name, email, role, created_at, updated_at')
-      .eq('id', id)
-      .single();
+    const query = 'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1';
+    const { rows, rowCount } = await db.query(query, [id]);
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
-      }
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération de l\'utilisateur' },
-        request,
-        { status: 500 }
-      );
+    if (rowCount === 0) {
+      return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
     }
 
-    return corsResponse(data, request);
+    return corsResponse(rows[0], request);
   } catch (error) {
     console.error('GET /api/users/[id] error:', error);
     return corsResponse(
@@ -61,7 +50,7 @@ export async function GET(
 // PATCH /api/users/[id] - Mettre à jour un utilisateur
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -75,46 +64,54 @@ export async function PATCH(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = await params;
+    const { id } = params;
     const body = await request.json();
 
-    // Préparer les données de mise à jour
-    const updateData: any = {};
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.email !== undefined) updateData.email = body.email;
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
+
+    if (body.name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`);
+      queryParams.push(body.name);
+    }
+    if (body.email !== undefined) {
+      updateFields.push(`email = $${paramIndex++}`);
+      queryParams.push(body.email);
+    }
     if (body.role !== undefined) {
-      // Normaliser le rôle (frontend envoie 'admin', 'manager', 'user')
       let dbRole = body.role.toUpperCase();
       if (dbRole === 'ADMIN') dbRole = 'ADMIN';
       else if (dbRole === 'MANAGER') dbRole = 'PROJECT_MANAGER';
       else if (dbRole === 'USER') dbRole = 'EMPLOYEE';
-      updateData.role = dbRole;
+      updateFields.push(`role = $${paramIndex++}`);
+      queryParams.push(dbRole);
     }
     if (body.password !== undefined) {
-      // Hash le nouveau mot de passe si fourni
-      updateData.password = await bcrypt.hash(body.password, 10);
+      const hashedPassword = await bcrypt.hash(body.password, 10);
+      updateFields.push(`password = $${paramIndex++}`);
+      queryParams.push(hashedPassword);
+    }
+    
+    if (updateFields.length === 0) {
+        return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .update(updateData)
-      .eq('id', id)
-      .select('id, name, email, role, created_at, updated_at')
-      .single();
+    queryParams.push(id);
+    const queryText = `
+      UPDATE users 
+      SET ${updateFields.join(', ')} 
+      WHERE id = $${paramIndex}
+      RETURNING id, name, email, role, created_at, updated_at
+    `;
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
-      }
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la mise à jour de l\'utilisateur' },
-        request,
-        { status: 500 }
-      );
+    const { rows, rowCount } = await db.query(queryText, queryParams);
+    
+    if (rowCount === 0) {
+      return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
     }
 
-    return corsResponse(data, request);
+    return corsResponse(rows[0], request);
   } catch (error) {
     console.error('PATCH /api/users/[id] error:', error);
     return corsResponse(
@@ -128,7 +125,7 @@ export async function PATCH(
 // DELETE /api/users/[id] - Supprimer un utilisateur
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -142,20 +139,12 @@ export async function DELETE(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = await params;
+    const { id } = params;
     
-    const { error } = await supabaseAdmin
-      .from('users')
-      .delete()
-      .eq('id', id);
+    const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [id]);
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la suppression de l\'utilisateur' },
-        request,
-        { status: 500 }
-      );
+    if (rowCount === 0) {
+        return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
     }
 
     return corsResponse({ success: true, message: 'Utilisateur supprimé avec succès' }, request);

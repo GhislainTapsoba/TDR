@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
@@ -19,13 +19,10 @@ export async function POST(req: Request) {
     }
 
     // Check if user already exists
-    const { data: existingUser, error: existingUserError } = await supabaseAdmin
-      .from('users')
-      .select('email')
-      .eq('email', normalizedEmail)
-      .single();
+    const existingUserQuery = 'SELECT email FROM users WHERE email = ';
+    const { rows: existingUsers } = await db.query(existingUserQuery, [normalizedEmail]);
 
-    if (existingUser) {
+    if (existingUsers.length > 0) {
       return NextResponse.json({ error: 'Un utilisateur avec cet email existe déjà.' }, { status: 409 });
     }
 
@@ -33,18 +30,18 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Insert new user
-    const { data: newUser, error: insertError } = await supabaseAdmin
-      .from('users')
-      .insert([
-        { name, email: normalizedEmail, password: hashedPassword, role: 'EMPLOYEE' }
-      ])
-      .select()
-      .single();
+    const insertQuery = `
+      INSERT INTO users (name, email, password, role) 
+      VALUES (, $2, $3, 'EMPLOYEE')
+      RETURNING id, name, email, role, created_at, updated_at
+    `;
+    const { rows: newUsers } = await db.query(insertQuery, [name, normalizedEmail, hashedPassword]);
 
-    if (insertError) {
-      console.error('Error creating user:', insertError);
+    if (newUsers.length === 0) {
       return NextResponse.json({ error: 'Erreur lors de la création de l\'utilisateur.' }, { status: 500 });
     }
+    
+    const newUser = newUsers[0];
 
     return NextResponse.json({ message: 'Utilisateur créé avec succès.', user: newUser }, { status: 201 });
 

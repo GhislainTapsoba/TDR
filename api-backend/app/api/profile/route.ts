@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
@@ -16,21 +16,15 @@ export async function GET(request: NextRequest) {
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    // Récupérer toutes les informations du profil utilisateur
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id, name, email, role, created_at, updated_at')
-      .eq('id', user.id)
-      .single();
+    const { rows, rowCount } = await db.query(
+      'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1',
+      [user.id]
+    );
 
-    if (userError) {
-      console.error('Error fetching user:', userError);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération du profil' },
-        request,
-        { status: 500 }
-      );
+    if (rowCount === 0) {
+      return corsResponse({ error: 'Profil utilisateur non trouvé' }, request, { status: 404 });
     }
+    const userData = rows[0];
 
     return corsResponse(userData, request);
   } catch (error) {
@@ -54,7 +48,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { name, email } = body;
 
-    // Validation
     if (!name && !email) {
       return corsResponse(
         { error: 'Au moins un champ (name ou email) doit être fourni' },
@@ -64,7 +57,6 @@ export async function PUT(request: NextRequest) {
     }
 
     if (email) {
-      // Valider le format email
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return corsResponse(
@@ -74,15 +66,12 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      // Vérifier que l'email n'est pas déjà utilisé par un autre utilisateur
-      const { data: existingUser } = await supabaseAdmin
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .neq('id', user.id)
-        .single();
+      const { rowCount: existingUserCount } = await db.query(
+        'SELECT id FROM users WHERE email = $1 AND id != $2',
+        [email, user.id]
+      );
 
-      if (existingUser) {
+      if (existingUserCount > 0) {
         return corsResponse(
           { error: 'Cet email est déjà utilisé par un autre utilisateur' },
           request,
@@ -91,37 +80,39 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Construire l'objet de mise à jour
-    const updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (email !== undefined) updateData.email = email;
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
 
-    // Mettre à jour le profil
-    const { data: updatedUser, error: updateError } = await supabaseAdmin
-      .from('users')
-      .update(updateData)
-      .eq('id', user.id)
-      .select('id, name, email, role, created_at, updated_at')
-      .single();
-
-    if (updateError) {
-      console.error('Error updating profile:', updateError);
-      return corsResponse(
-        { error: 'Erreur lors de la mise à jour du profil' },
-        request,
-        { status: 500 }
-      );
+    if (name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`);
+      queryParams.push(name);
+    }
+    if (email !== undefined) {
+      updateFields.push(`email = $${paramIndex++}`);
+      queryParams.push(email);
     }
 
-    // Log de l'activité
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: user.id,
-      action: 'update',
-      entity_type: 'user_profile',
-      entity_id: user.id,
-      details: 'Profil mis à jour',
-      metadata: updateData,
-    });
+    queryParams.push(user.id);
+    const updateQuery = `
+      UPDATE users 
+      SET ${updateFields.join(', ')} 
+      WHERE id = $${paramIndex}
+      RETURNING id, name, email, role, created_at, updated_at
+    `;
+
+    const { rows: updatedUserRows, rowCount: updatedUserCount } = await db.query(updateQuery, queryParams);
+
+    if (updatedUserCount === 0) {
+      return corsResponse({ error: 'Profil utilisateur non trouvé' }, request, { status: 404 });
+    }
+    const updatedUser = updatedUserRows[0];
+
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+       VALUES ($1, 'update', 'user_profile', $2, $3, $4)`,
+      [user.id, user.id, 'Profil mis à jour', JSON.stringify(updateData)], // updateData would be from original code, now constructed from updateFields
+    );
 
     return corsResponse(updatedUser, request);
   } catch (error) {

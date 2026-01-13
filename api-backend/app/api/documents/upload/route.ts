@@ -1,14 +1,25 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { s3Client } from '@/lib/storage';
+import { db } from '@/lib/db';
+import { Upload } from "@aws-sdk/lib-storage";
+import formidable, { File } from 'formidable';
+import fs from 'fs';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
-// Gérer les requêtes OPTIONS (preflight CORS)
+// Disable the default body parser to handle file streams
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+// Handle CORS preflight requests
 export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
 }
 
-// POST /api/documents/upload - Upload un fichier vers Supabase Storage
+// POST /api/documents/upload - Upload a file to MinIO and save metadata to Postgres
 export async function POST(request: NextRequest) {
   try {
     const user = await verifyAuth(request);
@@ -16,89 +27,73 @@ export async function POST(request: NextRequest) {
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    // Récupérer le fichier depuis FormData
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const data = await new Promise<{ fields: formidable.Fields; files: formidable.Files }>((resolve, reject) => {
+      const form = formidable({});
+      form.parse(request.body as any, (err, fields, files) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve({ fields, files });
+      });
+    });
+
+    const file = data.files.file?.[0] as File;
+    const { task_id, project_id } = data.fields;
 
     if (!file) {
-      return corsResponse(
-        { error: 'Aucun fichier fourni' },
-        request,
-        { status: 400 }
-      );
+      return corsResponse({ error: 'No file provided' }, request, { status: 400 });
     }
 
-    // Vérifier la taille du fichier (max 10MB)
     const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
     if (file.size > MAX_FILE_SIZE) {
-      return corsResponse(
-        { error: 'Le fichier est trop volumineux (max 10MB)' },
-        request,
-        { status: 400 }
-      );
+      return corsResponse({ error: 'File is too large (max 10MB)' }, request, { status: 400 });
     }
 
-    // Générer un nom de fichier unique
+    const fileStream = fs.createReadStream(file.filepath);
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${timestamp}_${randomString}.${fileExtension}`;
+    const fileExtension = file.originalFilename?.split('.').pop();
+    const storage_path = `documents/${timestamp}_${randomString}.${fileExtension}`;
 
-    // Convertir le fichier en ArrayBuffer puis en Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Upload vers Supabase Storage
-    const { data, error } = await supabaseAdmin.storage
-      .from('documents')
-      .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (error) {
-      console.error('Supabase Storage error:', error);
-
-      // Si le bucket n'existe pas, donner des instructions
-      if (error.message.includes('not found') || error.message.includes('does not exist')) {
-        return corsResponse(
-          {
-            error: 'Le bucket "documents" n\'existe pas dans Supabase Storage. Veuillez le créer.',
-            details: 'Allez dans Supabase Dashboard > Storage > Create a new bucket > Name: "documents" > Public bucket: Yes'
-          },
-          request,
-          { status: 500 }
-        );
-      }
-
-      return corsResponse(
-        { error: 'Erreur lors de l\'upload du fichier', details: error.message },
-        request,
-        { status: 500 }
-      );
-    }
-
-    // Obtenir l'URL publique
-    const { data: publicUrlData } = supabaseAdmin.storage
-      .from('documents')
-      .getPublicUrl(fileName);
-
-    return corsResponse(
-      {
-        success: true,
-        file_url: publicUrlData.publicUrl,
-        file_name: file.name,
-        file_type: file.type,
-        file_size: file.size,
-        storage_path: data.path,
+    const upload = new Upload({
+      client: s3Client,
+      params: {
+        Bucket: process.env.MINIO_BUCKET!,
+        Key: storage_path,
+        Body: fileStream,
+        ContentType: file.mimetype!,
       },
-      request,
-      { status: 200 }
-    );
+    });
+
+    await upload.done();
+    
+    // The file URL will be constructed on the fly using a presigned URL on the frontend
+    // Here we save the storage path
+    const file_url = storage_path;
+
+    const insertQuery = `
+      INSERT INTO documents (task_id, project_id, user_id, file_name, file_url, file_type, file_size, storage_path)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;
+    `;
+    const { rows } = await db.query(insertQuery, [
+      task_id?.[0] || null,
+      project_id?.[0] || null,
+      user.id,
+      file.originalFilename,
+      file_url,
+      file.mimetype,
+      file.size,
+      storage_path,
+    ]);
+
+    return corsResponse(rows[0], request, { status: 201 });
+
   } catch (error) {
     console.error('POST /api/documents/upload error:', error);
     return corsResponse(
-      { error: 'Erreur serveur', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Server Error', details: error instanceof Error ? error.message : 'Unknown error' },
       request,
       { status: 500 }
     );

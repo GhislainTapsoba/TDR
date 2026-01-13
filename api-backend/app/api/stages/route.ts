@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { mapDbRoleToUserRole, requirePermission, canManageProject } from '@/lib/permissions';
 
@@ -27,122 +27,62 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('project_id');
 
+    let queryText: string;
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+
+    const baseQuery = `
+      SELECT s.*, u.name as created_by_name 
+      FROM stages s 
+      LEFT JOIN users u ON s.created_by_id = u.id
+    `;
+    const whereClauses: string[] = [];
+
     // Si ADMIN, retourner toutes les étapes
     if (userRole === 'admin') {
-      let query = supabaseAdmin
-        .from('stages')
-        .select(`
-          *,
-          created_by:users!created_by_id(name)
-        `)
-        .order('order', { ascending: true });
+      queryText = baseQuery;
+      if (projectId) {
+        whereClauses.push(`s.project_id = $${paramIndex++}`);
+        queryParams.push(projectId);
+      }
+    } else {
+      // Pour les autres rôles, filtrer par accès au projet
+      const { rows: projectMembers } = await db.query('SELECT project_id FROM project_members WHERE user_id = $1', [userId]);
+      const memberProjectIds = projectMembers.map(pm => pm.project_id);
+
+      const { rows: assignedTasks } = await db.query('SELECT DISTINCT project_id FROM tasks WHERE assigned_to_id = $1', [userId]);
+      const taskProjectIds = assignedTasks.map(t => t.project_id);
+
+      const allAccessibleProjectIds = [...new Set([...memberProjectIds, ...taskProjectIds])];
+
+      const { rows: accessibleProjects } = await db.query(
+        `SELECT id FROM projects WHERE created_by_id = $1 OR manager_id = $1 ${allAccessibleProjectIds.length > 0 ? `OR id = ANY($2)` : ''}`,
+        allAccessibleProjectIds.length > 0 ? [userId, allAccessibleProjectIds] : [userId]
+      );
+      const finalAccessibleProjectIds = accessibleProjects.map(p => p.id);
+
+      if (finalAccessibleProjectIds.length === 0) {
+        return corsResponse([], request);
+      }
+      
+      whereClauses.push(`s.project_id = ANY($${paramIndex++})`);
+      queryParams.push(finalAccessibleProjectIds);
 
       if (projectId) {
-        query = query.eq('project_id', projectId);
+        if (!finalAccessibleProjectIds.includes(projectId)) {
+          return corsResponse({ error: 'Accès non autorisé à ce projet' }, request, { status: 403 });
+        }
+        whereClauses.push(`s.project_id = $${paramIndex++}`);
+        queryParams.push(projectId);
       }
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Supabase error:', error);
-        return corsResponse(
-          { error: 'Erreur lors de la récupération des étapes' },
-          request,
-          { status: 500 }
-        );
-      }
-
-      // Transform data to use names instead of IDs
-      const transformedData = data?.map(stage => ({
-        ...stage,
-        created_by_name: stage.created_by?.name || null
-      }));
-      transformedData?.forEach(stage => {
-        delete stage.created_by_id;
-        delete stage.created_by;
-      });
-
-      return corsResponse(transformedData, request);
     }
 
-    // Pour les autres rôles, filtrer par accès au projet
-    // Récupérer les IDs des projets accessibles via project_members
-    const { data: projectMembers, error: membersError } = await supabaseAdmin
-      .from('project_members')
-      .select('project_id')
-      .eq('user_id', userId);
+    queryText += (whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : '');
+    queryText += ' ORDER BY s.order ASC';
 
-    if (membersError) throw membersError;
+    const { rows: stages } = await db.query(queryText, queryParams);
 
-    const memberProjectIds = projectMembers?.map(pm => pm.project_id) || [];
-
-    // Récupérer les IDs des projets où l'utilisateur a des tâches assignées
-    const { data: assignedTasks, error: tasksError } = await supabaseAdmin
-      .from('tasks')
-      .select('project_id')
-      .eq('assigned_to_id', userId);
-
-    if (tasksError) throw tasksError;
-
-    const taskProjectIds = assignedTasks?.map(t => t.project_id) || [];
-
-    // Combiner tous les IDs de projets accessibles
-    const allAccessibleProjectIds = [...new Set([...memberProjectIds, ...taskProjectIds])];
-
-    // Récupérer les projets où l'utilisateur est créateur, manager, membre OU a des tâches assignées
-    const { data: accessibleProjects, error: projectsError } = await supabaseAdmin
-      .from('projects')
-      .select('id')
-      .or(`created_by_id.eq.${userId},manager_id.eq.${userId}${allAccessibleProjectIds.length > 0 ? `,id.in.(${allAccessibleProjectIds.join(',')})` : ''}`);
-
-    if (projectsError) throw projectsError;
-
-    const accessibleProjectIds = accessibleProjects?.map(p => p.id) || [];
-
-    if (accessibleProjectIds.length === 0) {
-      return corsResponse([], request);
-    }
-
-    // Récupérer les étapes des projets accessibles
-    let query = supabaseAdmin
-      .from('stages')
-      .select(`
-        *,
-        created_by:users!created_by_id(name)
-      `)
-      .in('project_id', accessibleProjectIds)
-      .order('order', { ascending: true });
-
-    if (projectId) {
-      // Vérifier que l'utilisateur a accès à ce projet
-      if (!accessibleProjectIds.includes(projectId)) {
-        return corsResponse({ error: 'Accès non autorisé à ce projet' }, request, { status: 403 });
-      }
-      query = query.eq('project_id', projectId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération des étapes' },
-        request,
-        { status: 500 }
-      );
-    }
-
-    // Transform data to use names instead of IDs
-    const transformedData = data?.map(stage => ({
-      ...stage,
-      created_by_name: stage.created_by?.name || null
-    }));
-    transformedData?.forEach(stage => {
-      delete stage.created_by_id;
-      delete stage.created_by;
-    });
-
-    return corsResponse(transformedData, request);
+    return corsResponse(stages, request);
   } catch (error) {
     console.error('GET /api/stages error:', error);
     return corsResponse(
@@ -163,7 +103,6 @@ export async function POST(request: NextRequest) {
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
     const userId = user.id as string;
-
     const perm = requirePermission(userRole, 'stages', 'create');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
@@ -181,20 +120,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier que l'utilisateur peut gérer le projet
-    const { data: project } = await supabaseAdmin
-      .from('projects')
-      .select('id, manager_id')
-      .eq('id', project_id)
-      .single();
-
-    if (!project) {
-      return corsResponse(
-        { error: 'Projet introuvable' },
-        request,
-        { status: 404 }
-      );
+    const { rows: projectRows } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [project_id]);
+    if (projectRows.length === 0) {
+      return corsResponse({ error: 'Projet introuvable' }, request, { status: 404 });
     }
+    const project = projectRows[0];
 
     if (!canManageProject(userRole, userId, project.manager_id)) {
       return corsResponse(
@@ -204,50 +134,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('stages')
-      .insert({
-        name,
-        description,
-        order: order || 0,
-        duration,
-        project_id,
-        status: 'PENDING',
-        created_by_id: userId
-      })
-      .select(`
-        *,
-        created_by:users!created_by_id(name)
-      `)
-      .single();
+    const insertQuery = `
+      INSERT INTO stages (name, description, "order", duration, project_id, status, created_by_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    const { rows } = await db.query(insertQuery, [
+      name,
+      description || null,
+      order || 0,
+      duration || null,
+      project_id,
+      'PENDING',
+      userId
+    ]);
+    const newStage = rows[0];
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la création de l\'étape' },
-        request,
-        { status: 500 }
-      );
-    }
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+       VALUES ($1, 'create', 'stage', $2, $3)`,
+      [user.id, newStage.id, `Created stage: ${name}`]
+    );
 
-    // Log de l'activité
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: '00000000-0000-0000-0000-000000000001', // TODO: Récupérer l'ID de l'utilisateur connecté
-      action: 'create',
-      entity_type: 'stage',
-      entity_id: data.id,
-      details: `Created stage: ${name}`
-    });
+    const { rows: finalStageRows } = await db.query(
+      `SELECT s.*, u.name as created_by_name 
+       FROM stages s 
+       LEFT JOIN users u ON s.created_by_id = u.id 
+       WHERE s.id = $1`,
+      [newStage.id]
+    );
 
-    // Transform data to use names instead of IDs
-    const transformedData = {
-      ...data,
-      created_by_name: data.created_by?.name || null
-    };
-    delete transformedData.created_by_id;
-    delete transformedData.created_by;
-
-    return corsResponse(transformedData, request, { status: 201 });
+    return corsResponse(finalStageRows[0], request, { status: 201 });
   } catch (error) {
     console.error('POST /api/stages error:', error);
     return corsResponse(

@@ -1,11 +1,10 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
-import { sendEmail } from '@/lib/emailService';
 import { allStagesCompletedTemplate } from '@/lib/emailTemplates';
+import { sendEmail } from '@/lib/emailService';
 import { sendActionNotification } from '@/lib/notificationService';
-import { mapDbRoleToUserRole } from '@/lib/permissions';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -15,88 +14,48 @@ export async function OPTIONS(request: NextRequest) {
 // POST /api/stages/[id]/complete - Marquer une étape comme terminée
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    // Vérifier l'authentification
     const user = await verifyAuth(request);
     if (!user) {
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = params;
 
-    // 1. Récupérer l'étape
-    const { data: stage, error: stageError } = await supabaseAdmin
-      .from('stages')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (stageError || !stage) {
-      console.error('Error fetching stage:', stageError);
-      return corsResponse(
-        { error: 'Étape introuvable' },
-        request,
-        { status: 404 }
-      );
+    const { rows: stageRows } = await db.query('SELECT * FROM stages WHERE id = $1', [id]);
+    if (stageRows.length === 0) {
+      console.error('Error fetching stage: Stage not found');
+      return corsResponse({ error: 'Étape introuvable' }, request, { status: 404 });
     }
+    const stage = stageRows[0];
 
-    // 2. Vérifier si toutes les tâches de cette étape sont terminées
-    const { data: tasksInStage } = await supabaseAdmin
-      .from('tasks')
-      .select('id, status')
-      .eq('stage_id', id);
-
-    const hasIncompleteTasks = tasksInStage?.some(
-      task => task.status !== 'COMPLETED'
-    );
+    const { rows: tasksInStage } = await db.query('SELECT id, status FROM tasks WHERE stage_id = $1', [id]);
+    const hasIncompleteTasks = tasksInStage.some(task => task.status !== 'COMPLETED');
 
     if (hasIncompleteTasks) {
       return corsResponse(
         {
           error: 'Toutes les tâches de cette étape doivent être terminées avant de valider l\'étape',
-          incomplete_tasks: tasksInStage?.filter(t => t.status !== 'COMPLETED').length
+          incomplete_tasks: tasksInStage.filter(t => t.status !== 'COMPLETED').length
         },
         request,
         { status: 400 }
       );
     }
 
-    // 3. Marquer l'étape comme COMPLETED
-    const { error: updateError } = await supabaseAdmin
-      .from('stages')
-      .update({
-        status: 'COMPLETED',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id);
+    await db.query('UPDATE stages SET status = $1, updated_at = NOW() WHERE id = $2', ['COMPLETED', id]);
 
-    if (updateError) {
-      console.error('Error updating stage:', updateError);
-      return corsResponse(
-        { error: 'Erreur lors de la validation de l\'étape' },
-        request,
-        { status: 500 }
-      );
+    const { rows: projectInfoRows } = await db.query('SELECT id, name, title, manager_id FROM projects WHERE id = $1', [stage.project_id]);
+    const projectInfo = projectInfoRows.length > 0 ? projectInfoRows[0] : null;
+
+    let managerInfo = null;
+    if (projectInfo?.manager_id) {
+      const { rows: managerRows } = await db.query('SELECT id, name, email, role FROM users WHERE id = $1', [projectInfo.manager_id]);
+      managerInfo = managerRows.length > 0 ? managerRows[0] : null;
     }
 
-    // 4. Récupérer les informations du projet
-    const { data: projectInfo } = await supabaseAdmin
-      .from('projects')
-      .select('id, name, title, manager_id')
-      .eq('id', stage.project_id)
-      .single();
-
-    const { data: managerInfo } = projectInfo?.manager_id
-      ? await supabaseAdmin
-          .from('users')
-          .select('id, name, email, role')
-          .eq('id', projectInfo.manager_id)
-          .single()
-      : { data: null };
-
-    // Envoyer notification pour la complétion de l'étape
     await sendActionNotification({
       actionType: 'STAGE_COMPLETED',
       performedBy: {
@@ -118,77 +77,49 @@ export async function POST(
       }
     });
 
-    // 5. Vérifier si toutes les étapes du projet sont terminées
-    const { data: allStages } = await supabaseAdmin
-      .from('stages')
-      .select('id, status, name')
-      .eq('project_id', stage.project_id);
-
-    const allStagesCompleted = allStages?.every(
-      s => s.status === 'COMPLETED'
-    );
+    const { rows: allStagesRows } = await db.query('SELECT id, status, name FROM stages WHERE project_id = $1', [stage.project_id]);
+    const allStages = allStagesRows;
+    const allStagesCompleted = allStages.every(s => s.status === 'COMPLETED');
 
     let projectManager = null;
     let project = null;
 
     if (allStagesCompleted) {
-      // 6. Récupérer les informations du projet et du chef de projet
-      const { data: projectData } = await supabaseAdmin
-        .from('projects')
-        .select('id, title, description, manager_id, created_by_id')
-        .eq('id', stage.project_id)
-        .single();
-
-      project = projectData;
+      const { rows: projectDataRows } = await db.query('SELECT id, title, description, manager_id, created_by_id FROM projects WHERE id = $1', [stage.project_id]);
+      project = projectDataRows.length > 0 ? projectDataRows[0] : null;
 
       if (project) {
-        // Récupérer le chef de projet (manager ou créateur)
         const managerId = project.manager_id || project.created_by_id;
-
         if (managerId) {
-          const { data: manager } = await supabaseAdmin
-            .from('users')
-            .select('id, name, email')
-            .eq('id', managerId)
-            .single();
+          const { rows: managerRows } = await db.query('SELECT id, name, email FROM users WHERE id = $1', [managerId]);
+          projectManager = managerRows.length > 0 ? managerRows[0] : null;
 
-          projectManager = manager;
-
-          // 7. Envoyer notification que toutes les étapes sont terminées
-          if (manager?.email) {
-            // Créer une notification in-app
-            await supabaseAdmin.from('notifications').insert({
-              user_id: managerId,
-              type: 'PROJECT_COMPLETED',
-              title: 'Projet terminé',
-              message: `Toutes les étapes du projet "${project.title}" ont été terminées`,
-              metadata: {
-                project_id: project.id,
-                completed_by: user.id,
-                stages_count: allStages?.length
-              }
-            });
+          if (projectManager?.email) {
+            await db.query(
+              `INSERT INTO notifications (user_id, type, title, message, metadata)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [
+                managerId,
+                'PROJECT_COMPLETED',
+                'Projet terminé',
+                `Toutes les étapes du projet "${project.title}" ont été terminées`,
+                JSON.stringify({
+                  project_id: project.id,
+                  completed_by: user.id,
+                  stages_count: allStages.length
+                })
+              ]
+            );
           }
         }
       }
     }
 
-    // 8. Activer la prochaine étape si elle existe
-    const { data: nextStage } = await supabaseAdmin
-      .from('stages')
-      .select('*')
-      .eq('project_id', stage.project_id)
-      .eq('order', stage.order + 1)
-      .single();
+    const { rows: nextStageRows } = await db.query('SELECT * FROM stages WHERE project_id = $1 AND "order" = $2', [stage.project_id, stage.order + 1]);
+    const nextStage = nextStageRows.length > 0 ? nextStageRows[0] : null;
 
     if (nextStage && nextStage.status === 'PENDING') {
-      await supabaseAdmin
-        .from('stages')
-        .update({
-          status: 'IN_PROGRESS',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', nextStage.id);
+      await db.query('UPDATE stages SET status = $1, updated_at = NOW() WHERE id = $2', ['IN_PROGRESS', nextStage.id]);
     }
 
     return corsResponse(

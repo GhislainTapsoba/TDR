@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -14,46 +15,38 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('project_id');
     const taskId = searchParams.get('task_id');
 
-    let query = supabaseAdmin
-      .from('documents')
-      .select(`
-        *,
-        uploaded_by_user:users!documents_uploaded_by_fkey(id, name, email),
-        project:projects(id, title),
-        task:tasks(id, title)
-      `)
-      .order('created_at', { ascending: false });
+    let queryText = `
+      SELECT d.*, 
+             u.name as uploaded_by_name, 
+             p.title as project_title, 
+             t.title as task_title 
+      FROM documents d 
+      LEFT JOIN users u ON d.uploaded_by = u.id 
+      LEFT JOIN projects p ON d.project_id = p.id 
+      LEFT JOIN tasks t ON d.task_id = t.id
+    `;
+    const queryParams: any[] = [];
+    const whereClauses: string[] = [];
+    let paramIndex = 1;
 
     if (projectId) {
-      query = query.eq('project_id', projectId);
+      whereClauses.push(`d.project_id = $${paramIndex++}`);
+      queryParams.push(projectId);
     }
 
     if (taskId) {
-      query = query.eq('task_id', taskId);
+      whereClauses.push(`d.task_id = $${paramIndex++}`);
+      queryParams.push(taskId);
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération des documents' },
-        request,
-        { status: 500 }
-      );
+    if (whereClauses.length > 0) {
+      queryText += ` WHERE ${whereClauses.join(' AND ')}`;
     }
 
-    // Transform data to use names instead of IDs
-    const transformedData = data?.map(doc => ({
-      ...doc,
-      uploaded_by_name: doc.uploaded_by_user?.name || null
-    }));
-    transformedData?.forEach(doc => {
-      delete doc.uploaded_by;
-      delete doc.uploaded_by_user;
-    });
+    queryText += ' ORDER BY d.created_at DESC';
 
-    return corsResponse(transformedData || [], request);
+    const { rows } = await db.query(queryText, queryParams);
+    return corsResponse(rows || [], request);
   } catch (error) {
     console.error('GET /api/documents error:', error);
     return corsResponse(
@@ -67,6 +60,11 @@ export async function GET(request: NextRequest) {
 // POST /api/documents - Créer un nouveau document
 export async function POST(request: NextRequest) {
   try {
+    const user = await verifyAuth(request);
+    if (!user) {
+      return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
+    }
+
     const body = await request.json();
 
     // Validation
@@ -86,51 +84,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Créer le document
-    const { data, error } = await supabaseAdmin
-      .from('documents')
-      .insert({
-        name: body.name,
-        file_url: body.file_url,
-        file_type: body.file_type || null,
-        file_size: body.file_size || null,
-        description: body.description || null,
-        project_id: body.project_id || null,
-        task_id: body.task_id || null,
-        uploaded_by: body.uploaded_by || null,
-      })
-      .select(`
-        *,
-        uploaded_by_user:users!documents_uploaded_by_fkey(id, name, email),
-        project:projects(id, title),
-        task:tasks(id, title)
-      `)
-      .single();
+    const insertQuery = `
+      INSERT INTO documents (name, file_url, file_type, file_size, description, project_id, task_id, uploaded_by)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *;
+    `;
+    const { rows } = await db.query(insertQuery, [
+      body.name,
+      body.file_url,
+      body.file_type || null,
+      body.file_size || null,
+      body.description || null,
+      body.project_id || null,
+      body.task_id || null,
+      user.id, // Use authenticated user's ID
+    ]);
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la création du document' },
-        request,
-        { status: 500 }
-      );
-    }
+    const newDocument = rows[0];
 
     // Log activity
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: body.uploaded_by || 1,
-      action: 'create',
-      entity_type: 'document',
-      entity_id: data.id,
-      details: `Uploaded document: ${data.name}`,
-      metadata: {
-        document_name: data.name,
-        project_id: data.project_id,
-        task_id: data.task_id,
-      },
-    });
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+       VALUES ($1, 'create', 'document', $2, $3, $4)`,
+      [
+        user.id,
+        newDocument.id,
+        `Uploaded document: ${newDocument.name}`,
+        JSON.stringify({
+          document_name: newDocument.name,
+          project_id: newDocument.project_id,
+          task_id: newDocument.task_id,
+        }),
+      ]
+    );
 
-    return corsResponse(data, request, { status: 201 });
+    const { rows: finalDocRows } = await db.query(`
+      SELECT d.*, 
+             u.name as uploaded_by_name, 
+             p.title as project_title, 
+             t.title as task_title 
+      FROM documents d 
+      LEFT JOIN users u ON d.uploaded_by = u.id 
+      LEFT JOIN projects p ON d.project_id = p.id 
+      LEFT JOIN tasks t ON d.task_id = t.id
+      WHERE d.id = $1
+    `, [newDocument.id]);
+
+    return corsResponse(finalDocRows[0], request, { status: 201 });
   } catch (error) {
     console.error('POST /api/documents error:', error);
     return corsResponse(

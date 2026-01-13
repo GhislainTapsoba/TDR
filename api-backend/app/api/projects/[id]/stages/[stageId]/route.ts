@@ -1,64 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabase } from '@/lib/supabase'; // ton client Supabase
+import { db } from '@/lib/db';
 import { sendEmail } from '@/lib/emailService';
 import { stageStatusChangedByEmployeeTemplate } from '@/lib/emailTemplates';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; stageId: string }> }
+  { params }: { params: { id: string; stageId: string } }
 ) {
   try {
-    const { id, stageId } = await params;
+    const { stageId } = params;
     const user = await verifyAuth(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, order, duration, status, dependencyIds } = await request.json();
+    const body = await request.json();
+    const { name, order, duration, status, dependencyIds } = body;
 
     // Récupérer l'étape originale
-    const { data: originalStage, error: fetchError } = await supabase
-      .from('stages')
-      .select('*, project_id')
-      .eq('id', parseInt(stageId))
-      .single();
+    const { rows: originalStageRows, rowCount: originalStageCount } = await db.query(
+      'SELECT *, project_id FROM stages WHERE id = $1',
+      [parseInt(stageId)]
+    );
 
-    if (fetchError) {
-      console.error('Fetch original stage error:', fetchError);
-      return NextResponse.json({ error: fetchError.message }, { status: 400 });
+    if (originalStageCount === 0) {
+      return NextResponse.json({ error: 'Stage not found' }, { status: 404 });
     }
+    const originalStage = originalStageRows[0];
 
     // Récupérer le projet pour le nom
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .select('name')
-      .eq('id', originalStage.project_id)
-      .single();
-
-    if (projectError) {
-      console.error('Fetch project error:', projectError);
-      // Continue without project name
+    let project: { name: string } | null = null;
+    const { rows: projectRows } = await db.query(
+      'SELECT name FROM projects WHERE id = $1',
+      [originalStage.project_id]
+    );
+    if (projectRows.length > 0) {
+      project = projectRows[0];
     }
-
+    
     // Mettre à jour l'étape
-    const { data: updatedStage, error: updateError } = await supabase
-      .from('stages')
-      .update({
-        name,
-        order,
-        duration,
-        status,
-        dependencies: dependencyIds || [],
-      })
-      .eq('id', parseInt(stageId))
-      .select('*')
-      .single();
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
 
-    if (updateError) {
-      console.error('Update stage error:', updateError);
-      return NextResponse.json({ error: updateError.message }, { status: 400 });
+    if (name !== undefined) { updateFields.push(`name = $${paramIndex++}`); queryParams.push(name); }
+    if (order !== undefined) { updateFields.push(`order = $${paramIndex++}`); queryParams.push(order); }
+    if (duration !== undefined) { updateFields.push(`duration = $${paramIndex++}`); queryParams.push(duration); }
+    if (status !== undefined) { updateFields.push(`status = $${paramIndex++}`); queryParams.push(status); }
+    if (dependencyIds !== undefined) { updateFields.push(`dependencies = $${paramIndex++}`); queryParams.push(dependencyIds); }
+
+    if (updateFields.length === 0) {
+        return NextResponse.json({ error: "No fields to update"}, { status: 400 });
     }
+
+    queryParams.push(parseInt(stageId));
+    const updateQuery = `UPDATE stages SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+    
+    const { rows: updatedStageRows } = await db.query(updateQuery, queryParams);
+    const updatedStage = updatedStageRows[0];
+
 
     // Envoyer un email si le statut passe à "completed"
     if (
@@ -95,23 +96,19 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string; stageId: string }> }
+  { params }: { params: { id: string; stageId: string } }
 ) {
   try {
-    const { id, stageId } = await params;
+    const { stageId } = params;
     const user = await verifyAuth(request);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { error } = await supabase
-      .from('stages')
-      .delete()
-      .eq('id', parseInt(stageId));
+    const { rowCount } = await db.query('DELETE FROM stages WHERE id = $1', [parseInt(stageId)]);
 
-    if (error) {
-      console.error('Delete stage error:', error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    if (rowCount === 0) {
+        return NextResponse.json({ error: 'Stage not found' }, { status: 404 });
     }
 
     return NextResponse.json({ message: 'Stage deleted successfully' });

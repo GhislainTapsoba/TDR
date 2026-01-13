@@ -1,9 +1,8 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { mapDbRoleToUserRole, requirePermission, canManageProject } from '@/lib/permissions';
-import { sendActionNotification } from '@/lib/notificationService';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -13,7 +12,7 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/projects/[id] - Récupérer un projet par ID (avec vérification d'accès)
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -27,67 +26,46 @@ export async function GET(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = await params;
+    const { id } = params;
 
-    const { data, error } = await supabaseAdmin
-      .from('projects')
-      .select(`
-        *,
-        manager:users!manager_id(name)
-      `)
-      .eq('id', id)
-      .single();
+    const { rows, rowCount } = await db.query(
+      `SELECT p.*, u.name as manager_name 
+       FROM projects p 
+       LEFT JOIN users u ON p.manager_id = u.id 
+       WHERE p.id = $1`,
+      [id]
+    );
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return corsResponse({ error: 'Project not found' }, request, { status: 404 });
-      }
-      throw error;
+    if (rowCount === 0) {
+      return corsResponse({ error: 'Project not found' }, request, { status: 404 });
     }
+
+    const project = rows[0];
 
     // Si non-ADMIN, vérifier l'accès au projet
     if (userRole !== 'admin') {
-      const hasAccess = data.created_by_id === user.id || data.manager_id === user.id;
+      const hasAccess = project.created_by_id === user.id || project.manager_id === user.id;
 
       if (!hasAccess) {
-        // Vérifier si l'utilisateur est membre du projet
-        const { data: membership } = await supabaseAdmin
-          .from('project_members')
-          .select('id')
-          .eq('project_id', id)
-          .eq('user_id', user.id)
-          .single();
+        const { rowCount: memberCount } = await db.query(
+          'SELECT id FROM project_members WHERE project_id = $1 AND user_id = $2',
+          [id, user.id]
+        );
 
-        // Si pas membre, vérifier si l'utilisateur a des tâches assignées dans ce projet
-        if (!membership) {
-          const { data: assignedTasks } = await supabaseAdmin
-            .from('tasks')
-            .select('id')
-            .eq('project_id', id)
-            .eq('assigned_to_id', user.id)
-            .limit(1)
-            .single();
+        if (memberCount === 0) {
+          const { rowCount: taskCount } = await db.query(
+            'SELECT id FROM tasks WHERE project_id = $1 AND assigned_to_id = $2 LIMIT 1',
+            [id, user.id]
+          );
 
-          if (!assignedTasks) {
-            return corsResponse(
-              { error: 'Vous n\'avez pas accès à ce projet' },
-              request,
-              { status: 403 }
-            );
+          if (taskCount === 0) {
+            return corsResponse({ error: 'Vous n\'avez pas accès à ce projet' }, request, { status: 403 });
           }
         }
       }
     }
 
-    // Transform data to use manager_name instead of manager_id
-    const transformedData = {
-      ...data,
-      manager_name: data.manager?.name || null
-    };
-    delete transformedData.manager_id;
-    delete transformedData.manager;
-
-    return corsResponse(transformedData, request);
+    return corsResponse(project, request);
   } catch (error) {
     console.error('Get project error:', error);
     return corsResponse(
@@ -101,7 +79,7 @@ export async function GET(
 // PATCH /api/projects/[id] - Mettre à jour un projet
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -117,67 +95,53 @@ export async function PATCH(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = await params;
+    const { id } = params;
     const body = await request.json();
 
-    // Vérifier que l'utilisateur peut gérer ce projet
-    const { data: project } = await supabaseAdmin
-      .from('projects')
-      .select('id, manager_id')
-      .eq('id', id)
-      .single();
-
-    if (!project) {
+    const { rows: projectRows, rowCount: projectCount } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [id]);
+    if (projectCount === 0) {
       return corsResponse({ error: 'Project not found' }, request, { status: 404 });
     }
+    const project = projectRows[0];
 
     if (!canManageProject(userRole, userId, project.manager_id)) {
-      return corsResponse(
-        { error: 'Vous ne pouvez modifier que vos propres projets' },
-        request,
-        { status: 403 }
-      );
+      return corsResponse({ error: 'Vous ne pouvez modifier que vos propres projets' }, request, { status: 403 });
     }
 
-    const updateData: Record<string, unknown> = {};
-    if (body.title !== undefined) updateData.title = body.title;
-    if (body.description !== undefined) updateData.description = body.description;
-    if (body.start_date !== undefined) updateData.start_date = body.start_date;
-    if (body.end_date !== undefined) updateData.end_date = body.end_date;
-    if (body.due_date !== undefined) updateData.due_date = body.due_date;
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.manager_id !== undefined) updateData.manager_id = body.manager_id;
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    const fieldsToUpdate = ['title', 'description', 'start_date', 'end_date', 'due_date', 'status', 'manager_id'];
+    fieldsToUpdate.forEach(field => {
+        if (body[field] !== undefined) {
+            updateFields.push(`${field} = $${paramIndex++}`);
+            queryParams.push(body[field]);
+        }
+    });
 
-    const { data, error } = await supabaseAdmin
-      .from('projects')
-      .update(updateData)
-      .eq('id', id)
-      .select(`
-        *,
-        manager:users!manager_id(name)
-      `)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return corsResponse({ error: 'Project not found' }, request, { status: 404 });
-      }
-      throw error;
+    if (updateFields.length === 0) {
+      return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });
     }
 
-    // Transform data to use manager_name instead of manager_id
-    const transformedData = {
-      ...data,
-      manager_name: data.manager?.name || null
-    };
-    delete transformedData.manager_id;
-    delete transformedData.manager;
+    queryParams.push(id);
+    const updateQuery = `
+        UPDATE projects SET ${updateFields.join(', ')} 
+        WHERE id = $${paramIndex}
+        RETURNING *
+    `;
+    
+    await db.query(updateQuery, queryParams);
 
-    // Note: Les notifications pour les modifications de projet sont désactivées pour l'instant
-    // car il n'y a pas de template email dédié. Les modifications importantes (statut, etc.)
-    // sont déjà notifiées via les tâches et étapes associées.
+    const { rows: updatedProjectRows } = await db.query(
+        `SELECT p.*, u.name as manager_name 
+         FROM projects p 
+         LEFT JOIN users u ON p.manager_id = u.id 
+         WHERE p.id = $1`,
+        [id]
+    );
 
-    return corsResponse(transformedData, request);
+    return corsResponse(updatedProjectRows[0], request);
   } catch (error) {
     console.error('Update project error:', error);
     return corsResponse(
@@ -191,7 +155,7 @@ export async function PATCH(
 // PUT /api/projects/[id] - Mettre à jour un projet (alias de PATCH)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   return PATCH(request, { params });
 }
@@ -199,7 +163,7 @@ export async function PUT(
 // DELETE /api/projects/[id] - Supprimer un projet
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -215,33 +179,20 @@ export async function DELETE(
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { id } = await params;
+    const { id } = params;
 
-    // Vérifier que l'utilisateur peut gérer ce projet
-    const { data: project } = await supabaseAdmin
-      .from('projects')
-      .select('id, manager_id')
-      .eq('id', id)
-      .single();
+    const { rows: projectRows, rowCount: projectCount } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [id]);
 
-    if (!project) {
+    if (projectCount === 0) {
       return corsResponse({ error: 'Project not found' }, request, { status: 404 });
     }
-
+    const project = projectRows[0];
+    
     if (!canManageProject(userRole, userId, project.manager_id)) {
-      return corsResponse(
-        { error: 'Vous ne pouvez supprimer que vos propres projets' },
-        request,
-        { status: 403 }
-      );
+      return corsResponse({ error: 'Vous ne pouvez supprimer que vos propres projets' }, request, { status: 403 });
     }
 
-    const { error } = await supabaseAdmin
-      .from('projects')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
+    await db.query('DELETE FROM projects WHERE id = $1', [id]);
 
     return corsResponse({ message: 'Project deleted successfully' }, request);
   } catch (error) {

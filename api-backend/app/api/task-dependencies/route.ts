@@ -1,43 +1,52 @@
 import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { verifyAuth } from '@/lib/verifyAuth';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
+import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
 }
 
-// GET /api/task-dependencies - Récupérer toutes les dépendances ou par tâche
+// GET /api/task-dependencies - Récupérer les dépendances de tâches
 export async function GET(request: NextRequest) {
   try {
+    const user = await verifyAuth(request);
+    if (!user) {
+      return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
+    }
+
+    const userRole = mapDbRoleToUserRole(user.role ?? null);
+    const perm = requirePermission(userRole, 'tasks', 'read'); // Dépendances liées aux tâches
+    if (!perm.allowed) {
+      return corsResponse({ error: perm.error }, request, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('task_id');
+    const dependentTaskId = searchParams.get('dependent_task_id');
 
-    let query = supabaseAdmin
-      .from('task_dependencies')
-      .select(`
-        *,
-        task:tasks!task_dependencies_task_id_fkey(id, title, status),
-        depends_on_task:tasks!task_dependencies_depends_on_task_id_fkey(id, title, status)
-      `)
-      .order('created_at', { ascending: false });
+    let queryText = 'SELECT * FROM task_dependencies';
+    const queryParams: any[] = [];
+    const whereClauses: string[] = [];
+    let paramIndex = 1;
 
     if (taskId) {
-      query = query.eq('task_id', taskId);
+      whereClauses.push(`task_id = $${paramIndex++}`);
+      queryParams.push(taskId);
+    }
+    if (dependentTaskId) {
+      whereClauses.push(`dependent_task_id = $${paramIndex++}`);
+      queryParams.push(dependentTaskId);
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération des dépendances' },
-        request,
-        { status: 500 }
-      );
+    if (whereClauses.length > 0) {
+      queryText += ` WHERE ${whereClauses.join(' AND ')}`;
     }
 
-    return corsResponse(data || [], request);
+    const { rows } = await db.query(queryText, queryParams);
+    return corsResponse(rows, request);
   } catch (error) {
     console.error('GET /api/task-dependencies error:', error);
     return corsResponse(
@@ -48,43 +57,51 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Fonction pour vérifier la dépendance circulaire
+async function hasCircularDependency(taskId: string, dependentTaskId: string): Promise<boolean> {
+  const q = `
+    WITH RECURSIVE dependency_path (task_id, dependent_task_id, path, depth) AS (
+      SELECT td.task_id, td.dependent_task_id, ARRAY[td.task_id, td.dependent_task_id], 1
+      FROM task_dependencies td
+      WHERE td.task_id = $1
+      UNION ALL
+      SELECT dp.task_id, td.dependent_task_id, dp.path || td.dependent_task_id, dp.depth + 1
+      FROM dependency_path dp
+      JOIN task_dependencies td ON dp.dependent_task_id = td.task_id
+      WHERE td.dependent_task_id != ALL(dp.path)
+    )
+    SELECT EXISTS (SELECT 1 FROM dependency_path WHERE dependent_task_id = $2);
+  `;
+  const { rows } = await db.query(q, [dependentTaskId, taskId]);
+  return rows[0].exists;
+}
+
 // POST /api/task-dependencies - Créer une nouvelle dépendance
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const user = await verifyAuth(request);
+    if (!user) {
+      return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
+    }
 
-    // Validation
-    if (!body.task_id || !body.depends_on_task_id) {
+    const userRole = mapDbRoleToUserRole(user.role ?? null);
+    const perm = requirePermission(userRole, 'tasks', 'update'); // Nécessite la permission de modifier les tâches
+    if (!perm.allowed) {
+      return corsResponse({ error: perm.error }, request, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { task_id, dependent_task_id } = body;
+
+    if (!task_id || !dependent_task_id) {
       return corsResponse(
-        { error: 'task_id et depends_on_task_id sont requis' },
+        { error: 'task_id et dependent_task_id sont requis' },
         request,
         { status: 400 }
       );
     }
 
-    // Vérifier que les deux tâches existent
-    const { data: task1 } = await supabaseAdmin
-      .from('tasks')
-      .select('id')
-      .eq('id', body.task_id)
-      .single();
-
-    const { data: task2 } = await supabaseAdmin
-      .from('tasks')
-      .select('id')
-      .eq('id', body.depends_on_task_id)
-      .single();
-
-    if (!task1 || !task2) {
-      return corsResponse(
-        { error: 'Une ou les deux tâches n\'existent pas' },
-        request,
-        { status: 404 }
-      );
-    }
-
-    // Vérifier qu'une tâche ne dépend pas d'elle-même
-    if (body.task_id === body.depends_on_task_id) {
+    if (task_id === dependent_task_id) {
       return corsResponse(
         { error: 'Une tâche ne peut pas dépendre d\'elle-même' },
         request,
@@ -92,57 +109,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier que la dépendance n'existe pas déjà
-    const { data: existing } = await supabaseAdmin
-      .from('task_dependencies')
-      .select('id')
-      .eq('task_id', body.task_id)
-      .eq('depends_on_task_id', body.depends_on_task_id)
-      .single();
+    // Vérifier l'existence des tâches
+    const { rowCount: task1Count } = await db.query('SELECT id FROM tasks WHERE id = $1', [task_id]);
+    const { rowCount: task2Count } = await db.query('SELECT id FROM tasks WHERE id = $1', [dependent_task_id]);
 
-    if (existing) {
+    if (task1Count === 0 || task2Count === 0) {
+      return corsResponse(
+        { error: 'Une ou plusieurs tâches spécifiées n\'existent pas' },
+        request,
+        { status: 404 }
+      );
+    }
+
+    // Vérifier si la dépendance existe déjà
+    const { rowCount: existingDepCount } = await db.query(
+      'SELECT id FROM task_dependencies WHERE task_id = $1 AND dependent_task_id = $2',
+      [task_id, dependent_task_id]
+    );
+
+    if (existingDepCount > 0) {
       return corsResponse(
         { error: 'Cette dépendance existe déjà' },
+        request,
+        { status: 409 }
+      );
+    }
+
+    // Vérifier les dépendances circulaires
+    if (await hasCircularDependency(task_id, dependent_task_id)) {
+      return corsResponse(
+        { error: 'Cette dépendance créerait une dépendance circulaire' },
         request,
         { status: 400 }
       );
     }
 
-    // Créer la dépendance
-    const { data, error } = await supabaseAdmin
-      .from('task_dependencies')
-      .insert({
-        task_id: body.task_id,
-        depends_on_task_id: body.depends_on_task_id,
-        dependency_type: body.dependency_type || 'FINISH_TO_START',
-      })
-      .select(`
-        *,
-        task:tasks!task_dependencies_task_id_fkey(id, title, status),
-        depends_on_task:tasks!task_dependencies_depends_on_task_id_fkey(id, title, status)
-      `)
-      .single();
+    const insertQuery = 'INSERT INTO task_dependencies (task_id, dependent_task_id) VALUES ($1, $2) RETURNING *';
+    const { rows } = await db.query(insertQuery, [task_id, dependent_task_id]);
+    const newDependency = rows[0];
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la création de la dépendance' },
-        request,
-        { status: 500 }
-      );
-    }
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+       VALUES ($1, 'create', 'task_dependency', $2, $3)`,
+      [user.id, newDependency.id, `Created dependency: task ${task_id} -> ${dependent_task_id}`]
+    );
 
-    // Log activity
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: 1, // TODO: Get from auth
-      action: 'create',
-      entity_type: 'task_dependency',
-      entity_id: data.id,
-      details: `Created dependency: Task ${body.task_id} depends on Task ${body.depends_on_task_id}`,
-      metadata: data,
-    });
-
-    return corsResponse(data, request, { status: 201 });
+    return corsResponse(newDependency, request, { status: 201 });
   } catch (error) {
     console.error('POST /api/task-dependencies error:', error);
     return corsResponse(
@@ -153,47 +165,52 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/task-dependencies/:id - Supprimer une dépendance
+// DELETE /api/task-dependencies - Supprimer une dépendance
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const user = await verifyAuth(request);
+    if (!user) {
+      return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
+    }
 
-    if (!id) {
+    const userRole = mapDbRoleToUserRole(user.role ?? null);
+    const perm = requirePermission(userRole, 'tasks', 'update');
+    if (!perm.allowed) {
+      return corsResponse({ error: perm.error }, request, { status: 403 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const taskId = searchParams.get('task_id');
+    const dependentTaskId = searchParams.get('dependent_task_id');
+
+    if (!taskId || !dependentTaskId) {
       return corsResponse(
-        { error: 'ID de dépendance requis' },
+        { error: 'task_id et dependent_task_id sont requis' },
         request,
         { status: 400 }
       );
     }
 
-    const { error } = await supabaseAdmin
-      .from('task_dependencies')
-      .delete()
-      .eq('id', id);
+    const { rowCount } = await db.query(
+      'DELETE FROM task_dependencies WHERE task_id = $1 AND dependent_task_id = $2',
+      [taskId, dependentTaskId]
+    );
 
-    if (error) {
-      console.error('Supabase error:', error);
+    if (rowCount === 0) {
       return corsResponse(
-        { error: 'Erreur lors de la suppression de la dépendance' },
+        { error: 'Dépendance non trouvée' },
         request,
-        { status: 500 }
+        { status: 404 }
       );
     }
 
-    // Log activity
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: '00000000-0000-0000-0000-000000000001', // TODO: Get from auth
-      action: 'delete',
-      entity_type: 'task_dependency',
-      entity_id: id.toString(),
-      details: `Deleted task dependency ${id}`,
-    });
-
-    return corsResponse(
-      { success: true, message: 'Dépendance supprimée avec succès' },
-      request
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+       VALUES ($1, 'delete', 'task_dependency', NULL, $2)`,
+      [user.id, `Deleted dependency: task ${taskId} -> ${dependentTaskId}`]
     );
+
+    return corsResponse({ message: 'Dépendance supprimée avec succès' }, request);
   } catch (error) {
     console.error('DELETE /api/task-dependencies error:', error);
     return corsResponse(

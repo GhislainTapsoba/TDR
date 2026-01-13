@@ -1,6 +1,10 @@
 import { NextRequest } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
+import { s3Client } from '@/lib/storage';
+import { GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { verifyAuth } from '@/lib/verifyAuth';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -10,43 +14,40 @@ export async function OPTIONS(request: NextRequest) {
 // GET /api/documents/[id] - Récupérer un document par ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     
-    const { data, error } = await supabaseAdmin
-      .from('documents')
-      .select(`
-        *,
-        uploaded_by_user:users!documents_uploaded_by_fkey(id, name, email),
-        project:projects(id, title),
-        task:tasks(id, title)
-      `)
-      .eq('id', id)
-      .single();
+    const { rows, rowCount } = await db.query(
+      `SELECT d.*, 
+              u.name as uploaded_by_name, 
+              p.title as project_title, 
+              t.title as task_title 
+       FROM documents d 
+       LEFT JOIN users u ON d.uploaded_by = u.id 
+       LEFT JOIN projects p ON d.project_id = p.id 
+       LEFT JOIN tasks t ON d.task_id = t.id
+       WHERE d.id = $1`,
+      [id]
+    );
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return corsResponse({ error: 'Document non trouvé' }, request, { status: 404 });
-      }
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération du document' },
-        request,
-        { status: 500 }
-      );
+    if (rowCount === 0) {
+      return corsResponse({ error: 'Document non trouvé' }, request, { status: 404 });
     }
+    const document = rows[0];
 
-    // Transform data to use names instead of IDs
-    const transformedData = {
-      ...data,
-      uploaded_by_name: data.uploaded_by_user?.name || null
-    };
-    delete transformedData.uploaded_by;
-    delete transformedData.uploaded_by_user;
+    // Generate presigned URL for the file
+    const getObjectCommand = new GetObjectCommand({
+        Bucket: process.env.MINIO_BUCKET!,
+        Key: document.storage_path,
+    });
+    const presignedUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 }); // URL valide 1 heure
 
-    return corsResponse(transformedData, request);
+    // Replace the file_url with the presigned URL
+    document.file_url = presignedUrl;
+
+    return corsResponse(document, request);
   } catch (error) {
     console.error('GET /api/documents/[id] error:', error);
     return corsResponse(
@@ -60,51 +61,74 @@ export async function GET(
 // PATCH /api/documents/[id] - Mettre à jour un document
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
-    const body = await request.json();
-
-    const updateData: any = {};
-    if (body.name !== undefined) updateData.name = body.name;
-    if (body.description !== undefined) updateData.description = body.description;
-
-    const { data, error } = await supabaseAdmin
-      .from('documents')
-      .update(updateData)
-      .eq('id', id)
-      .select(`
-        *,
-        uploaded_by_user:users!documents_uploaded_by_fkey(id, name, email),
-        project:projects(id, title),
-        task:tasks(id, title)
-      `)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return corsResponse({ error: 'Document non trouvé' }, request, { status: 404 });
-      }
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la mise à jour du document' },
-        request,
-        { status: 500 }
-      );
+    const user = await verifyAuth(request);
+    if (!user) {
+      return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    // Log activity
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: '00000000-0000-0000-0000-000000000001', // TODO: Get from auth
-      action: 'update',
-      entity_type: 'document',
-      entity_id: data.id.toString(),
-      details: `Updated document: ${data.name}`,
-      metadata: updateData,
-    });
+    const { id } = params;
+    const body = await request.json();
 
-    return corsResponse(data, request);
+    const updateFields = [];
+    const queryParams = [];
+    let paramIndex = 1;
+
+    if (body.name !== undefined) {
+      updateFields.push(`name = $${paramIndex++}`);
+      queryParams.push(body.name);
+    }
+    if (body.description !== undefined) {
+      updateFields.push(`description = $${paramIndex++}`);
+      queryParams.push(body.description);
+    }
+
+    if (updateFields.length === 0) {
+        return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });
+    }
+
+    queryParams.push(id);
+    const updateQuery = `
+      UPDATE documents 
+      SET ${updateFields.join(', ')} 
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const { rows, rowCount } = await db.query(updateQuery, queryParams);
+    
+    if (rowCount === 0) {
+      return corsResponse({ error: 'Document non trouvé' }, request, { status: 404 });
+    }
+    const updatedDocument = rows[0];
+
+    // Log activity
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+       VALUES ($1, 'update', 'document', $2, $3, $4)`,
+      [
+        user.id,
+        updatedDocument.id,
+        `Updated document: ${updatedDocument.name}`,
+        JSON.stringify({ changes: updateFields.join(', ') }),
+      ]
+    );
+
+    const { rows: finalDocRows } = await db.query(`
+      SELECT d.*, 
+             u.name as uploaded_by_name, 
+             p.title as project_title, 
+             t.title as task_title 
+      FROM documents d 
+      LEFT JOIN users u ON d.uploaded_by = u.id 
+      LEFT JOIN projects p ON d.project_id = p.id 
+      LEFT JOIN tasks t ON d.task_id = t.id
+      WHERE d.id = $1
+    `, [updatedDocument.id]);
+
+    return corsResponse(finalDocRows[0], request);
   } catch (error) {
     console.error('PATCH /api/documents/[id] error:', error);
     return corsResponse(
@@ -118,42 +142,43 @@ export async function PATCH(
 // DELETE /api/documents/[id] - Supprimer un document
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const user = await verifyAuth(request);
+    if (!user) {
+      return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
+    }
+
+    const { id } = params;
     
     // Get document info before deleting
-    const { data: document } = await supabaseAdmin
-      .from('documents')
-      .select('name')
-      .eq('id', id)
-      .single();
+    const { rows: docRows, rowCount: docCount } = await db.query('SELECT name, storage_path FROM documents WHERE id = $1', [id]);
+    if (docCount === 0) {
+      return corsResponse({ error: 'Document non trouvé' }, request, { status: 404 });
+    }
+    const document = docRows[0];
 
-    const { error } = await supabaseAdmin
-      .from('documents')
-      .delete()
-      .eq('id', id);
+    // Delete from MinIO
+    const deleteCommand = new DeleteObjectCommand({
+        Bucket: process.env.MINIO_BUCKET!,
+        Key: document.storage_path,
+    });
+    await s3Client.send(deleteCommand);
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la suppression du document' },
-        request,
-        { status: 500 }
-      );
+
+    const { rowCount: deleteCount } = await db.query('DELETE FROM documents WHERE id = $1', [id]);
+
+    if (deleteCount === 0) {
+      return corsResponse({ error: 'Document non trouvé' }, request, { status: 404 });
     }
 
     // Log activity
-    if (document) {
-      await supabaseAdmin.from('activity_logs').insert({
-        user_id: '00000000-0000-0000-0000-000000000001', // TODO: Get from auth
-        action: 'delete',
-        entity_type: 'document',
-        entity_id: id,
-        details: `Deleted document: ${document.name}`,
-      });
-    }
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+       VALUES ($1, 'delete', 'document', $2, $3)`,
+      [user.id, id, `Deleted document: ${document.name}`]
+    );
 
     return corsResponse(
       { success: true, message: 'Document supprimé avec succès' },

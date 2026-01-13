@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import bcrypt from 'bcryptjs';
 
@@ -12,7 +12,7 @@ export async function OPTIONS(request: NextRequest) {
 // PUT /api/users/[id]/password - Changer le mot de passe
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -20,7 +20,7 @@ export async function PUT(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = params;
 
     // Un utilisateur ne peut changer que son propre mot de passe
     // (sauf si c'est un ADMIN qui peut changer n'importe quel mot de passe)
@@ -55,19 +55,12 @@ export async function PUT(
       }
 
       // Récupérer le mot de passe actuel haché
-      const { data: userData, error: userError } = await supabaseAdmin
-        .from('users')
-        .select('password')
-        .eq('id', id)
-        .single();
-
-      if (userError || !userData) {
-        return corsResponse(
-          { error: 'Utilisateur non trouvé' },
-          request,
-          { status: 404 }
-        );
+      const { rows, rowCount } = await db.query('SELECT password FROM users WHERE id = $1', [id]);
+      
+      if (rowCount === 0) {
+        return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
       }
+      const userData = rows[0];
 
       // Vérifier le mot de passe actuel
       const isValidPassword = await bcrypt.compare(
@@ -88,13 +81,10 @@ export async function PUT(
     const hashedPassword = await bcrypt.hash(new_password, 10);
 
     // Mettre à jour le mot de passe
-    const { error: updateError } = await supabaseAdmin
-      .from('users')
-      .update({ password: hashedPassword })
-      .eq('id', id);
+    const { rowCount } = await db.query('UPDATE users SET password = $1 WHERE id = $2', [hashedPassword, id]);
 
-    if (updateError) {
-      console.error('Error updating password:', updateError);
+    if (rowCount === 0) {
+      console.error('Error updating password: user not found');
       return corsResponse(
         { error: 'Erreur lors de la mise à jour du mot de passe' },
         request,
@@ -103,16 +93,19 @@ export async function PUT(
     }
 
     // Log de l'activité
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: user.id,
-      action: 'update',
-      entity_type: 'user_password',
-      entity_id: id,
-      details:
-        user.id === id
-          ? 'Mot de passe changé'
-          : `Mot de passe changé par l'administrateur ${user.name}`,
-    });
+    const logQuery = `
+      INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+      VALUES ($1, $2, $3, $4, $5)
+    `;
+    await db.query(logQuery, [
+      user.id,
+      'update',
+      'user_password',
+      id,
+      user.id === id
+        ? 'Mot de passe changé'
+        : `Mot de passe changé par l'administrateur ${user.name}`,
+    ]);
 
     return corsResponse(
       {

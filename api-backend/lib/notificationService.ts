@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase';
+import { db } from './db';
 import { sendEmail } from './emailService';
 import * as emailTemplates from './emailTemplates';
 
@@ -47,23 +47,18 @@ async function determineRecipients(context: NotificationContext): Promise<string
   // Récupérer le chef de projet si nécessaire
   let projectManager: any = null;
   if (projectId) {
-    const { data: project } = await supabaseAdmin
-      .from('projects')
-      .select('manager_id, manager:users!projects_manager_id_fkey(id, email, name, role)')
-      .eq('id', projectId)
-      .single();
+    const { rows: projectRows } = await db.query(
+      `SELECT u.id, u.email, u.name, u.role FROM projects p LEFT JOIN users u ON p.manager_id = u.id WHERE p.id = $1`,
+      [projectId]
+    );
 
-    if (project?.manager) {
-      projectManager = project.manager;
+    if (projectRows.length > 0 && projectRows[0].id) { // Check if manager exists
+      projectManager = projectRows[0];
     }
   }
 
   // Récupérer l'admin
-  const { data: admins } = await supabaseAdmin
-    .from('users')
-    .select('id, email, name, role')
-    .eq('role', 'ADMIN');
-
+  const { rows: admins } = await db.query("SELECT id, email, name, role FROM users WHERE role = 'ADMIN'");
   const adminEmails = admins?.map(a => a.email) || [];
 
   // Règles de notification selon le rôle de celui qui fait l'action
@@ -253,14 +248,18 @@ export async function sendActionNotification(context: NotificationContext): Prom
     }
 
     // Logger l'activité
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: context.performedBy.id,
-      action: context.actionType.toLowerCase(),
-      entity_type: context.entity.type,
-      entity_id: context.entity.id,
-      details: `Notifications sent to ${recipients.length} recipients`,
-      metadata: { recipients }
-    });
+    await db.query(
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        context.performedBy.id,
+        context.actionType.toLowerCase(),
+        context.entity.type,
+        context.entity.id,
+        `Notifications sent to ${recipients.length} recipients`,
+        JSON.stringify({ recipients })
+      ]
+    );
 
   } catch (error) {
     console.error('Error sending action notification:', error);

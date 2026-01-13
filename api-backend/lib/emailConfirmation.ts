@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto';
-import { supabaseAdmin } from './supabase';
+import { db } from './db';
 import { sendEmailToResponsibles } from './emailService';
 import {
   employeeTaskConfirmationTemplate,
@@ -31,24 +31,27 @@ export async function createConfirmationToken(data: ConfirmationTokenData): Prom
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // Expire dans 7 jours
 
-    const { error } = await supabaseAdmin
-      .from('email_confirmations')
-      .insert({
+    const { rows } = await db.query(
+      `INSERT INTO email_confirmations (token, type, user_id, entity_type, entity_id, metadata, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING token`,
+      [
         token,
-        type: data.type,
-        user_id: data.userId,
-        entity_type: data.entityType,
-        entity_id: data.entityId,
-        metadata: data.metadata,
-        expires_at: expiresAt.toISOString()
-      });
+        data.type,
+        data.userId,
+        data.entityType,
+        data.entityId,
+        data.metadata ? JSON.stringify(data.metadata) : null,
+        expiresAt.toISOString(),
+      ]
+    );
 
-    if (error) {
-      console.error('Error creating confirmation token:', error);
+    if (rows.length === 0) {
+      console.error('Error creating confirmation token: no row returned');
       return null;
     }
 
-    return token;
+    return rows[0].token;
   } catch (error) {
     console.error('Error in createConfirmationToken:', error);
     return null;
@@ -64,38 +67,28 @@ export async function confirmToken(token: string): Promise<{
   error?: string;
 }> {
   try {
-    // Récupérer le token
-    const { data: confirmation, error: fetchError } = await supabaseAdmin
-      .from('email_confirmations')
-      .select('*')
-      .eq('token', token)
-      .single();
+    const { rows, rowCount } = await db.query('SELECT * FROM email_confirmations WHERE token = $1', [token]);
 
-    if (fetchError || !confirmation) {
+    if (rowCount === 0) {
       return { success: false, error: 'Token invalide ou expiré' };
     }
+    const confirmation = rows[0];
 
-    // Vérifier si déjà confirmé
     if (confirmation.confirmed) {
       return { success: false, error: 'Ce token a déjà été utilisé' };
     }
 
-    // Vérifier l'expiration
     if (new Date(confirmation.expires_at) < new Date()) {
       return { success: false, error: 'Ce token a expiré' };
     }
 
-    // Marquer comme confirmé
-    const { error: updateError } = await supabaseAdmin
-      .from('email_confirmations')
-      .update({
-        confirmed: true,
-        confirmed_at: new Date().toISOString()
-      })
-      .eq('id', confirmation.id);
+    const { rowCount: updateCount } = await db.query(
+      `UPDATE email_confirmations SET confirmed = TRUE, confirmed_at = NOW() WHERE id = $1`,
+      [confirmation.id]
+    );
 
-    if (updateError) {
-      console.error('Error updating confirmation:', updateError);
+    if (updateCount === 0) {
+      console.error('Error updating confirmation: no row updated');
       return { success: false, error: 'Erreur lors de la confirmation' };
     }
 
@@ -122,49 +115,50 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
   try {
     switch (confirmationData.type) {
       case 'TASK_ASSIGNMENT':
-        // 1. Passer la tâche en "EN COURS"
-        const { data: updatedTask, error: updateError } = await supabaseAdmin
-          .from('tasks')
-          .update({ status: 'IN_PROGRESS' })
-          .eq('id', confirmationData.entityId)
-          .select(`
-            *,
-            project:projects(id, title),
-            assignee:users!assigned_to_id(id, name, email)
-          `)
-          .single();
+        const { rows: updatedTaskRows, rowCount: updatedTaskCount } = await db.query(
+          `UPDATE tasks SET status = 'IN_PROGRESS' WHERE id = $1 RETURNING *`,
+          [confirmationData.entityId]
+        );
 
-        if (updateError || !updatedTask) {
-          console.error('Error updating task or task not found:', updateError);
+        if (updatedTaskCount === 0) {
+          console.error('Error updating task or task not found for TASK_ASSIGNMENT');
           return false;
         }
+        const updatedTask = updatedTaskRows[0];
+
+        const { rows: taskDetailsRows } = await db.query(
+          `SELECT 
+            t.id, t.title, t.description, t.assigned_to_id, 
+            p.id as project_id, p.title as project_title,
+            u.id as assignee_id, u.name as assignee_name, u.email as assignee_email
+           FROM tasks t 
+           LEFT JOIN projects p ON t.project_id = p.id 
+           LEFT JOIN users u ON t.assigned_to_id = u.id 
+           WHERE t.id = $1`,
+          [confirmationData.entityId]
+        );
+        const taskDetails = taskDetailsRows[0];
         
-        // 2. Log l'activité
-        await supabaseAdmin.from('activity_logs').insert({
-          user_id: confirmationData.userId,
-          action: 'start',
-          entity_type: 'task',
-          entity_id: confirmationData.entityId,
-          details: 'Task started by email confirmation'
-        });
+        await db.query(
+          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+           VALUES ($1, 'start', 'task', $2, $3)`,
+          [confirmationData.userId, confirmationData.entityId, 'Task started by email confirmation']
+        );
 
-        // 3. Envoyer un email de notification aux responsables
-        if (updatedTask.project?.id) {
-          const emailHtml = employeeTaskConfirmationTemplate({
-            employeeName: updatedTask.assignee?.name || 'Un employé',
-            taskTitle: updatedTask.title,
-            projectName: updatedTask.project.title,
-            taskId: updatedTask.id.toString(),
-            managerName: 'Responsable',
-          });
-
+        if (taskDetails.project_id) {
           await sendEmailToResponsibles(
-            updatedTask.project.id,
-            `✅ Tâche démarrée: ${updatedTask.title}`,
-            emailHtml,
+            taskDetails.project_id,
+            `✅ Tâche démarrée: ${taskDetails.title}`,
+            employeeTaskConfirmationTemplate({
+              employeeName: taskDetails.assignee_name || 'Un employé',
+              taskTitle: taskDetails.title,
+              projectName: taskDetails.project_title,
+              taskId: taskDetails.id.toString(),
+              managerName: 'Responsable', // This might need to be fetched dynamically
+            }),
             {
               entity_type: 'task',
-              entity_id: updatedTask.id,
+              entity_id: taskDetails.id,
               action: 'TASK_STARTED_NOTIFICATION'
             }
           );
@@ -172,48 +166,43 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
         break;
 
       case 'TASK_STATUS_CHANGE':
-        // 1. Récupérer les informations de la tâche
-        const { data: taskData, error: taskError } = await supabaseAdmin
-          .from('tasks')
-          .select(`
-            *,
-            project:projects(*),
-            assignee:users!assigned_to_id(id, name, email)
-          `)
-          .eq('id', confirmationData.entityId)
-          .single();
+        const { rows: taskStatusDetailsRows, rowCount: taskStatusDetailsCount } = await db.query(
+          `SELECT 
+            t.*, 
+            p.id as project_id, p.title as project_title,
+            u.id as assignee_id, u.name as assignee_name, u.email as assignee_email
+           FROM tasks t 
+           LEFT JOIN projects p ON t.project_id = p.id 
+           LEFT JOIN users u ON t.assigned_to_id = u.id 
+           WHERE t.id = $1`,
+          [confirmationData.entityId]
+        );
 
-        if (taskError || !taskData) {
-          console.error('Error fetching task for acknowledgement:', taskError);
+        if (taskStatusDetailsCount === 0) {
+          console.error('Error fetching task for acknowledgement: task not found');
           return false;
         }
+        const taskData = taskStatusDetailsRows[0];
 
-        // 2. Marquer que l'employé a confirmé la réception
-        await supabaseAdmin.from('activity_logs').insert({
-          user_id: confirmationData.userId,
-          action: 'acknowledge',
-          entity_type: 'task',
-          entity_id: confirmationData.entityId,
-          details: 'Task status change acknowledged',
-          metadata: confirmationData.metadata
-        });
+        await db.query(
+          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+           VALUES ($1, 'acknowledge', 'task', $2, $3, $4)`,
+          [confirmationData.userId, confirmationData.entityId, 'Task status change acknowledged', JSON.stringify(confirmationData.metadata)]
+        );
 
-        // 3. Envoyer un email d'accusé de réception au chef de projet et admin
-        if (taskData.project?.id) {
-          const emailHtml = taskStatusChangeAcknowledgementTemplate({
-            employeeName: taskData.assignee?.name || 'Un employé',
-            taskTitle: taskData.title,
-            projectName: taskData.project.title,
-            taskId: taskData.id.toString(),
-            managerName: 'Responsable',
-            oldStatus: confirmationData.metadata?.old_status || 'UNKNOWN',
-            newStatus: confirmationData.metadata?.new_status || taskData.status
-          });
-
+        if (taskData.project_id) {
           await sendEmailToResponsibles(
-            taskData.project.id,
+            taskData.project_id,
             `📧 Accusé de réception: ${taskData.title}`,
-            emailHtml,
+            taskStatusChangeAcknowledgementTemplate({
+              employeeName: taskData.assignee_name || 'Un employé',
+              taskTitle: taskData.title,
+              projectName: taskData.project_title,
+              taskId: taskData.id.toString(),
+              managerName: 'Responsable', // This might need to be fetched dynamically
+              oldStatus: confirmationData.metadata?.old_status || 'UNKNOWN',
+              newStatus: confirmationData.metadata?.new_status || taskData.status
+            }),
             {
               entity_type: 'task',
               entity_id: taskData.id,
@@ -224,55 +213,48 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
         break;
 
       case 'STAGE_STATUS_CHANGE':
-        // 1. Récupérer les informations de l'étape
-        const { data: stageData, error: stageError } = await supabaseAdmin
-          .from('stages')
-          .select(`
-            *,
-            project:projects(*)
-          `)
-          .eq('id', confirmationData.entityId)
-          .single();
+        const { rows: stageDetailsRows, rowCount: stageDetailsCount } = await db.query(
+          `SELECT 
+            s.*, 
+            p.id as project_id, p.title as project_title
+           FROM stages s 
+           LEFT JOIN projects p ON s.project_id = p.id 
+           WHERE s.id = $1`,
+          [confirmationData.entityId]
+        );
 
-        if (stageError || !stageData) {
-          console.error('Error fetching stage for acknowledgement:', stageError);
+        if (stageDetailsCount === 0) {
+          console.error('Error fetching stage for acknowledgement: stage not found');
           return false;
         }
+        const stageData = stageDetailsRows[0];
 
-        // 2. Récupérer les informations de l'employé
-        const { data: employeeData } = await supabaseAdmin
-          .from('users')
-          .select('name')
-          .eq('id', confirmationData.userId)
-          .single();
+        const { rows: employeeDataRows } = await db.query(
+          'SELECT name FROM users WHERE id = $1',
+          [confirmationData.userId]
+        );
+        const employeeData = employeeDataRows[0];
 
-        // 3. Log le changement d'étape
-        await supabaseAdmin.from('activity_logs').insert({
-          user_id: confirmationData.userId,
-          action: 'acknowledge',
-          entity_type: 'stage',
-          entity_id: confirmationData.entityId,
-          details: 'Stage status change acknowledged',
-          metadata: confirmationData.metadata
-        });
+        await db.query(
+          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+           VALUES ($1, 'acknowledge', 'stage', $2, $3, $4)`,
+          [confirmationData.userId, confirmationData.entityId, 'Stage status change acknowledged', JSON.stringify(confirmationData.metadata)]
+        );
 
-        // 4. Envoyer un email d'accusé de réception au chef de projet et admin
-        if (stageData.project?.id) {
-          const emailHtml = stageStatusChangeAcknowledgementTemplate({
-            employeeName: employeeData?.name || 'Un employé',
-            stageName: stageData.name,
-            projectName: stageData.project.title,
-            projectId: stageData.project.id.toString(),
-            stageId: stageData.id.toString(),
-            managerName: 'Responsable',
-            oldStatus: confirmationData.metadata?.old_status || 'UNKNOWN',
-            newStatus: confirmationData.metadata?.new_status || stageData.status
-          });
-
+        if (stageData.project_id) {
           await sendEmailToResponsibles(
-            stageData.project.id,
+            stageData.project_id,
             `📧 Accusé de réception: Étape ${stageData.name}`,
-            emailHtml,
+            stageStatusChangeAcknowledgementTemplate({
+              employeeName: employeeData?.name || 'Un employé',
+              stageName: stageData.name,
+              projectName: stageData.project_title,
+              projectId: stageData.project_id.toString(),
+              stageId: stageData.id.toString(),
+              managerName: 'Responsable', // This might need to be fetched dynamically
+              oldStatus: confirmationData.metadata?.old_status || 'UNKNOWN',
+              newStatus: confirmationData.metadata?.new_status || stageData.status
+            }),
             {
               entity_type: 'stage',
               entity_id: stageData.id,

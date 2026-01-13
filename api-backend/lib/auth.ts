@@ -1,6 +1,6 @@
 import { NextAuthOptions, User } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { supabaseAdmin } from './supabase'
+import { db } from './db'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
@@ -23,22 +23,16 @@ export const authOptions: NextAuthOptions = {
         console.log(`[Auth authorize] Attempting to log in with email: ${credentials.email}`);
 
         try {
-          const { data: user, error } = await supabaseAdmin
-            .from('users')
-            .select('*')
-            .eq('email', credentials.email)
-            .single();
+          const query = 'SELECT * FROM users WHERE email = $1';
+          const { rows } = await db.query(query, [credentials.email]);
 
-          if (error) {
-            console.error('[Auth authorize] Supabase error:', error.message);
-            return null;
-          }
-
-          if (!user) {
+          if (rows.length === 0) {
             console.log('[Auth authorize] User not found in DB.');
             return null;
           }
           
+          const user = rows[0];
+
           if (!user.password) {
             console.log('[Auth authorize] User found but has no password set.');
             return null;

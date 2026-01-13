@@ -1,9 +1,7 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
-import { sendEmail } from '@/lib/emailService';
-import { taskAssignedTemplate } from '@/lib/emailTemplates';
 import { createConfirmationToken } from '@/lib/emailConfirmation';
 import { mapDbRoleToUserRole, requirePermission, canManageProject } from '@/lib/permissions';
 import { sendActionNotification } from '@/lib/notificationService';
@@ -31,122 +29,66 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const project_id = searchParams.get('project_id');
 
-    // Si ADMIN, retourner toutes les tâches
+    let queryText: string;
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+
+    const baseQuery = `
+      SELECT t.*, 
+             a.name as assigned_to_name, 
+             c.name as created_by_name 
+      FROM tasks t 
+      LEFT JOIN users a ON t.assigned_to_id = a.id 
+      LEFT JOIN users c ON t.created_by_id = c.id
+    `;
+    const whereClauses: string[] = [];
+
     if (userRole === 'admin') {
-      let query = supabaseAdmin.from('tasks').select(`
-        *,
-        assigned_to:users!assigned_to_id(name),
-        created_by:users!created_by_id(name)
-      `);
-
       if (status) {
-        query = query.eq('status', status);
+        whereClauses.push(`t.status = $${paramIndex++}`);
+        queryParams.push(status);
       }
-
       if (project_id) {
-        query = query.eq('project_id', project_id);
+        whereClauses.push(`t.project_id = $${paramIndex++}`);
+        queryParams.push(project_id);
       }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Supabase error:', error);
-        return corsResponse(
-          { error: 'Erreur lors de la récupération des tâches' },
-          request,
-          { status: 500 }
-        );
-      }
-
-      // Transform data to use names instead of IDs
-      const transformedData = data?.map(task => ({
-        ...task,
-        assigned_to_name: task.assigned_to?.name || null,
-        created_by_name: task.created_by?.name || null
-      }));
-      transformedData?.forEach(task => {
-        delete task.assigned_to_id;
-        delete task.created_by_id;
-        delete task.assigned_to;
-        delete task.created_by;
-      });
-
-      return corsResponse(transformedData || [], request);
-    }
-
-    // Pour les autres rôles, récupérer d'abord les projets accessibles
-    const { data: projectMembers, error: membersError } = await supabaseAdmin
-      .from('project_members')
-      .select('project_id')
-      .eq('user_id', user.id);
-
-    if (membersError) throw membersError;
-
-    const memberProjectIds = projectMembers?.map(pm => pm.project_id) || [];
-
-    // Récupérer les projets où l'utilisateur est créateur ou manager
-    const { data: accessibleProjects, error: projectsError } = await supabaseAdmin
-      .from('projects')
-      .select('id')
-      .or(`created_by_id.eq.${user.id},manager_id.eq.${user.id}${memberProjectIds.length > 0 ? `,id.in.(${memberProjectIds.join(',')})` : ''}`);
-
-    if (projectsError) throw projectsError;
-
-    const accessibleProjectIds = accessibleProjects?.map(p => p.id) || [];
-
-    // Récupérer les tâches assignées à l'utilisateur OU dans un projet accessible
-    let query = supabaseAdmin.from('tasks').select(`
-      *,
-      assigned_to:users!assigned_to_id(name),
-      created_by:users!created_by_id(name)
-    `);
-
-    if (accessibleProjectIds.length > 0) {
-      query = query.or(`assigned_to_id.eq.${user.id},project_id.in.(${accessibleProjectIds.join(',')})`);
     } else {
-      query = query.eq('assigned_to_id', user.id);
+      const { rows: projectMembers } = await db.query('SELECT project_id FROM project_members WHERE user_id = $1', [user.id]);
+      const memberProjectIds = projectMembers.map(pm => pm.project_id);
+
+      const { rows: managedProjects } = await db.query('SELECT id FROM projects WHERE manager_id = $1 OR created_by_id = $1', [user.id]);
+      const managedProjectIds = managedProjects.map(p => p.id);
+
+      const accessibleProjectIds = [...new Set([...memberProjectIds, ...managedProjectIds])];
+
+      let accessControlClause = `t.assigned_to_id = $${paramIndex++}`;
+      queryParams.push(user.id);
+
+      if (accessibleProjectIds.length > 0) {
+        accessControlClause += ` OR t.project_id = ANY($${paramIndex++})`;
+        queryParams.push(accessibleProjectIds);
+      }
+      whereClauses.push(`(${accessControlClause})`);
+      
+      if (status) {
+        whereClauses.push(`t.status = $${paramIndex++}`);
+        queryParams.push(status);
+      }
+      if (project_id) {
+        whereClauses.push(`t.project_id = $${paramIndex++}`);
+        queryParams.push(project_id);
+      }
     }
 
-    if (status) {
-      query = query.eq('status', status);
-    }
+    queryText = baseQuery + (whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : '');
+    queryText += ' ORDER BY t.created_at DESC';
 
-    if (project_id) {
-      query = query.eq('project_id', project_id);
-    }
+    const { rows: tasks } = await db.query(queryText, queryParams);
 
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération des tâches' },
-        request,
-        { status: 500 }
-      );
-    }
-
-    // Transform data to use names instead of IDs
-    const transformedData = data?.map(task => ({
-      ...task,
-      assigned_to_name: task.assigned_to?.name || null,
-      created_by_name: task.created_by?.name || null
-    }));
-    transformedData?.forEach(task => {
-      delete task.assigned_to_id;
-      delete task.created_by_id;
-      delete task.assigned_to;
-      delete task.created_by;
-    });
-
-    return corsResponse(transformedData || [], request);
+    return corsResponse(tasks || [], request);
   } catch (error) {
     console.error('GET /api/tasks error:', error);
-    return corsResponse(
-      { error: 'Erreur serveur' },
-      request,
-      { status: 500 }
-    );
+    return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
   }
 }
 
@@ -160,7 +102,6 @@ export async function POST(request: NextRequest) {
 
     const userRole = mapDbRoleToUserRole(user.role);
     const userId = user.id;
-
     const perm = requirePermission(userRole, 'tasks', 'create');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
@@ -168,86 +109,62 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Validation
     if (!body.title || !body.project_id) {
-      return corsResponse(
-        { error: 'Le titre et le project_id sont requis' },
-        request,
-        { status: 400 }
-      );
+      return corsResponse({ error: 'Le titre et le project_id sont requis' }, request, { status: 400 });
     }
 
-    // Vérifier que l'utilisateur peut gérer le projet (manager/admin)
-    const { data: project } = await supabaseAdmin
-      .from('projects')
-      .select('id, manager_id')
-      .eq('id', body.project_id)
-      .single();
-
-    if (!project) {
-      return corsResponse(
-        { error: 'Projet introuvable' },
-        request,
-        { status: 404 }
-      );
+    const { rows: projectRows } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [body.project_id]);
+    if (projectRows.length === 0) {
+      return corsResponse({ error: 'Projet introuvable' }, request, { status: 404 });
     }
+    const project = projectRows[0];
 
     if (!canManageProject(userRole, userId, project.manager_id)) {
-      return corsResponse(
-        { error: 'Vous ne pouvez créer des tâches que sur vos projets' },
-        request,
-        { status: 403 }
-      );
+      return corsResponse({ error: 'Vous ne pouvez créer des tâches que sur vos projets' }, request, { status: 403 });
     }
 
-    // Créer la tâche
-    const { data: task, error } = await supabaseAdmin
-      .from('tasks')
-      .insert({
-        title: body.title,
-        description: body.description || null,
-        status: body.status || 'TODO',
-        priority: body.priority || 'MEDIUM',
-        due_date: body.due_date || null,
-        assigned_to_id: body.assigned_to_id || null,
-        project_id: body.project_id,
-        stage_id: body.stage_id || null,
-        created_by_id: userId,
-      })
-      .select(`
-        *,
-        assigned_to:users!assigned_to_id(name),
-        created_by:users!created_by_id(name)
-      `)
-      .single();
+    const insertQuery = `
+      INSERT INTO tasks (title, description, status, priority, due_date, assigned_to_id, project_id, stage_id, created_by_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `;
+    const { rows: taskRows } = await db.query(insertQuery, [
+      body.title,
+      body.description || null,
+      body.status || 'TODO',
+      body.priority || 'MEDIUM',
+      body.due_date || null,
+      body.assigned_to_id || null,
+      body.project_id,
+      body.stage_id || null,
+      userId,
+    ]);
+    const task = taskRows[0];
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la création de la tâche' },
-        request,
-        { status: 500 }
-      );
-    }
+    // Get all details for notifications in one go
+    const { rows: detailsRows } = await db.query(`
+      SELECT 
+        p.name as project_name, 
+        p.title as project_title,
+        u.id as user_id, 
+        u.name as user_name, 
+        u.email as user_email, 
+        u.role as user_role
+      FROM projects p
+      LEFT JOIN users u ON u.id = $1
+      WHERE p.id = $2
+    `, [task.assigned_to_id, task.project_id]);
 
-    // Récupérer les informations complètes pour les notifications
-    const { data: projectDetails } = await supabaseAdmin
-      .from('projects')
-      .select('name, title')
-      .eq('id', task.project_id)
-      .single();
+    const details = detailsRows[0] || {};
+    const assignedUser = task.assigned_to_id ? {
+      id: details.user_id,
+      name: details.user_name,
+      email: details.user_email,
+      role: details.user_role
+    } : null;
 
-    const { data: assignedUser } = task.assigned_to_id
-      ? await supabaseAdmin
-          .from('users')
-          .select('id, name, email, role')
-          .eq('id', task.assigned_to_id)
-          .single()
-      : { data: null };
-
-    // Créer un token de confirmation si la tâche est assignée
     let confirmationToken: string | null = null;
-    if (task.assigned_to_id) {
+    if (task.assigned_to_id && assignedUser) {
       confirmationToken = await createConfirmationToken({
         type: 'TASK_ASSIGNMENT',
         userId: task.assigned_to_id,
@@ -255,65 +172,45 @@ export async function POST(request: NextRequest) {
         entityId: task.id,
         metadata: {
           task_title: task.title,
-          project_name: projectDetails?.title || projectDetails?.name || 'Projet'
+          project_name: details.project_title || details.project_name || 'Projet'
         }
       });
 
-      // Créer une notification in-app
-      await supabaseAdmin.from('notifications').insert({
-        user_id: task.assigned_to_id,
-        type: 'TASK_ASSIGNED',
-        title: 'Nouvelle tâche assignée',
-        message: `Vous avez été assigné à la tâche: ${task.title}`,
-        metadata: {
-          task_id: task.id,
-          project_id: task.project_id,
-          priority: task.priority
-        }
-      });
+      await db.query(`
+        INSERT INTO notifications (user_id, type, title, message, metadata)
+        VALUES ($1, 'TASK_ASSIGNED', 'Nouvelle tâche assignée', $2, $3)
+      `, [
+        task.assigned_to_id,
+        `Vous avez été assigné à la tâche: ${task.title}`,
+        JSON.stringify({ task_id: task.id, project_id: task.project_id, priority: task.priority })
+      ]);
     }
-
-    // Envoyer les notifications par email selon les règles métier
+    
     await sendActionNotification({
       actionType: task.assigned_to_id ? 'TASK_ASSIGNED' : 'TASK_CREATED',
-      performedBy: {
-        id: user.id,
-        name: user.name || 'Utilisateur',
-        email: user.email,
-        role: user.role as 'ADMIN' | 'PROJECT_MANAGER' | 'EMPLOYEE'
-      },
-      entity: {
-        type: 'task',
-        id: task.id,
-        data: task
-      },
+      performedBy: { id: user.id, name: user.name || 'Utilisateur', email: user.email, role: user.role as 'ADMIN' | 'PROJECT_MANAGER' | 'EMPLOYEE' },
+      entity: { type: 'task', id: task.id, data: task },
       affectedUsers: assignedUser ? [assignedUser] : [],
       projectId: task.project_id,
       metadata: {
-        projectName: projectDetails?.title || projectDetails?.name || 'Projet',
+        projectName: details.project_title || details.project_name || 'Projet',
         assigneeName: assignedUser?.name || 'Utilisateur',
         confirmationToken
       }
     });
 
-    // Transform task data to use names instead of IDs
-    const transformedTask = {
-      ...task,
-      assigned_to_name: task.assigned_to?.name || null,
-      created_by_name: task.created_by?.name || null
-    };
-    delete transformedTask.assigned_to_id;
-    delete transformedTask.created_by_id;
-    delete transformedTask.assigned_to;
-    delete transformedTask.created_by;
+    // Finally, get the full task with names for the response
+    const { rows: finalTaskRows } = await db.query(`
+      SELECT t.*, a.name as assigned_to_name, c.name as created_by_name 
+      FROM tasks t 
+      LEFT JOIN users a ON t.assigned_to_id = a.id 
+      LEFT JOIN users c ON t.created_by_id = c.id
+      WHERE t.id = $1
+    `, [task.id]);
 
-    return corsResponse(transformedTask, request, { status: 201 });
+    return corsResponse(finalTaskRows[0], request, { status: 201 });
   } catch (error) {
     console.error('POST /api/tasks error:', error);
-    return corsResponse(
-      { error: 'Erreur serveur' },
-      request,
-      { status: 500 }
-    );
+    return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
   }
 }

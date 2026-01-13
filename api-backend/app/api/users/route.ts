@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import bcrypt from 'bcryptjs';
 import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
@@ -28,27 +28,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
 
-    let query = supabaseAdmin
-      .from('users')
-      .select('id, name, email, role, created_at, updated_at');
+    let queryText = 'SELECT id, name, email, role, created_at, updated_at FROM users';
+    const queryParams = [];
 
-    // Filtrer par rôle si spécifié
     if (role) {
-      query = query.eq('role', role);
+      queryText += ' WHERE role = $1';
+      queryParams.push(role);
     }
 
-    const { data, error } = await query.order('name', { ascending: true });
+    queryText += ' ORDER BY name ASC';
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return corsResponse(
-        { error: 'Erreur lors de la récupération des utilisateurs' },
-        request,
-        { status: 500 }
-      );
-    }
+    const { rows, rowCount } = await db.query(queryText, queryParams);
 
-    return corsResponse(data || [], request);
+    return corsResponse(rows || [], request);
   } catch (error) {
     console.error('GET /api/users error:', error);
     return corsResponse(
@@ -85,13 +77,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Vérifier si l'email existe déjà
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('email')
-      .eq('email', body.email)
-      .single();
+    const { rows: existingUsers } = await db.query('SELECT email FROM users WHERE email = $1', [body.email]);
 
-    if (existingUser) {
+    if (existingUsers.length > 0) {
       return corsResponse(
         { error: 'Cet email est déjà utilisé' },
         request,
@@ -109,19 +97,14 @@ export async function POST(request: NextRequest) {
     else if (dbRole === 'USER') dbRole = 'EMPLOYEE';
 
     // Créer l'utilisateur
-    const { data, error } = await supabaseAdmin
-      .from('users')
-      .insert({
-        name: body.name,
-        email: body.email,
-        password: hashedPassword,
-        role: dbRole,
-      })
-      .select('id, name, email, role, created_at, updated_at')
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
+    const insertQuery = `
+      INSERT INTO users (name, email, password, role)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, name, email, role, created_at, updated_at
+    `;
+    const { rows } = await db.query(insertQuery, [body.name, body.email, hashedPassword, dbRole]);
+    
+    if (rows.length === 0) {
       return corsResponse(
         { error: 'Erreur lors de la création de l\'utilisateur' },
         request,
@@ -129,7 +112,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return corsResponse(data, request, { status: 201 });
+    return corsResponse(rows[0], request, { status: 201 });
   } catch (error) {
     console.error('POST /api/users error:', error);
     return corsResponse(
