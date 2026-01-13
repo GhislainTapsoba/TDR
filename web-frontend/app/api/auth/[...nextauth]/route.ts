@@ -20,9 +20,9 @@ const authOptions: AuthOptions = {
         console.log("🔐 Email:", credentials.email);
 
         try {
-          // Utiliser l'URL interne Docker pour les appels serveur-side
-          const apiUrl = "http://api-backend:3000/api/auth/login";
-          console.log("📡 Appel vers (Docker network):", apiUrl);
+          // URL INTERNE Docker pour appels serveur-side
+          const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
+          console.log("📡 Appel vers:", apiUrl);
 
           const res = await fetch(apiUrl, {
             method: "POST",
@@ -56,7 +56,7 @@ const authOptions: AuthOptions = {
           console.log("✅ Données parsées:", JSON.stringify(data, null, 2));
 
           if (!data.success || !data.user) {
-            console.error("❌ Format invalide - success:", data.success, "user:", !!data.user);
+            console.error("❌ Format invalide");
             return null;
           }
 
