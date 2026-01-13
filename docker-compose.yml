@@ -96,9 +96,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - NEXT_PUBLIC_API_URL=http://api-backend:3000/api
+      - NEXT_PUBLIC_API_URL=http://194.195.211.111:3000/api
       - INTERNAL_API_URL=http://api-backend:3000/api
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_URL=http://194.195.211.111:3001
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     expose:
       - "3001"
