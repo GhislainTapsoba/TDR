@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     // Generate JWT token for NextAuth
     process.stderr.write(`DEBUG: NEXTAUTH_SECRET (signing): ${process.env.NEXTAUTH_SECRET}\n`);
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { sub: user.id, email: user.email, role: user.role, id: user.id }, // Explicitly set 'sub'
       process.env.NEXTAUTH_SECRET!,
       { expiresIn: '30d' }
     );
