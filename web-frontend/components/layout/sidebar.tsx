@@ -75,53 +75,27 @@ const navigation = [
 ]
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const cookieValue = document.cookie
-        .split('; ')
-        .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
-        ?.split('=')[1]
-      return cookieValue === 'true'
-    }
-    return false
-  })
   const pathname = usePathname()
   const { data: session } = useSession();
   const user = session?.user;
 
   // @ts-ignore
-  const filteredNavigation = navigation.filter((item) => user && item.roles.includes(user.role))
-
+  const filteredNavigation = navigation.filter((item) => user && item.roles.includes(user.role?.toLowerCase()))
 
   return (
-    <div
-      className={cn(
-        "flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300",
-        collapsed ? "w-16" : "w-64",
-      )}
-    >
+    <div className="flex flex-col h-screen bg-sidebar border-r border-sidebar-border w-64">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Briefcase className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-sidebar-foreground">Gestionnaire</span>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <Briefcase className="h-4 w-4 text-primary-foreground" />
           </div>
-        )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-sidebar-foreground hover:bg-sidebar-accent"
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+          <span className="font-semibold text-sidebar-foreground">Gestionnaire</span>
+        </div>
       </div>
 
       {/* User Info */}
-      {!collapsed && user && (
+      {user && (
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
@@ -149,11 +123,10 @@ export function Sidebar() {
                   isActive
                     ? "bg-sidebar-primary text-sidebar-primary-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  collapsed && "justify-center",
                 )}
               >
                 <item.icon className="h-4 w-4 flex-shrink-0" />
-                {!collapsed && <span>{item.name}</span>}
+                <span>{item.name}</span>
               </div>
             </Link>
           )
@@ -165,13 +138,10 @@ export function Sidebar() {
         <Button
           variant="ghost"
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className={cn(
-            "w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent",
-            collapsed && "justify-center",
-          )}
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent"
         >
           <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Déconnexion</span>}
+          <span>Déconnexion</span>
         </Button>
       </div>
     </div>
