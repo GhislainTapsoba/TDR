@@ -16,13 +16,13 @@ const authOptions: AuthOptions = {
           return null;
         }
 
-        console.log("🔐 Tentative de connexion:", credentials.email);
-        console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
+        console.log("=== DÉBUT AUTHORIZE ===");
+        console.log("🔐 Email:", credentials.email);
 
         try {
-        // Utiliser l'URL interne pour les appels serveur
-          const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
-          console.log("📡 Appel vers:", apiUrl);
+          // Utiliser l'URL interne Docker pour les appels serveur-side
+          const apiUrl = "http://api-backend:3000/api/auth/login";
+          console.log("📡 Appel vers (Docker network):", apiUrl);
 
           const res = await fetch(apiUrl, {
             method: "POST",
@@ -35,79 +35,72 @@ const authOptions: AuthOptions = {
             }),
           });
 
-          console.log("📊 Statut réponse:", res.status);
+          console.log("📊 Statut HTTP:", res.status);
+
+          const responseText = await res.text();
+          console.log("📦 Réponse brute:", responseText);
 
           if (!res.ok) {
-            const errorText = await res.text();
-            console.error("❌ Erreur API:", res.status, errorText);
+            console.error("❌ Erreur HTTP:", res.status, responseText);
             return null;
           }
 
-          const data = await res.json();
-          console.log("✅ Données reçues:", JSON.stringify(data, null, 2));
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (e) {
+            console.error("❌ Erreur parsing JSON:", e);
+            return null;
+          }
 
-          // Vérifier le format de réponse du backend
+          console.log("✅ Données parsées:", JSON.stringify(data, null, 2));
+
           if (!data.success || !data.user) {
-            console.error("❌ Format de réponse invalide:", data);
+            console.error("❌ Format invalide - success:", data.success, "user:", !!data.user);
             return null;
           }
 
-          console.log("✅ Utilisateur authentifié:", data.user.email);
+          console.log("✅ SUCCÈS - Utilisateur:", data.user.email);
+          console.log("=== FIN AUTHORIZE ===");
 
-          // Retourner l'utilisateur (le token est optionnel pour NextAuth JWT)
           return {
             id: data.user.id,
             email: data.user.email,
             name: data.user.name,
             role: data.user.role,
-            token: data.token, // Optionnel : si vous avez besoin du token ailleurs
           };
 
         } catch (error) {
-          console.error("💥 Erreur lors de l'authentification:", error);
+          console.error("💥 ERREUR CRITIQUE:", error);
+          console.error("💥 Stack:", error instanceof Error ? error.stack : 'N/A');
           return null;
         }
       },
     }),
   ],
-  session: {
+  session: { 
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 jours
-    updateAge: 24 * 60 * 60, // 1 jour
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        console.log("🔑 JWT - Ajout user au token");
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
-        if (user.token) {
-          token.accessToken = user.token;
-        }
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        const mapRole = (dbRole: string): string => {
-          console.log("DEBUG: dbRole received from token:", dbRole); // Add this line
-          switch (dbRole) {
-            case 'ADMIN': return 'admin'
-            case 'PROJECT_MANAGER': return 'chef_projet'
-            case 'EMPLOYEE': return 'employe'
-            default: return 'employe'
-          }
-        }
-
+        console.log("👤 Session - Ajout token à la session");
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
-        session.user.role = mapRole(token.role as string);
-        if (token.accessToken) {
-          session.accessToken = token.accessToken;
-        }
+        session.user.role = token.role as string;
       }
       return session;
     },
@@ -116,7 +109,7 @@ const authOptions: AuthOptions = {
     signIn: '/login',
     error: '/login',
   },
-  debug: true, // Logs détaillés
+  debug: true,
 };
 
 const handler = NextAuth(authOptions);
