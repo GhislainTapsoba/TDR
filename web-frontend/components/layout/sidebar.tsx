@@ -80,6 +80,16 @@ export function Sidebar() {
   // @ts-ignore
   const filteredNavigation = navigation.filter((item) => user && item.roles.includes(user.role))
 
+  React.useEffect(() => {
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+      ?.split('=')[1]
+    if (cookieValue) {
+      setCollapsed(cookieValue === 'true')
+    }
+  }, [])
+
 
   return (
     <div

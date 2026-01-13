@@ -30,6 +30,28 @@ interface DashboardStats {
   recentTasks?: Task[]
 }
 
+const projectStatusLabels: Record<string, string> = {
+  planifie: "Planifié",
+  en_cours: "En cours",
+  en_pause: "En pause",
+  termine: "Terminé",
+  annule: "Annulé",
+  planning: "Planifié",
+  in_progress: "En cours",
+  paused: "En pause",
+  completed: "Terminé",
+  cancelled: "Annulé",
+}
+
+const taskStatusLabels: Record<string, string> = {
+  a_faire: "À faire",
+  en_cours: "En cours",
+  termine: "Terminé",
+  todo: "À faire",
+  in_progress: "En cours",
+  completed: "Terminé",
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({})
   const [activities, setActivities] = useState<ActivityLog[]>([])
@@ -241,7 +263,7 @@ export default function DashboardPage() {
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(stats.projectsByStatus).map(([status, count]) => (
                       <Badge key={status} variant="secondary" className="capitalize">
-                        {status.replace("_", " ")}: {count}
+                        {projectStatusLabels[status.toLowerCase()] || status.replace("_", " ")}: {count}
                       </Badge>
                     ))}
                   </div>
@@ -258,7 +280,7 @@ export default function DashboardPage() {
                         variant={status === "TODO" ? "secondary" : status === "IN_PROGRESS" ? "default" : "outline"}
                         className="capitalize"
                       >
-                        {status.replace("_", " ").toLowerCase()}: {count}
+                        {taskStatusLabels[status.toLowerCase()] || status.replace("_", " ").toLowerCase()}: {count}
                       </Badge>
                     ))}
                   </div>
