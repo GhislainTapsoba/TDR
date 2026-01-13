@@ -20,7 +20,6 @@ const authOptions: AuthOptions = {
         console.log("🔐 Email:", credentials.email);
 
         try {
-          // URL INTERNE Docker pour appels serveur-side
           const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
           console.log("📡 Appel vers:", apiUrl);
 
@@ -84,6 +83,7 @@ const authOptions: AuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
+  // ✅ SUPPRIMEZ ou MODIFIEZ la section cookies
   cookies: {
     sessionToken: {
       name: `next-auth.session-token`,
@@ -91,8 +91,8 @@ const authOptions: AuthOptions = {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: true,
-        domain: '194.195.211.111',
+        secure: false,  // ✅ Changez à false si vous utilisez HTTP
+        // ✅ Supprimez la ligne domain ou laissez-la vide
       },
     },
   },

@@ -60,19 +60,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [session, status])
 
   const login = async (email: string, password: string) => {
-    const result = await signIn('credentials', {
-      redirect: false,
-      email,
-      password,
-    });
+  console.log("🔐 Tentative de connexion:", email);
+  
+  const result = await signIn('credentials', {
+    redirect: false,
+    email,
+    password,
+  });
 
-    if (result?.error) {
-      throw new Error(result.error);
-    }
+  console.log("📊 Résultat signIn:", result);
 
-    // Manually redirect to dashboard after successful login
-    router.push('/dashboard');
+  if (result?.error) {
+    console.error("❌ Erreur de connexion:", result.error);
+    throw new Error(result.error === "CredentialsSignin" 
+      ? "Email ou mot de passe incorrect" 
+      : result.error
+    );
   }
+
+  if (!result?.ok) {
+    throw new Error("Échec de la connexion");
+  }
+
+  console.log("✅ Connexion réussie, redirection...");
+  router.push('/dashboard');
+}
 
   const logout = async () => {
     setUser(null)

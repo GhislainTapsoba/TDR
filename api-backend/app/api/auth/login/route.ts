@@ -40,7 +40,10 @@ export async function POST(req: Request) {
     return NextResponse.json(userWithoutPassword, { status: 200 });
 
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Erreur interne du serveur.' }, { status: 500 });
-  }
+    console.error('LOGIN ERROR >>>', error);
+    return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Erreur interne' },
+        { status: 500 }
+    );
+    }
 }
