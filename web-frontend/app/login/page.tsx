@@ -26,20 +26,23 @@ export default function LoginPage() {
 
     try {
       const result = await signIn('credentials', {
-        redirect: false,
         email,
         password,
+        redirect: false,
       });
 
       if (result?.error) {
         setError("Email ou mot de passe incorrect.");
+        setLoading(false);
       } else if (result?.ok) {
-        router.push('/dashboard');
+        // Wait a bit for session to be set
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 100);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur de connexion")
-    } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 

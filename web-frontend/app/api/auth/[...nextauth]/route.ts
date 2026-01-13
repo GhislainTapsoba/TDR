@@ -64,10 +64,10 @@ const authOptions: AuthOptions = {
           console.log("=== FIN AUTHORIZE ===");
 
           return {
-            id: data.user.id,
+            id: String(data.user.id),
             email: data.user.email,
-            name: data.user.name,
-            role: data.user.role,
+            name: data.user.name || '',
+            role: data.user.role || 'user',
           };
 
         } catch (error) {
@@ -83,6 +83,17 @@ const authOptions: AuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: false,
+      },
+    },
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
