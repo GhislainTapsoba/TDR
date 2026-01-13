@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { api } from "@/lib/api"
+import { activityLogsApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -75,8 +75,8 @@ export default function ActivityPage() {
 
   const fetchActivities = async () => {
     try {
-      const response = await api.getDashboardActivities() as { activities: ActivityLog[] }
-      setActivities(response.activities || [])
+      const response = await activityLogsApi.getAll();
+      setActivities(response.data as any || [])
     } catch (error) {
       console.error("Erreur lors du chargement des activités:", error)
     } finally {

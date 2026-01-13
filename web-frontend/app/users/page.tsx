@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useSession } from "next-auth/react"
-import { api } from "@/lib/api"
+import { usersApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,8 +45,8 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.getUsers() as { users: any[] };
-      setUsers(response.users || []);
+      const response = await usersApi.getAll();
+      setUsers(response.data as any || []);
     } catch (error) {
       console.error("Erreur lors du chargement des utilisateurs:", error)
     } finally {
@@ -194,7 +194,7 @@ export default function UsersPage() {
                         onClick={async () => {
                           if (!confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) return
                           try {
-                            await api.delete(`/users/${user.id}`)
+                            await usersApi.delete(user.id.toString())
                             setUsers((prev) => prev.filter(u => u.id !== user.id))
                           } catch (error) {
                             console.error("Erreur lors de la suppression :", error)
