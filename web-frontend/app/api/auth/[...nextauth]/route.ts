@@ -92,7 +92,6 @@ const authOptions: AuthOptions = {
         sameSite: 'lax',
         path: '/',
         secure: false,
-        domain: '194.195.211.111',
       },
     },
   },

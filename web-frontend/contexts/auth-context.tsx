@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const result = await signIn('credentials', {
-      redirect: false,
+      redirect: '/dashboard',
       email,
       password,
     });
@@ -70,8 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(result.error);
     }
 
-    // The session will be updated automatically via useSession
-    router.push("/dashboard")
+    // NextAuth will redirect to /dashboard after setting the session
   }
 
   const logout = async () => {
