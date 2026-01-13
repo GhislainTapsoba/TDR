@@ -11,17 +11,23 @@ const authOptions: AuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          console.log("❌ Credentials manquantes");
-          return null;
-        }
+    if (!credentials?.email || !credentials?.password) {
+      console.log("❌ Credentials manquantes");
+      return null;
+    }
 
-        console.log("=== DÉBUT AUTHORIZE ===");
-        console.log("🔐 Email:", credentials.email);
+    console.log("=== DÉBUT AUTHORIZE ===");
+    console.log("🔐 Email:", credentials.email);
+    
+    // ✅ AJOUTEZ CECI
+    console.log("🌍 INTERNAL_API_URL:", process.env.INTERNAL_API_URL);
+    console.log("🌍 NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
+    console.log("🌍 NEXTAUTH_SECRET:", process.env.NEXTAUTH_SECRET ? "✅ Défini" : "❌ Manquant");
 
-        try {
-          const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
-          console.log("📡 Appel vers:", apiUrl);
+    try {
+      const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
+      console.log("📡 URL complète:", apiUrl);
+
 
           const res = await fetch(apiUrl, {
             method: "POST",
