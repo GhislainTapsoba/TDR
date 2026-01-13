@@ -37,7 +37,10 @@ export async function POST(req: Request) {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
-    return NextResponse.json(userWithoutPassword, { status: 200 });
+    // Ensure id is string for NextAuth
+    const userResponse = { ...userWithoutPassword, id: String(userWithoutPassword.id) };
+
+    return NextResponse.json(userResponse, { status: 200 });
 
   } catch (error) {
     console.error('LOGIN ERROR >>>', error);

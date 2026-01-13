@@ -61,6 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
   console.log("🔐 Tentative de connexion:", email);
+  console.log("DEBUG: process.env.NEXTAUTH_URL (client):", process.env.NEXTAUTH_URL);
+  console.log("DEBUG: window.location.origin (client):", window.location.origin);
   
   const result = await signIn('credentials', {
     redirect: false,
