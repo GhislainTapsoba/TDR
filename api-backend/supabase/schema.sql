@@ -235,3 +235,14 @@ CREATE TABLE public.project_members (
   CONSTRAINT project_members_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
   CONSTRAINT project_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+
+-- Seed an admin user
+INSERT INTO public.users (id, email, name, role, password)
+VALUES (
+  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- Example UUID, should be unique
+  'admin@example.com',
+  'Admin User',
+  'ADMIN',
+  '$2a$10$Ew9S26f.z3aZ2G2.D3X9b.F0G4F4F4F4F4F4F4F4F4F4F4F4F4' -- Hashed 'adminpassword'
+)
+ON CONFLICT (email) DO NOTHING; -- Prevents inserting duplicate on subsequent runs
