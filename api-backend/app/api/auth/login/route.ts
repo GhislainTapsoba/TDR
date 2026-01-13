@@ -4,11 +4,12 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 export async function POST(req: Request) {
-  console.log('>>> API Backend /auth/login route hit');
+  process.stderr.write('>>> API Backend /auth/login route hit\n');
   try {
     const { email, password } = await req.json();
 
     if (!email || !password) {
+      process.stderr.write('❌ Email ou mot de passe manquant\n');
       return NextResponse.json(
         { error: 'Email et mot de passe sont requis.' },
         { status: 400 }
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
 
     // Validate email
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      process.stderr.write('❌ Format d\'email invalide\n');
       return NextResponse.json({ error: 'Format d\'email invalide.' }, { status: 400 });
     }
 
@@ -32,6 +34,7 @@ export async function POST(req: Request) {
     const { rows: users } = await db.query(userQuery, [normalizedEmail]);
 
     if (users.length === 0) {
+      process.stderr.write('❌ Utilisateur non trouvé\n');
       return NextResponse.json(
         { error: 'Email ou mot de passe incorrect.' },
         { status: 401 }
@@ -43,6 +46,7 @@ export async function POST(req: Request) {
     // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      process.stderr.write('❌ Mot de passe incorrect\n');
       return NextResponse.json(
         { error: 'Email ou mot de passe incorrect.' },
         { status: 401 }
@@ -62,6 +66,8 @@ export async function POST(req: Request) {
       { expiresIn: '30d' }
     );
 
+    process.stderr.write('✅ Connexion réussie, jeton généré\n');
+
     // Return in NextAuth format
     return NextResponse.json({
       success: true,
@@ -70,10 +76,12 @@ export async function POST(req: Request) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error('LOGIN ERROR >>>', error);
+    process.stderr.write(`💥 ERREUR CRITIQUE dans /auth/login: ${error}\n`);
+    console.error('LOGIN ERROR >>>', error); // Keep original console.error as fallback
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur interne' },
       { status: 500 }
     );
   }
 }
+
