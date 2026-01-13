@@ -112,6 +112,7 @@ const authOptions: AuthOptions = {
         token.role = user.role;
         token.accessToken = (user as any).accessToken;
       }
+      console.log("🔑 DEBUG: JWT token content:", token); // Add this line
       return token;
     },
     async session({ session, token }) {
