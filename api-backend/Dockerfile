@@ -16,6 +16,9 @@ RUN npm ci
 # Copier le reste du code
 COPY . .
 
+# Nettoyer le cache Next.js
+RUN rm -rf .next
+
 # Variables d'environnement pour le build
 ENV NEXT_TELEMETRY_DISABLED=1
 
