@@ -17,7 +17,7 @@ export async function verifyAuth(request: NextRequest) {
         const token = authHeader.substring(7); // Enlever "Bearer "
 
         // Vérifier et décoder le token
-        process.stderr.write(`DEBUG: NEXTAUTH_SECRET (verifying): ${process.env.NEXTAUTH_SECRET}\n`);
+
         const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
         const { payload } = await jwtVerify(token, secret);
 

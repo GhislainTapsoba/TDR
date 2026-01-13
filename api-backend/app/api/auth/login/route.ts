@@ -60,19 +60,18 @@ export async function POST(req: Request) {
     const userResponse = { ...userWithoutPassword, id: String(userWithoutPassword.id) };
 
     // Generate JWT token for NextAuth
-    process.stderr.write(`DEBUG: NEXTAUTH_SECRET (signing): ${process.env.NEXTAUTH_SECRET}\n`);
-                    process.stderr.write(`DEBUG: Original role from DB: ${data.user.role}\n`);
-                    const lowercasedRole = data.user.role?.toLowerCase() || 'user';
-                    process.stderr.write(`DEBUG: Lowercased role for JWT: ${lowercasedRole}\n`);
-                    const token = jwt.sign(
-                        { sub: user.id, email: user.email, role: lowercasedRole, id: user.id }, // Explicitly set 'sub' and convert role to lowercase
-                        process.env.NEXTAUTH_SECRET!,
-                        { expiresIn: '30d' }
-                    );
+
+    process.stderr.write(`DEBUG: Original role from DB: ${user.role}\n`);
+    const lowercasedRole = user.role?.toLowerCase() || 'user';
+    process.stderr.write(`DEBUG: Lowercased role for JWT: ${lowercasedRole}\n`);
+    const token = jwt.sign(
+        { sub: user.id, email: user.email, role: lowercasedRole, id: user.id }, // Explicitly set 'sub' and convert role to lowercase
+        process.env.NEXTAUTH_SECRET!,
+        { expiresIn: '30d' }
+    );
         process.stderr.write('✅ Connexion réussie, jeton généré\n');
 
-    process.stderr.write(`DEBUG: Final userResponse from /auth/login: ${JSON.stringify(userResponse)}\n`);
-    process.stderr.write(`DEBUG: Token generated from /auth/login: ${token}\n`);
+
 
     // Return in NextAuth format
     return NextResponse.json({
