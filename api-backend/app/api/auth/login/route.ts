@@ -62,6 +62,7 @@ export async function POST(req: Request) {
     // Generate JWT token for NextAuth
 
 
+    const lowercasedRole = user.role?.toLowerCase() || 'user';
     const token = jwt.sign(
         { sub: user.id, email: user.email, role: lowercasedRole, id: user.id }, // Explicitly set 'sub' and convert role to lowercase
         process.env.NEXTAUTH_SECRET!,
