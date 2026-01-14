@@ -166,7 +166,8 @@ export function getRolePermissions(userRole: UserRole): Permission[] {
  * vers le rôle applicatif du système de permissions
  */
 export function mapDbRoleToUserRole(dbRole: string | null): UserRole {
-  switch (dbRole) {
+  const role = dbRole?.toUpperCase();
+  switch (role) {
     case 'ADMIN':
       return 'admin';
     case 'PROJECT_MANAGER':
