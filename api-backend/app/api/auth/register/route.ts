@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user already exists
-    const existingUserQuery = 'SELECT email FROM users WHERE email = ';
+    const existingUserQuery = 'SELECT email FROM users WHERE email = $1';
     const { rows: existingUsers } = await db.query(existingUserQuery, [normalizedEmail]);
 
     if (existingUsers.length > 0) {

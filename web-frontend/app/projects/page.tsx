@@ -76,8 +76,8 @@ export default function ProjectsPage() {
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
-      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (project.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (project.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || project.status === statusFilter
     return matchesSearch && matchesStatus
   })

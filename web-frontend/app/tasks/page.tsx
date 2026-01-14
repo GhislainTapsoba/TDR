@@ -99,9 +99,9 @@ export default function TasksPage() {
 
   const filteredTasks = tasks.filter((task) => {
     const matchesSearch =
-      task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      task.project.title.toLowerCase().includes(searchTerm.toLowerCase())
+      (task.project.title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || task.status === statusFilter
     const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter
     return matchesSearch && matchesStatus && matchesPriority
