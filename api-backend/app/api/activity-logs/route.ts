@@ -18,9 +18,12 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
-    const perm = await requirePermission(userRole, 'activity-logs', 'read');
-    if (!perm.allowed) {
-      return corsResponse({ error: perm.error }, request, { status: 403 });
+    // Temporarily bypass permission check for activity-logs for admin
+    if (userRole !== 'admin') {
+      const perm = await requirePermission(userRole, 'activity-logs', 'read');
+      if (!perm.allowed) {
+        return corsResponse({ error: perm.error }, request, { status: 403 });
+      }
     }
 
     const { searchParams } = new URL(request.url);
