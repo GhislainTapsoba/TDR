@@ -165,6 +165,13 @@ export default function RegisterPage() {
                     className="pl-10 pr-10 text-base bg-input text-foreground border-border placeholder-muted-foreground focus:ring-ring focus:border-primary"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-3 text-muted-foreground"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 

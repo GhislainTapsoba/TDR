@@ -51,13 +51,9 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
-    const perm = await requirePermission(userRole, 'users', 'create');
-    if (!perm.allowed) {
-      return corsResponse({ error: perm.error }, request, { status: 403 });
-    }
 
-    // Seuls les admins peuvent créer des utilisateurs
-    if (userRole !== 'admin') {
+    // Seuls les admins et chefs de projet peuvent créer des utilisateurs
+    if (userRole !== 'admin' && userRole !== 'manager') {
       return corsResponse({ error: 'Accès refusé' }, request, { status: 403 });
     }
 
