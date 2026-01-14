@@ -96,7 +96,9 @@ export function Sidebar() {
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Briefcase className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-sidebar-foreground">Gestionnaire</span>
+          <span className="font-semibold text-sidebar-foreground">
+            {user ? (roleLabels[user.role] || user.role?.replace("_", " ")) : "Employé"}
+          </span>
         </div>
       </div>
 
