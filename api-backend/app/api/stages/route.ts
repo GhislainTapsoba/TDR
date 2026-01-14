@@ -32,9 +32,10 @@ export async function GET(request: NextRequest) {
     let paramIndex = 1;
 
     const baseQuery = `
-      SELECT s.*, u.name as created_by_name 
-      FROM stages s 
+      SELECT s.*, u.name as created_by_name, p.title as project_title
+      FROM stages s
       LEFT JOIN users u ON s.created_by_id = u.id
+      LEFT JOIN projects p ON s.project_id = p.id
     `;
     const whereClauses: string[] = [];
 
@@ -158,9 +159,10 @@ export async function POST(request: NextRequest) {
     );
 
     const { rows: finalStageRows } = await db.query(
-      `SELECT s.*, u.name as created_by_name 
-       FROM stages s 
-       LEFT JOIN users u ON s.created_by_id = u.id 
+      `SELECT s.*, u.name as created_by_name, p.title as project_title
+       FROM stages s
+       LEFT JOIN users u ON s.created_by_id = u.id
+       LEFT JOIN projects p ON s.project_id = p.id
        WHERE s.id = $1`,
       [newStage.id]
     );

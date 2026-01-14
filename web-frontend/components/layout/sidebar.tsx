@@ -49,6 +49,12 @@ const navigation = [
     roles: ["admin", "chef_projet"],
   },
   {
+    name: "Étapes",
+    href: "/stages",
+    icon: CheckSquare,
+    roles: ["admin", "chef_projet"],
+  },
+  {
     name: "Utilisateurs",
     href: "/users",
     icon: Users,

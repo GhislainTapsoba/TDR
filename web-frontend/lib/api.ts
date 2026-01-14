@@ -92,9 +92,11 @@ export interface Stage {
   order: number;
   status: string;
   project_id: string;
+  project_title?: string;
   duration: number | null;
   created_at: string;
   updated_at: string;
+  created_by_name?: string;
 }
 
 export interface User {
