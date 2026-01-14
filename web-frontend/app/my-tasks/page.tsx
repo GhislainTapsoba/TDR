@@ -107,6 +107,34 @@ function TaskCard({ task }: { task: Task }) {
   );
 }
 
+function TaskColumn({ title, status, tasks, taskIds }: { title: string; status: "a_faire" | "en_cours" | "termine"; tasks: Task[]; taskIds: number[] }) {
+  const { setNodeRef } = useSortable({ id: status });
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <div className={`w-3 h-3 rounded-full ${status === 'a_faire' ? 'bg-slate-400' : status === 'en_cours' ? 'bg-amber-400' : 'bg-emerald-400'}`}></div>
+        <h2 className="text-lg font-semibold text-foreground">{title} ({tasks.length})</h2>
+      </div>
+      <SortableContext id={status} items={taskIds} strategy={verticalListSortingStrategy}>
+        <div ref={setNodeRef} className="space-y-3 min-h-[200px] bg-muted/20 p-2 rounded-lg">
+          {tasks.map(task => <TaskCard key={task.id} task={task} />)}
+          {tasks.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
+                {status === 'a_faire' && <CheckCircle className="h-6 w-6" />}
+                {status === 'en_cours' && <Clock className="h-6 w-6" />}
+                {status === 'termine' && <BarChart3 className="h-6 w-6" />}
+              </div>
+              <p className="text-sm">Aucune tâche {statusLabels[status].toLowerCase()}</p>
+            </div>
+          )}
+        </div>
+      </SortableContext>
+    </div>
+  );
+}
+
 
 export default function MyTasksPage() {
   const { data: session } = useSession()
@@ -187,29 +215,7 @@ export default function MyTasksPage() {
   }), [tasksByStatus]);
 
 
-  const renderColumn = (title: string, status: keyof typeof tasksByStatus, tasks: Task[], taskIds: number[]) => (
-    <div className="space-y-4">
-        <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${status === 'a_faire' ? 'bg-slate-400' : status === 'en_cours' ? 'bg-amber-400' : 'bg-emerald-400'}`}></div>
-            <h2 className="text-lg font-semibold text-foreground">{title} ({tasks.length})</h2>
-        </div>
-        <SortableContext id={status} items={taskIds} strategy={verticalListSortingStrategy}>
-            <div ref={useSortable({id: status}).setNodeRef} className="space-y-3 min-h-[200px] bg-muted/20 p-2 rounded-lg">
-                {tasks.map(task => <TaskCard key={task.id} task={task} />)}
-                {tasks.length === 0 && (
-                     <div className="text-center py-8 text-muted-foreground">
-                        <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                            {status === 'a_faire' && <CheckCircle className="h-6 w-6" />}
-                            {status === 'en_cours' && <Clock className="h-6 w-6" />}
-                            {status === 'termine' && <BarChart3 className="h-6 w-6" />}
-                        </div>
-                        <p className="text-sm">Aucune tâche {statusLabels[status].toLowerCase()}</p>
-                    </div>
-                )}
-            </div>
-        </SortableContext>
-    </div>
-  );
+
 
   return (
     <MainLayout>
@@ -247,9 +253,9 @@ export default function MyTasksPage() {
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <div className="grid gap-6 lg:grid-cols-3">
-                    {renderColumn("À faire", "a_faire", tasksByStatus.a_faire, taskIdsByStatus.a_faire)}
-                    {renderColumn("En cours", "en_cours", tasksByStatus.en_cours, taskIdsByStatus.en_cours)}
-                    {renderColumn("Terminé", "termine", tasksByStatus.termine, taskIdsByStatus.termine)}
+                    <TaskColumn title="À faire" status="a_faire" tasks={tasksByStatus.a_faire} taskIds={taskIdsByStatus.a_faire} />
+                    <TaskColumn title="En cours" status="en_cours" tasks={tasksByStatus.en_cours} taskIds={taskIdsByStatus.en_cours} />
+                    <TaskColumn title="Terminé" status="termine" tasks={tasksByStatus.termine} taskIds={taskIdsByStatus.termine} />
                 </div>
             </DndContext>
 

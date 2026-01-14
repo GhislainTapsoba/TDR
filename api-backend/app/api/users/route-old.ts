@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
-    const perm = await requirePermission(userRole, 'users', 'read');
+    const perm = requirePermission(userRole, 'users', 'read');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
-    const perm = await requirePermission(userRole, 'users', 'create');
+    const perm = requirePermission(userRole, 'users', 'create');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
@@ -77,19 +77,14 @@ export async function POST(request: NextRequest) {
     const bcrypt = await import('bcryptjs');
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Get role_id from role name
-    const { rows: roleData } = await db.query('SELECT id FROM roles WHERE name = $1', [role]);
-    if (roleData.length === 0) {
-      return corsResponse({ error: 'Rôle invalide' }, request, { status: 400 });
-    }
-    const roleId = roleData[0].id;
+    const dbRole = role;
 
     const insertQuery = `
-      INSERT INTO users (name, email, password, role, role_id, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, name, email, role, role_id, created_at, updated_at, is_active
+      INSERT INTO users (name, email, password, role, is_active)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, email, role, created_at, updated_at, is_active
     `;
-    const { rows } = await db.query(insertQuery, [name, email, hashedPassword, role, roleId, true]);
+    const { rows } = await db.query(insertQuery, [name, email, hashedPassword, dbRole, true]);
 
     return corsResponse(rows[0], request, { status: 201 });
   } catch (error) {
