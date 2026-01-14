@@ -350,13 +350,3 @@ INSERT INTO public.role_permissions (role_id, permission_id) VALUES
   ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440011')
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- Seed an admin user
-INSERT INTO public.users (id, email, name, role_id, password)
-VALUES (
-  'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- Example UUID, should be unique
-  'admin@example.com',
-  'Admin User',
-  '550e8400-e29b-41d4-a716-446655440000', -- ADMIN role_id
-  '$2a$10$Ew9S26f.z3aZ2G2.D3X9b.F0G4F4F4F4F4F4F4F4F4F4F4F4F4' -- Hashed 'adminpassword'
-)
-ON CONFLICT (email) DO NOTHING; -- Prevents inserting duplicate on subsequent runs
