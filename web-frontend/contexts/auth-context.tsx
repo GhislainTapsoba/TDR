@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession, signOut, signIn } from "next-auth/react"
 import { api, authApi } from "@/lib/api"
@@ -59,9 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }, [session, status])
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
   console.log("🔐 Tentative de connexion:", email);
-  
+
   const result = await signIn('credentials', {
     redirect: false,
     email,
@@ -72,8 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (result?.error) {
     console.error("❌ Erreur de connexion:", result.error);
-    throw new Error(result.error === "CredentialsSignin" 
-      ? "Email ou mot de passe incorrect" 
+    throw new Error(result.error === "CredentialsSignin"
+      ? "Email ou mot de passe incorrect"
       : result.error
     );
   }
@@ -84,17 +84,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   console.log("✅ Connexion réussie, redirection...");
   router.push('/dashboard');
-}
+}, [router])
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     setUser(null)
     setToken(null)
     localStorage.removeItem("token")
     localStorage.removeItem("user")
     await signOut({ callbackUrl: '/login' })
-  }
+  }, [])
 
-  const updateUser = async (data: Partial<User> & { avatar?: File | null }) => {
+  const updateUser = useCallback(async (data: Partial<User> & { avatar?: File | null }) => {
     if (!user || !token) return
 
     const formData = new FormData()
@@ -113,10 +113,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Erreur lors de la mise à jour de l'utilisateur:", error)
       throw error
     }
-  }
+  }, [user, token])
+
+  const value = useMemo(() => ({
+    user,
+    token,
+    login,
+    logout,
+    updateUser,
+    loading,
+  }), [user, token, login, logout, updateUser, loading])
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

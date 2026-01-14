@@ -2,17 +2,58 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- -----------------------
+-- ROLES
+-- -----------------------
+CREATE TABLE public.roles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL UNIQUE,
+  description text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT roles_pkey PRIMARY KEY (id)
+);
+
+-- -----------------------
+-- PERMISSIONS
+-- -----------------------
+CREATE TABLE public.permissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL UNIQUE,
+  description text,
+  resource character varying NOT NULL,
+  action character varying NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT permissions_pkey PRIMARY KEY (id)
+);
+
+-- -----------------------
+-- ROLE PERMISSIONS
+-- -----------------------
+CREATE TABLE public.role_permissions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  role_id uuid NOT NULL,
+  permission_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT role_permissions_pkey PRIMARY KEY (id),
+  CONSTRAINT role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id) ON DELETE CASCADE,
+  CONSTRAINT role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.permissions(id) ON DELETE CASCADE,
+  CONSTRAINT role_permissions_unique UNIQUE (role_id, permission_id)
+);
+
+-- -----------------------
 -- USERS
 -- -----------------------
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   email character varying NOT NULL UNIQUE,
   name character varying,
-  role character varying DEFAULT 'EMPLOYEE'::character varying CHECK (role::text = ANY (ARRAY['ADMIN'::character varying, 'PROJECT_MANAGER'::character varying, 'EMPLOYEE'::character varying, 'VIEWER'::character varying]::text[])),
+  role_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   password character varying,
-  CONSTRAINT users_pkey PRIMARY KEY (id)
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id)
 );
 
 -- -----------------------
@@ -236,13 +277,86 @@ CREATE TABLE public.project_members (
   CONSTRAINT project_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
+-- Seed roles
+INSERT INTO public.roles (id, name, description) VALUES
+  ('550e8400-e29b-41d4-a716-446655440000', 'ADMIN', 'Administrateur complet'),
+  ('550e8400-e29b-41d4-a716-446655440001', 'PROJECT_MANAGER', 'Chef de projet'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'EMPLOYEE', 'Employé'),
+  ('550e8400-e29b-41d4-a716-446655440003', 'VIEWER', 'Observateur')
+ON CONFLICT (name) DO NOTHING;
+
+-- Seed permissions
+INSERT INTO public.permissions (id, name, description, resource, action) VALUES
+  ('660e8400-e29b-41d4-a716-446655440000', 'users.read', 'Lire les utilisateurs', 'users', 'read'),
+  ('660e8400-e29b-41d4-a716-446655440001', 'users.write', 'Écrire les utilisateurs', 'users', 'write'),
+  ('660e8400-e29b-41d4-a716-446655440002', 'projects.read', 'Lire les projets', 'projects', 'read'),
+  ('660e8400-e29b-41d4-a716-446655440003', 'projects.write', 'Écrire les projets', 'projects', 'write'),
+  ('660e8400-e29b-41d4-a716-446655440004', 'tasks.read', 'Lire les tâches', 'tasks', 'read'),
+  ('660e8400-e29b-41d4-a716-446655440005', 'tasks.write', 'Écrire les tâches', 'tasks', 'write'),
+  ('660e8400-e29b-41d4-a716-446655440006', 'stages.read', 'Lire les étapes', 'stages', 'read'),
+  ('660e8400-e29b-41d4-a716-446655440007', 'stages.write', 'Écrire les étapes', 'stages', 'write'),
+  ('660e8400-e29b-41d4-a716-446655440008', 'documents.read', 'Lire les documents', 'documents', 'read'),
+  ('660e8400-e29b-41d4-a716-446655440009', 'documents.write', 'Écrire les documents', 'documents', 'write'),
+  ('660e8400-e29b-41d4-a716-446655440010', 'activity.read', 'Lire l''activité', 'activity', 'read'),
+  ('660e8400-e29b-41d4-a716-446655440011', 'settings.read', 'Lire les paramètres', 'settings', 'read'),
+  ('660e8400-e29b-41d4-a716-446655440012', 'settings.write', 'Écrire les paramètres', 'settings', 'write')
+ON CONFLICT (name) DO NOTHING;
+
+-- Seed role permissions
+-- ADMIN has all permissions
+INSERT INTO public.role_permissions (role_id, permission_id) VALUES
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440000'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440001'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440002'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440003'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440004'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440005'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440006'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440007'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440008'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440009'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440010'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440011'),
+  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440012'),
+-- PROJECT_MANAGER has most permissions except users.write
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440000'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440002'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440003'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440004'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440005'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440006'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440007'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440008'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440009'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440010'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440011'),
+  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440012'),
+-- EMPLOYEE has read/write on tasks, projects, documents, read on others
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440002'),
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440004'),
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440005'),
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440006'),
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440008'),
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440009'),
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440010'),
+  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440011'),
+-- VIEWER has only read permissions
+  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440000'),
+  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440002'),
+  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440004'),
+  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440006'),
+  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440008'),
+  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440010'),
+  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440011')
+ON CONFLICT (role_id, permission_id) DO NOTHING;
+
 -- Seed an admin user
-INSERT INTO public.users (id, email, name, role, password)
+INSERT INTO public.users (id, email, name, role_id, password)
 VALUES (
   'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', -- Example UUID, should be unique
   'admin@example.com',
   'Admin User',
-  'ADMIN',
+  '550e8400-e29b-41d4-a716-446655440000', -- ADMIN role_id
   '$2a$10$Ew9S26f.z3aZ2G2.D3X9b.F0G4F4F4F4F4F4F4F4F4F4F4F4F4' -- Hashed 'adminpassword'
 )
 ON CONFLICT (email) DO NOTHING; -- Prevents inserting duplicate on subsequent runs
