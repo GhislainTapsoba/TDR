@@ -203,8 +203,10 @@ export function mapDbRoleToUserRole(dbRole: string | null): UserRole {
   switch (role) {
     case 'ADMIN':
       return 'admin';
-    case 'PROJECT_MANAGER':
+    case 'CHEF_PROJET':
       return 'manager';
+    case 'EMPLOYE':
+      return 'user';
     default:
       return 'user';
   }
@@ -232,8 +234,34 @@ export async function initializePermissions(): Promise<void> {
   try {
     // Check if permissions already exist
     const { rows: existingPerms } = await db.query('SELECT COUNT(*) as count FROM permissions');
-    if (parseInt(existingPerms[0].count) > 0) {
-      console.log('Permissions already initialized');
+    const permCount = parseInt(existingPerms[0].count);
+
+    if (permCount > 0) {
+      // Check if dashboard permission exists, if not add it
+      const { rows: dashboardPerm } = await db.query('SELECT id FROM permissions WHERE resource = $1 AND action = $2', ['dashboard', 'read']);
+      if (dashboardPerm.length === 0) {
+        await db.query(
+          'INSERT INTO permissions (name, description, resource, action) VALUES ($1, $2, $3, $4)',
+          ['read_dashboard', 'Lire le tableau de bord', 'dashboard', 'read']
+        );
+        console.log('Added dashboard permission');
+      }
+
+      // Assign dashboard permission to all roles if not already assigned
+      const { rows: roles } = await db.query('SELECT id, name FROM roles');
+      const { rows: dashPerm } = await db.query('SELECT id FROM permissions WHERE resource = $1 AND action = $2', ['dashboard', 'read']);
+      if (dashPerm.length > 0) {
+        const dashPermId = dashPerm[0].id;
+        for (const role of roles) {
+          const { rows: existing } = await db.query('SELECT id FROM role_permissions WHERE role_id = $1 AND permission_id = $2', [role.id, dashPermId]);
+          if (existing.length === 0) {
+            await db.query('INSERT INTO role_permissions (role_id, permission_id) VALUES ($1, $2)', [role.id, dashPermId]);
+            console.log(`Assigned dashboard permission to role ${role.name}`);
+          }
+        }
+      }
+
+      console.log('Permissions updated');
       return;
     }
 
@@ -272,6 +300,9 @@ export async function initializePermissions(): Promise<void> {
       // Activity logs
       { name: 'read_activity_logs', description: 'Lire les logs d\'activité', resource: 'activity-logs', action: 'read' },
 
+      // Dashboard
+      { name: 'read_dashboard', description: 'Lire le tableau de bord', resource: 'dashboard', action: 'read' },
+
       // Admin wildcard
       { name: 'admin_access', description: 'Accès administrateur complet', resource: '*', action: 'manage' },
     ];
@@ -300,7 +331,7 @@ export async function initializePermissions(): Promise<void> {
 
       // Chef de projet gets project, task, stage, document permissions
       ...permissions.filter(p =>
-        ['projects', 'tasks', 'stages', 'documents', 'activity-logs'].includes(p.resource) ||
+        ['projects', 'tasks', 'stages', 'documents', 'activity-logs', 'dashboard'].includes(p.resource) ||
         p.name === 'read_users'
       ).map(p => ({ role_id: chefProjetRole?.id, permission_id: p.id })),
 
@@ -308,7 +339,8 @@ export async function initializePermissions(): Promise<void> {
       ...permissions.filter(p =>
         (['tasks', 'stages', 'documents'].includes(p.resource) && ['create', 'read', 'update'].includes(p.action)) ||
         (p.resource === 'projects' && p.action === 'read') ||
-        p.resource === 'activity-logs'
+        p.resource === 'activity-logs' ||
+        p.resource === 'dashboard'
       ).map(p => ({ role_id: employeRole?.id, permission_id: p.id })),
     ];
 
