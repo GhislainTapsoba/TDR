@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server';
 import { verifyAuth } from '@/lib/verifyAuth';
 import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
-import bcrypt from 'bcryptjs';
 import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
@@ -10,8 +9,7 @@ export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
 }
 
-// GET /api/users - Récupérer tous les utilisateurs
-// Query params: ?role=PROJECT_MANAGER pour filtrer par rôle
+// GET /api/users - Récupérer tous les utilisateurs (admin seulement)
 export async function GET(request: NextRequest) {
   try {
     const user = await verifyAuth(request);
@@ -25,22 +23,15 @@ export async function GET(request: NextRequest) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const role = searchParams.get('role');
-
-    let queryText = 'SELECT id, name, email, role, created_at, updated_at FROM users';
-    const queryParams = [];
-
-    if (role) {
-      queryText += ' WHERE role = $1';
-      queryParams.push(role);
+    // Seuls les admins peuvent lister tous les utilisateurs
+    if (userRole !== 'admin') {
+      return corsResponse({ error: 'Accès refusé' }, request, { status: 403 });
     }
 
-    queryText += ' ORDER BY name ASC';
+    const query = 'SELECT id, name, email, role, created_at, updated_at, is_active FROM users ORDER BY name ASC';
+    const { rows } = await db.query(query);
 
-    const { rows, rowCount } = await db.query(queryText, queryParams);
-
-    return corsResponse(rows || [], request);
+    return corsResponse(rows, request);
   } catch (error) {
     console.error('GET /api/users error:', error);
     return corsResponse(
@@ -51,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/users - Créer un nouvel utilisateur (Admin only)
+// POST /api/users - Créer un nouvel utilisateur
 export async function POST(request: NextRequest) {
   try {
     const user = await verifyAuth(request);
@@ -66,51 +57,37 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const { name, email, password, role } = body;
 
     // Validation
-    if (!body.name || !body.email || !body.password || !body.role) {
+    if (!name || !email || !password || !role) {
       return corsResponse(
-        { error: 'Nom, email, mot de passe et rôle sont requis' },
+        { error: 'Tous les champs sont requis' },
         request,
         { status: 400 }
       );
     }
 
     // Vérifier si l'email existe déjà
-    const { rows: existingUsers } = await db.query('SELECT email FROM users WHERE email = $1', [body.email]);
-
+    const { rows: existingUsers } = await db.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUsers.length > 0) {
-      return corsResponse(
-        { error: 'Cet email est déjà utilisé' },
-        request,
-        { status: 400 }
-      );
+      return corsResponse({ error: 'Cet email est déjà utilisé' }, request, { status: 400 });
     }
 
-    // Hash le mot de passe
-    const hashedPassword = await bcrypt.hash(body.password, 10);
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Normaliser le rôle (frontend envoie 'admin', 'manager', 'user')
-    let dbRole = body.role.toUpperCase();
+    let dbRole = role.toUpperCase();
     if (dbRole === 'ADMIN') dbRole = 'ADMIN';
-    else if (dbRole === 'MANAGER') dbRole = 'PROJECT_MANAGER';
-    else if (dbRole === 'USER') dbRole = 'EMPLOYEE';
+    else if (dbRole === 'CHEF_PROJET') dbRole = 'PROJECT_MANAGER';
+    else if (dbRole === 'EMPLOYE') dbRole = 'EMPLOYEE';
 
-    // Créer l'utilisateur
     const insertQuery = `
-      INSERT INTO users (name, email, password, role)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, name, email, role, created_at, updated_at
+      INSERT INTO users (name, email, password, role, is_active)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, name, email, role, created_at, updated_at, is_active
     `;
-    const { rows } = await db.query(insertQuery, [body.name, body.email, hashedPassword, dbRole]);
-    
-    if (rows.length === 0) {
-      return corsResponse(
-        { error: 'Erreur lors de la création de l\'utilisateur' },
-        request,
-        { status: 500 }
-      );
-    }
+    const { rows } = await db.query(insertQuery, [name, email, hashedPassword, dbRole, true]);
 
     return corsResponse(rows[0], request, { status: 201 });
   } catch (error) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
@@ -85,8 +85,10 @@ export function Sidebar() {
   const { data: session } = useSession();
   const user = session?.user;
 
-  // @ts-ignore
-  const filteredNavigation = navigation.filter((item) => user && item.roles.includes(user.role?.toLowerCase()))
+  const filteredNavigation = useMemo(() => {
+    // @ts-ignore
+    return navigation.filter((item) => user && item.roles.includes(user.role?.toLowerCase()))
+  }, [user?.role])
 
   return (
     <div className="flex flex-col h-screen bg-sidebar border-r border-sidebar-border w-64">
