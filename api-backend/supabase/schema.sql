@@ -1,9 +1,11 @@
--- Extension pour UUID si nécessaire
+-- =======================
+-- EXTENSIONS
+-- =======================
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- -----------------------
+-- =======================
 -- ROLES
--- -----------------------
+-- =======================
 CREATE TABLE public.roles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL UNIQUE,
@@ -13,9 +15,9 @@ CREATE TABLE public.roles (
   CONSTRAINT roles_pkey PRIMARY KEY (id)
 );
 
--- -----------------------
+-- =======================
 -- PERMISSIONS
--- -----------------------
+-- =======================
 CREATE TABLE public.permissions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL UNIQUE,
@@ -27,38 +29,41 @@ CREATE TABLE public.permissions (
   CONSTRAINT permissions_pkey PRIMARY KEY (id)
 );
 
--- -----------------------
+-- =======================
 -- ROLE PERMISSIONS
--- -----------------------
+-- =======================
 CREATE TABLE public.role_permissions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   role_id uuid NOT NULL,
   permission_id uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT role_permissions_pkey PRIMARY KEY (id),
-  CONSTRAINT role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id) ON DELETE CASCADE,
-  CONSTRAINT role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.permissions(id) ON DELETE CASCADE,
+  CONSTRAINT role_permissions_role_id_fkey
+    FOREIGN KEY (role_id) REFERENCES public.roles(id) ON DELETE CASCADE,
+  CONSTRAINT role_permissions_permission_id_fkey
+    FOREIGN KEY (permission_id) REFERENCES public.permissions(id) ON DELETE CASCADE,
   CONSTRAINT role_permissions_unique UNIQUE (role_id, permission_id)
 );
 
--- -----------------------
+-- =======================
 -- USERS
--- -----------------------
+-- =======================
 CREATE TABLE public.users (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   email character varying NOT NULL UNIQUE,
   name character varying,
   role_id uuid,
+  password character varying,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  password character varying,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.roles(id)
+  CONSTRAINT users_role_id_fkey
+    FOREIGN KEY (role_id) REFERENCES public.roles(id)
 );
 
--- -----------------------
+-- =======================
 -- PROJECTS
--- -----------------------
+-- =======================
 CREATE TABLE public.projects (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   title character varying NOT NULL,
@@ -66,62 +71,74 @@ CREATE TABLE public.projects (
   start_date timestamp with time zone,
   end_date timestamp with time zone,
   due_date timestamp with time zone,
-  status character varying DEFAULT 'PLANNING'::character varying CHECK (status::text = ANY (ARRAY['PLANNING'::character varying, 'IN_PROGRESS'::character varying, 'ON_HOLD'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying]::text[])),
+  status character varying DEFAULT 'PLANNING'
+    CHECK (status IN ('PLANNING','IN_PROGRESS','ON_HOLD','COMPLETED','CANCELLED')),
   created_by_id uuid,
   manager_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT projects_pkey PRIMARY KEY (id),
-  CONSTRAINT projects_created_by_id_fkey FOREIGN KEY (created_by_id) REFERENCES public.users(id),
-  CONSTRAINT projects_manager_id_fkey FOREIGN KEY (manager_id) REFERENCES public.users(id)
+  CONSTRAINT projects_created_by_id_fkey
+    FOREIGN KEY (created_by_id) REFERENCES public.users(id),
+  CONSTRAINT projects_manager_id_fkey
+    FOREIGN KEY (manager_id) REFERENCES public.users(id)
 );
 
--- -----------------------
+-- =======================
 -- STAGES
--- -----------------------
+-- =======================
 CREATE TABLE public.stages (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL,
   description text,
   "order" integer NOT NULL DEFAULT 0,
   duration integer,
-  status character varying DEFAULT 'PENDING'::character varying CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'IN_PROGRESS'::character varying, 'COMPLETED'::character varying, 'BLOCKED'::character varying]::text[])),
+  status character varying DEFAULT 'PENDING'
+    CHECK (status IN ('PENDING','IN_PROGRESS','COMPLETED','BLOCKED')),
   project_id uuid NOT NULL,
+  created_by_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  created_by_id uuid,
   CONSTRAINT stages_pkey PRIMARY KEY (id),
-  CONSTRAINT stages_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
-  CONSTRAINT stages_created_by_id_fkey FOREIGN KEY (created_by_id) REFERENCES public.users(id)
+  CONSTRAINT stages_project_id_fkey
+    FOREIGN KEY (project_id) REFERENCES public.projects(id),
+  CONSTRAINT stages_created_by_id_fkey
+    FOREIGN KEY (created_by_id) REFERENCES public.users(id)
 );
 
--- -----------------------
+-- =======================
 -- TASKS
--- -----------------------
+-- =======================
 CREATE TABLE public.tasks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   title character varying NOT NULL,
   description text,
-  status character varying DEFAULT 'TODO'::character varying CHECK (status::text = ANY (ARRAY['TODO'::character varying, 'IN_PROGRESS'::character varying, 'IN_REVIEW'::character varying, 'COMPLETED'::character varying, 'CANCELLED'::character varying]::text[])),
-  priority character varying DEFAULT 'MEDIUM'::character varying CHECK (priority::text = ANY (ARRAY['LOW'::character varying, 'MEDIUM'::character varying, 'HIGH'::character varying, 'URGENT'::character varying]::text[])),
+  status character varying DEFAULT 'TODO'
+    CHECK (status IN ('TODO','IN_PROGRESS','IN_REVIEW','COMPLETED','CANCELLED')),
+  priority character varying DEFAULT 'MEDIUM'
+    CHECK (priority IN ('LOW','MEDIUM','HIGH','URGENT')),
   due_date timestamp with time zone,
   completed_at timestamp with time zone,
   assigned_to_id uuid,
   project_id uuid NOT NULL,
   stage_id uuid,
+  created_by_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  created_by_id uuid,
   CONSTRAINT tasks_pkey PRIMARY KEY (id),
-  CONSTRAINT tasks_assigned_to_id_fkey FOREIGN KEY (assigned_to_id) REFERENCES public.users(id),
-  CONSTRAINT tasks_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
-  CONSTRAINT tasks_stage_id_fkey FOREIGN KEY (stage_id) REFERENCES public.stages(id),
-  CONSTRAINT tasks_created_by_id_fkey FOREIGN KEY (created_by_id) REFERENCES public.users(id)
+  CONSTRAINT tasks_assigned_to_id_fkey
+    FOREIGN KEY (assigned_to_id) REFERENCES public.users(id),
+  CONSTRAINT tasks_project_id_fkey
+    FOREIGN KEY (project_id) REFERENCES public.projects(id),
+  CONSTRAINT tasks_stage_id_fkey
+    FOREIGN KEY (stage_id) REFERENCES public.stages(id),
+  CONSTRAINT tasks_created_by_id_fkey
+    FOREIGN KEY (created_by_id) REFERENCES public.users(id)
 );
 
--- -----------------------
+-- =======================
 -- DOCUMENTS
--- -----------------------
+-- =======================
 CREATE TABLE public.documents (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   name character varying NOT NULL,
@@ -135,14 +152,17 @@ CREATE TABLE public.documents (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT documents_pkey PRIMARY KEY (id),
-  CONSTRAINT documents_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
-  CONSTRAINT documents_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.tasks(id),
-  CONSTRAINT documents_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES public.users(id)
+  CONSTRAINT documents_project_id_fkey
+    FOREIGN KEY (project_id) REFERENCES public.projects(id),
+  CONSTRAINT documents_task_id_fkey
+    FOREIGN KEY (task_id) REFERENCES public.tasks(id),
+  CONSTRAINT documents_uploaded_by_fkey
+    FOREIGN KEY (uploaded_by) REFERENCES public.users(id)
 );
 
--- -----------------------
+-- =======================
 -- COMMENTS
--- -----------------------
+-- =======================
 CREATE TABLE public.comments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   content text NOT NULL,
@@ -151,13 +171,15 @@ CREATE TABLE public.comments (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT comments_pkey PRIMARY KEY (id),
-  CONSTRAINT comments_task_id_fkey FOREIGN KEY (task_id) REFERENCES public.tasks(id),
-  CONSTRAINT comments_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id)
+  CONSTRAINT comments_task_id_fkey
+    FOREIGN KEY (task_id) REFERENCES public.tasks(id),
+  CONSTRAINT comments_author_id_fkey
+    FOREIGN KEY (author_id) REFERENCES public.users(id)
 );
 
--- -----------------------
+-- =======================
 -- ACTIVITY LOGS
--- -----------------------
+-- =======================
 CREATE TABLE public.activity_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -168,185 +190,48 @@ CREATE TABLE public.activity_logs (
   metadata jsonb,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT activity_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT activity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT activity_logs_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
--- -----------------------
+-- =======================
 -- USER SETTINGS
--- -----------------------
+-- =======================
 CREATE TABLE public.user_settings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL UNIQUE,
-  language character varying DEFAULT 'fr'::character varying,
-  timezone character varying DEFAULT 'Europe/Paris'::character varying,
+  language character varying DEFAULT 'fr',
+  timezone character varying DEFAULT 'Europe/Paris',
   notifications_enabled boolean DEFAULT true,
   email_notifications boolean DEFAULT true,
-  theme character varying DEFAULT 'light'::character varying CHECK (theme::text = ANY (ARRAY['light'::character varying, 'dark'::character varying, 'auto'::character varying]::text[])),
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  date_format character varying DEFAULT 'DD/MM/YYYY'::character varying,
-  items_per_page integer DEFAULT 20 CHECK (items_per_page = ANY (ARRAY[10, 20, 50, 100])),
-  font_size character varying DEFAULT 'medium'::character varying CHECK (font_size::text = ANY (ARRAY['small'::character varying, 'medium'::character varying, 'large'::character varying]::text[])),
+  theme character varying DEFAULT 'light'
+    CHECK (theme IN ('light','dark','auto')),
+  date_format character varying DEFAULT 'DD/MM/YYYY',
+  items_per_page integer DEFAULT 20
+    CHECK (items_per_page IN (10,20,50,100)),
+  font_size character varying DEFAULT 'medium'
+    CHECK (font_size IN ('small','medium','large')),
   compact_mode boolean DEFAULT false,
-  CONSTRAINT user_settings_pkey PRIMARY KEY (id),
-  CONSTRAINT user_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-
--- -----------------------
--- NOTIFICATIONS & PREFERENCES
--- -----------------------
-CREATE TABLE public.notification_preferences (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL UNIQUE,
-  email_task_assigned boolean DEFAULT true,
-  email_task_updated boolean DEFAULT true,
-  email_task_due boolean DEFAULT true,
-  email_stage_completed boolean DEFAULT false,
-  email_project_created boolean DEFAULT true,
-  push_notifications boolean DEFAULT true,
-  daily_summary boolean DEFAULT false,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT notification_preferences_pkey PRIMARY KEY (id),
-  CONSTRAINT notification_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT user_settings_pkey PRIMARY KEY (id),
+  CONSTRAINT user_settings_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
+-- =======================
+-- NOTIFICATIONS
+-- =======================
 CREATE TABLE public.notifications (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
-  type character varying NOT NULL DEFAULT 'INFO'::character varying CHECK (type::text = ANY (ARRAY['INFO'::character varying, 'SUCCESS'::character varying, 'WARNING'::character varying, 'ERROR'::character varying, 'TASK_ASSIGNED'::character varying, 'TASK_UPDATED'::character varying, 'TASK_COMPLETED'::character varying, 'STAGE_COMPLETED'::character varying, 'PROJECT_DEADLINE'::character varying, 'MENTION'::character varying, 'COMMENT'::character varying]::text[])),
+  type character varying NOT NULL DEFAULT 'INFO',
   title character varying NOT NULL,
   message text NOT NULL,
   is_read boolean DEFAULT false,
   metadata jsonb,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT notifications_pkey PRIMARY KEY (id),
-  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  CONSTRAINT notifications_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- -----------------------
--- EMAILS
--- -----------------------
-CREATE TABLE public.email_confirmations (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  token character varying NOT NULL UNIQUE,
-  type character varying NOT NULL CHECK (type::text = ANY (ARRAY['TASK_ASSIGNMENT'::character varying, 'TASK_STATUS_CHANGE'::character varying, 'STAGE_STATUS_CHANGE'::character varying, 'PROJECT_CREATED'::character varying]::text[])),
-  user_id uuid NOT NULL,
-  entity_type character varying NOT NULL,
-  entity_id uuid NOT NULL,
-  metadata jsonb,
-  confirmed boolean DEFAULT false,
-  confirmed_at timestamp with time zone,
-  expires_at timestamp with time zone NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT email_confirmations_pkey PRIMARY KEY (id),
-  CONSTRAINT email_confirmations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-
-CREATE TABLE public.email_logs (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  recipient_id uuid,
-  recipient character varying NOT NULL,
-  subject character varying NOT NULL,
-  body text NOT NULL,
-  status character varying DEFAULT 'PENDING'::character varying CHECK (status::text = ANY (ARRAY['PENDING'::character varying, 'SENT'::character varying, 'DELIVERED'::character varying, 'OPENED'::character varying, 'CLICKED'::character varying, 'FAILED'::character varying, 'BOUNCED'::character varying]::text[])),
-  sent_at timestamp with time zone,
-  delivered_at timestamp with time zone,
-  opened_at timestamp with time zone,
-  clicked_at timestamp with time zone,
-  error_message text,
-  retry_count integer DEFAULT 0,
-  metadata jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT email_logs_pkey PRIMARY KEY (id),
-  CONSTRAINT email_logs_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.users(id)
-);
-
--- -----------------------
--- PROJECT MEMBERS
--- -----------------------
-CREATE TABLE public.project_members (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  project_id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  role character varying DEFAULT 'member'::character varying,
-  joined_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT project_members_pkey PRIMARY KEY (id),
-  CONSTRAINT project_members_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
-  CONSTRAINT project_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-
--- Seed roles
-INSERT INTO public.roles (id, name, description) VALUES
-  ('550e8400-e29b-41d4-a716-446655440000', 'ADMIN', 'Administrateur complet'),
-  ('550e8400-e29b-41d4-a716-446655440001', 'PROJECT_MANAGER', 'Chef de projet'),
-  ('550e8400-e29b-41d4-a716-446655440002', 'EMPLOYEE', 'Employé'),
-  ('550e8400-e29b-41d4-a716-446655440003', 'VIEWER', 'Observateur')
-ON CONFLICT (name) DO NOTHING;
-
--- Seed permissions
-INSERT INTO public.permissions (id, name, description, resource, action) VALUES
-  ('660e8400-e29b-41d4-a716-446655440000', 'users.read', 'Lire les utilisateurs', 'users', 'read'),
-  ('660e8400-e29b-41d4-a716-446655440001', 'users.write', 'Écrire les utilisateurs', 'users', 'write'),
-  ('660e8400-e29b-41d4-a716-446655440002', 'projects.read', 'Lire les projets', 'projects', 'read'),
-  ('660e8400-e29b-41d4-a716-446655440003', 'projects.write', 'Écrire les projets', 'projects', 'write'),
-  ('660e8400-e29b-41d4-a716-446655440004', 'tasks.read', 'Lire les tâches', 'tasks', 'read'),
-  ('660e8400-e29b-41d4-a716-446655440005', 'tasks.write', 'Écrire les tâches', 'tasks', 'write'),
-  ('660e8400-e29b-41d4-a716-446655440006', 'stages.read', 'Lire les étapes', 'stages', 'read'),
-  ('660e8400-e29b-41d4-a716-446655440007', 'stages.write', 'Écrire les étapes', 'stages', 'write'),
-  ('660e8400-e29b-41d4-a716-446655440008', 'documents.read', 'Lire les documents', 'documents', 'read'),
-  ('660e8400-e29b-41d4-a716-446655440009', 'documents.write', 'Écrire les documents', 'documents', 'write'),
-  ('660e8400-e29b-41d4-a716-446655440010', 'activity.read', 'Lire l''activité', 'activity', 'read'),
-  ('660e8400-e29b-41d4-a716-446655440011', 'settings.read', 'Lire les paramètres', 'settings', 'read'),
-  ('660e8400-e29b-41d4-a716-446655440012', 'settings.write', 'Écrire les paramètres', 'settings', 'write')
-ON CONFLICT (name) DO NOTHING;
-
--- Seed role permissions
--- ADMIN has all permissions
-INSERT INTO public.role_permissions (role_id, permission_id) VALUES
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440000'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440001'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440003'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440004'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440005'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440006'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440007'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440008'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440009'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440010'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440011'),
-  ('550e8400-e29b-41d4-a716-446655440000', '660e8400-e29b-41d4-a716-446655440012'),
--- PROJECT_MANAGER has most permissions except users.write
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440000'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440003'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440004'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440005'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440006'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440007'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440008'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440009'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440010'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440011'),
-  ('550e8400-e29b-41d4-a716-446655440001', '660e8400-e29b-41d4-a716-446655440012'),
--- EMPLOYEE has read/write on tasks, projects, documents, read on others
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440004'),
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440005'),
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440006'),
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440008'),
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440009'),
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440010'),
-  ('550e8400-e29b-41d4-a716-446655440002', '660e8400-e29b-41d4-a716-446655440011'),
--- VIEWER has only read permissions
-  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440000'),
-  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440002'),
-  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440004'),
-  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440006'),
-  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440008'),
-  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440010'),
-  ('550e8400-e29b-41d4-a716-446655440003', '660e8400-e29b-41d4-a716-446655440011')
-ON CONFLICT (role_id, permission_id) DO NOTHING;
-
