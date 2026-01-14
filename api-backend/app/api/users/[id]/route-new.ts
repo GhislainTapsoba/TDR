@@ -28,7 +28,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    
+
     const query = 'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1';
     const { rows, rowCount } = await db.query(query, [id]);
 
@@ -92,21 +92,21 @@ export async function PATCH(
       updateFields.push(`password = $${paramIndex++}`);
       queryParams.push(hashedPassword);
     }
-    
+
     if (updateFields.length === 0) {
         return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });
     }
 
     queryParams.push(id);
     const queryText = `
-      UPDATE users 
-      SET ${updateFields.join(', ')} 
+      UPDATE users
+      SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING id, name, email, role, created_at, updated_at
     `;
 
     const { rows, rowCount } = await db.query(queryText, queryParams);
-    
+
     if (rowCount === 0) {
       return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
     }
@@ -140,7 +140,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    
+
     const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [id]);
 
     if (rowCount === 0) {

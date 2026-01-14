@@ -23,7 +23,7 @@ export async function GET(
     }
 
     const userRole = mapDbRoleToUserRole(user.role ?? null);
-    const perm = requirePermission(userRole, 'tasks', 'read');
+    const perm = await requirePermission(userRole, 'tasks', 'read');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
@@ -86,7 +86,7 @@ export async function PATCH(
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
     const userId = user.id as string;
-    const perm = requirePermission(userRole, 'tasks', 'update');
+    const perm = await requirePermission(userRole, 'tasks', 'update');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
@@ -210,7 +210,7 @@ export async function DELETE(
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
     const userId = user.id as string;
-    const perm = requirePermission(userRole, 'tasks', 'delete');
+    const perm = await requirePermission(userRole, 'tasks', 'delete');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }

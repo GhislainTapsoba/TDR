@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
-    const perm = requirePermission(userRole, 'activity-logs', 'read');
+    const perm = await requirePermission(userRole, 'activity-logs', 'read');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
 
     let queryText = `
-      SELECT al.*, u.name as user_name 
-      FROM activity_logs al 
+      SELECT al.*, u.name as user_name
+      FROM activity_logs al
       LEFT JOIN users u ON al.user_id = u.id
     `;
     const queryParams: any[] = [];

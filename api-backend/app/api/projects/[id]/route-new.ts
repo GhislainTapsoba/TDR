@@ -29,9 +29,9 @@ export async function GET(
     const { id } = await params;
 
     const { rows, rowCount } = await db.query(
-      `SELECT p.*, u.name as manager_name 
-       FROM projects p 
-       LEFT JOIN users u ON p.manager_id = u.id 
+      `SELECT p.*, u.name as manager_name
+       FROM projects p
+       LEFT JOIN users u ON p.manager_id = u.id
        WHERE p.id = $1`,
       [id]
     );
@@ -111,7 +111,7 @@ export async function PATCH(
     const updateFields: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
-    
+
     const fieldsToUpdate = ['title', 'description', 'start_date', 'end_date', 'due_date', 'status', 'manager_id'];
     fieldsToUpdate.forEach(field => {
         if (body[field] !== undefined) {
@@ -126,17 +126,17 @@ export async function PATCH(
 
     queryParams.push(id);
     const updateQuery = `
-        UPDATE projects SET ${updateFields.join(', ')} 
+        UPDATE projects SET ${updateFields.join(', ')}
         WHERE id = $${paramIndex}
         RETURNING *
     `;
-    
+
     await db.query(updateQuery, queryParams);
 
     const { rows: updatedProjectRows } = await db.query(
-        `SELECT p.*, u.name as manager_name 
-         FROM projects p 
-         LEFT JOIN users u ON p.manager_id = u.id 
+        `SELECT p.*, u.name as manager_name
+         FROM projects p
+         LEFT JOIN users u ON p.manager_id = u.id
          WHERE p.id = $1`,
         [id]
     );
@@ -187,7 +187,7 @@ export async function DELETE(
       return corsResponse({ error: 'Project not found' }, request, { status: 404 });
     }
     const project = projectRows[0];
-    
+
     if (!canManageProject(userRole, userId, project.manager_id)) {
       return corsResponse({ error: 'Vous ne pouvez supprimer que vos propres projets' }, request, { status: 403 });
     }

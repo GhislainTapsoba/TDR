@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role);
-    const perm = requirePermission(userRole, 'tasks', 'read');
+    const perm = await requirePermission(userRole, 'tasks', 'read');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     const userRole = mapDbRoleToUserRole(user.role);
     const userId = user.id;
-    const perm = requirePermission(userRole, 'tasks', 'create');
+    const perm = await requirePermission(userRole, 'tasks', 'create');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
