@@ -47,6 +47,14 @@ export async function GET(
   }
 }
 
+// PUT /api/users/[id] - Mettre à jour un utilisateur
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return PATCH(request, { params });
+}
+
 // PATCH /api/users/[id] - Mettre à jour un utilisateur
 export async function PATCH(
   request: NextRequest,
@@ -92,21 +100,21 @@ export async function PATCH(
       updateFields.push(`password = $${paramIndex++}`);
       queryParams.push(hashedPassword);
     }
-    
+
     if (updateFields.length === 0) {
         return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });
     }
 
     queryParams.push(id);
     const queryText = `
-      UPDATE users 
-      SET ${updateFields.join(', ')} 
+      UPDATE users
+      SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
       RETURNING id, name, email, role, created_at, updated_at
     `;
 
     const { rows, rowCount } = await db.query(queryText, queryParams);
-    
+
     if (rowCount === 0) {
       return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
     }

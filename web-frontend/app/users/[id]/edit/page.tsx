@@ -39,7 +39,7 @@ export default function EditUserPage() {
         name: response.data.name,
         email: response.data.email,
         role: response.data.role,
-        is_active: response.data.is_active,
+        is_active: response.data.is_active ?? true,
       })
     } catch (error) {
       toast({

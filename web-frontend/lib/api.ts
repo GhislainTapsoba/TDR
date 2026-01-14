@@ -46,6 +46,13 @@ api.interceptors.response.use(
 
 (api as any).updateTaskStatus = (id: string | number, status: string) => api.patch(`/tasks/${id}`, { status });
 
+// Additional methods for compatibility
+(api as any).getProject = (id: string | number) => api.get(`/projects/${id}`);
+(api as any).getProjects = (params?: Record<string, unknown>) => api.get('/projects', { params });
+(api as any).getUsers = (params?: Record<string, unknown>) => api.get('/users', { params });
+(api as any).getProjectStages = (projectId: string | number) => api.get(`/projects/${projectId}/stages`);
+(api as any).updateUser = (id: string, data: Partial<User>) => api.put(`/users/${id}`, data);
+
 // Types
 export interface Project {
   id: string;

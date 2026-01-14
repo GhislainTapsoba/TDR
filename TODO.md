@@ -1,17 +1,23 @@
-# TODO - Corrections des erreurs
+# TODO List for Fixing Errors and Adding Stage Page
 
-## 1. Corriger l'erreur toLowerCase() sur null
-- [x] web-frontend/app/users/page.tsx: Ajouter vérifications null pour user.name et user.email
-- [x] web-frontend/app/tasks/page.tsx: Ajouter vérifications null pour task.title et task.project.title
-- [x] web-frontend/app/projects/page.tsx: Ajouter vérifications null pour project.title et project.description
+## 1. Fix API Methods Missing
+- [x] Add missing methods to web-frontend/lib/api.ts (getProject, getProjects, getUsers, getProjectStages, etc.)
 
-## 2. Corriger l'erreur React #310 (règles des hooks)
-- [x] Vérifier les hooks conditionnels ❌ INTERDIT
-- [x] Vérifier les hooks dans des boucles ❌ INTERDIT
-- [x] Vérifier les returns conditionnels AVANT les hooks
-- [x] Vérifier les composants dynamiques
-- [x] web-frontend/app/my-tasks/page.tsx: Refactoriser renderColumn en composant TaskColumn pour éviter useSortable dans une fonction
+## 2. Fix PUT Method Not Allowed
+- [x] Add PUT handler to api-backend/app/api/users/[id]/route-new.ts
 
-## 3. Vérifications générales
-- [x] Tester avec des données vides/nulles (code corrigé pour gérer null/undefined)
-- [x] Vérifier la console pour erreurs (fixes appliqués)
+## 3. Fix Switch Uncontrolled to Controlled
+- [x] Ensure Switch checked prop is always boolean in web-frontend/app/users/[id]/edit/page.tsx
+
+## 4. Check Permissions for Delete Users
+- [ ] Verify user permissions for deleting users (may need role adjustment)
+
+## 5. Create Add Stage Page
+- [x] Create web-frontend/app/projects/[id]/stages/new/page.tsx (already exists and implemented)
+
+## 6. Testing
+- [ ] Test all fixes
+- [ ] Verify stage creation works
+
+## 7. Project Cleanup
+- [x] Archive old test files and organize project structure (project already clean)

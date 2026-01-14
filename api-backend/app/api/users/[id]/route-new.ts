@@ -47,6 +47,14 @@ export async function GET(
   }
 }
 
+// PUT /api/users/[id] - Mettre à jour un utilisateur
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return PATCH(request, { params });
+}
+
 // PATCH /api/users/[id] - Mettre à jour un utilisateur
 export async function PATCH(
   request: NextRequest,
