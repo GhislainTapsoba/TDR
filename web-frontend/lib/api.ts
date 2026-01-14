@@ -38,6 +38,14 @@ api.interceptors.response.use(
   }
 );
 
+// Add custom methods to api instance
+(api as any).getTasks = async () => {
+  const res = await api.get('/tasks');
+  return { tasks: res.data };
+};
+
+(api as any).updateTaskStatus = (id: string | number, status: string) => api.patch(`/tasks/${id}`, { status });
+
 // Types
 export interface Project {
   id: string;

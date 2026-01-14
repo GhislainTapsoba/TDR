@@ -3,14 +3,14 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { api } from "@/lib/api"
+import { projectsApi, stagesApi, tasksApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, GripVertical } from "lucide-react"
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
 // Interfaces
@@ -60,7 +60,7 @@ function TaskCard({ task }: { task: Task }) {
 // --- Stage Column Component ---
 function StageColumn({ stage }: { stage: Stage }) {
     const { setNodeRef } = useSortable({ id: stage.id, data: { type: 'column' } });
-    const taskIds = useMemo(() => stage.tasks.map(t => t.id), [stage.tasks]);
+    const taskIds = useMemo(() => stage.tasks?.map(t => t.id) ?? [], [stage.tasks]);
 
     return (
         <div ref={setNodeRef} className="w-72 flex-shrink-0">
@@ -88,11 +88,11 @@ export default function ProjectBoardPage() {
   const fetchBoardData = useCallback(async () => {
     try {
         const [projectResponse, stagesResponse] = await Promise.all([
-            api.getProject(projectId),
-            api.getProjectStages(projectId)
+            projectsApi.getById(projectId.toString()),
+            stagesApi.getAll({ project_id: projectId.toString() })
         ]);
-        setProject(projectResponse.project);
-        setStages(stagesResponse.stages || []);
+        setProject(projectResponse.data as any);
+        setStages(stagesResponse.data as any || []);
     } catch (error) {
       console.error("Erreur lors du chargement du tableau de bord du projet:", error);
     } finally {
@@ -149,7 +149,7 @@ export default function ProjectBoardPage() {
     });
 
     // API Call
-    api.updateTaskStage(taskId, newStageId).catch(error => {
+    tasksApi.update(taskId.toString(), { stage_id: newStageId.toString() }).catch((error: any) => {
         console.error("Failed to update task stage:", error);
         // Rollback on error
         fetchBoardData();

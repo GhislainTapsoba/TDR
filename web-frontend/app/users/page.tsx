@@ -40,8 +40,12 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("all")
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    if (currentUser?.role === "admin") {
+      fetchUsers()
+    } else {
+      setLoading(false)
+    }
+  }, [currentUser])
 
   const fetchUsers = async () => {
     try {

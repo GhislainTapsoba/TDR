@@ -1,24 +1,16 @@
-# TODO - Corrections apportées
+# TODO - Correction des erreurs React / API / Auth
 
-## Problèmes résolus
+## Priority 1 - Fix api.getTasks is not a function
+- [x] Add getTasks and updateTaskStatus methods to api object in web-frontend/lib/api.ts
+- [x] Update web-frontend/app/tasks/page.tsx to use tasksApi.getAll() and fix response handling
 
-### 1. Statuts des projets et tâches en anglais
-- **Fichier modifié :** `web-frontend/app/dashboard/page.tsx`
-- **Changement :** Ajout de mappages pour traduire les statuts en français dans les badges du tableau de bord.
-- **Détails :**
-  - Ajout de `projectStatusLabels` et `taskStatusLabels` pour mapper les statuts anglais/français.
-  - Modification de l'affichage des badges pour utiliser les étiquettes françaises.
+## Priority 2 - Secure React Hooks (useMemo)
+- [x] Fix useMemo in web-frontend/app/projects/[id]/board/page.tsx to handle undefined stage.tasks
+- [x] Ensure defaults in web-frontend/app/my-tasks/page.tsx for tasksByStatus
 
-### 2. Statuts des étapes
-- **Fichier vérifié :** `web-frontend/components/StagesManager.tsx`
-- **Statut :** Déjà en français ("En attente", "En cours", "Terminée", "Bloquée").
+## Priority 3 - Fix 403 error on /api/users
+- [x] Prevent calling usersApi.getAll() in web-frontend/app/users/page.tsx if user is not admin
 
-### 3. Sidebar non affiché
-- **Fichier vérifié :** `web-frontend/components/layout/sidebar.tsx`
-- **Statut :** Le sidebar est inclus dans `MainLayout`, utilisé sur toutes les pages authentifiées.
-- **Note :** Le sidebar peut être replié via cookie utilisateur. L'utilisateur peut le développer en cliquant sur le bouton de bascule.
-
-## Étapes de suivi
-- Tester les changements en naviguant sur le tableau de bord pour vérifier les étiquettes françaises.
-- Si le sidebar ne s'affiche toujours pas, vérifier la console pour les erreurs JavaScript ou problèmes CSS.
-- Vérifier sur différents appareils (desktop/mobile) car le sidebar a un comportement responsive.
+## Priority 4 - Handle API errors properly
+- [x] Add error state and UI in components for API failures
+- [x] Ensure proper try/catch and logging in API calls

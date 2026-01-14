@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { api } from "@/lib/api"
+import { tasksApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -66,6 +66,7 @@ export default function TasksPage() {
   const user = session?.user;
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
@@ -76,10 +77,12 @@ export default function TasksPage() {
 
   const fetchTasks = async () => {
     try {
-      const response = await api.getTasks() as { tasks: Task[] };
-      setTasks(response.tasks || []);
+      const response = await tasksApi.getAll();
+      setTasks(response.data as any || []);
+      setError(null);
     } catch (error) {
       console.error("Erreur lors du chargement des tâches:", error)
+      setError("Erreur lors du chargement des tâches")
     } finally {
       setLoading(false)
     }
@@ -87,7 +90,7 @@ export default function TasksPage() {
 
   const updateTaskStatus = async (taskId: number, newStatus: string) => {
     try {
-      await api.updateTaskStatus(taskId, newStatus);
+      await tasksApi.update(taskId.toString(), { status: newStatus });
       setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus as any } : task)))
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error)
@@ -116,6 +119,20 @@ export default function TasksPage() {
             </div>
         </MainLayout>
       )
+  }
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="text-center py-12">
+          <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <span className="text-red-600 text-2xl">⚠️</span>
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Erreur</h3>
+          <p className="text-muted-foreground">{error}</p>
+        </div>
+      </MainLayout>
+    )
   }
 
   return (
