@@ -5,6 +5,7 @@ import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { stageStatusChangedByEmployeeTemplate } from '@/lib/emailTemplates';
 import { sendEmail } from '@/lib/emailService';
 import { mapDbRoleToUserRole, requirePermission, canManageProject } from '@/lib/permissions';
+import { isValidUUID } from '@/lib/validation';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -29,6 +30,10 @@ export async function GET(
     }
 
     const { id } = await params;
+
+    if (!isValidUUID(id)) {
+      return corsResponse({ error: 'Invalid UUID format' }, request, { status: 400 });
+    }
 
     const { rows, rowCount } = await db.query(
       `SELECT s.*, u.name as created_by_name 
@@ -95,6 +100,10 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
+
+    if (!isValidUUID(id)) {
+      return corsResponse({ error: 'Invalid UUID format' }, request, { status: 400 });
+    }
 
     const { rows: oldStageRows } = await db.query('SELECT * FROM stages WHERE id = $1', [id]);
     if (oldStageRows.length === 0) {
@@ -230,6 +239,10 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    if (!isValidUUID(id)) {
+      return corsResponse({ error: 'Invalid UUID format' }, request, { status: 400 });
+    }
 
     const { rows: stageRows } = await db.query('SELECT name, project_id FROM stages WHERE id = $1', [id]);
     if (stageRows.length === 0) {

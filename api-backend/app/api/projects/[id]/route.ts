@@ -3,6 +3,7 @@ import { verifyAuth } from '@/lib/verifyAuth';
 import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { mapDbRoleToUserRole, requirePermission, canManageProject } from '@/lib/permissions';
+import { isValidUUID } from '@/lib/validation';
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -27,6 +28,10 @@ export async function GET(
     }
 
     const { id } = await params;
+
+    if (!isValidUUID(id)) {
+      return corsResponse({ error: 'Invalid UUID format' }, request, { status: 400 });
+    }
 
     const { rows, rowCount } = await db.query(
       `SELECT p.*, u.name as manager_name 
@@ -180,6 +185,10 @@ export async function DELETE(
     }
 
     const { id } = await params;
+
+    if (!isValidUUID(id)) {
+      return corsResponse({ error: 'Invalid UUID format' }, request, { status: 400 });
+    }
 
     const { rows: projectRows, rowCount: projectCount } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [id]);
 

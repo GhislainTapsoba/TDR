@@ -15,15 +15,15 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
 interface Project {
-  id: number
+  id: string
   title: string
   description: string
   start_date: string
   end_date: string
   status: "planifie" | "en_cours" | "en_pause" | "termine" | "annule"
-  chef_projet_id: number
+  chef_projet_id: string
   chef_projet: {
-    id: number
+    id: string
     name: string
     email: string
   } | null
