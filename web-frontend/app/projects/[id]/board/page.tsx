@@ -15,19 +15,19 @@ import { CSS } from '@dnd-kit/utilities';
 
 // Interfaces
 interface Task {
-  id: number;
+  id: string;
   title: string;
   priority: "low" | "medium" | "high";
-  stage_id: number;
+  stage_id: string;
 }
 interface Stage {
-  id: number;
+  id: string;
   name: string;
   order_index: number;
   tasks: Task[];
 }
 interface Project {
-  id: number;
+  id: string;
   title: string;
 }
 
@@ -78,7 +78,7 @@ function StageColumn({ stage }: { stage: Stage }) {
 
 export default function ProjectBoardPage() {
   const params = useParams();
-  const projectId = Number(params.id);
+  const projectId = params.id as string;
   const [project, setProject] = useState<Project | null>(null);
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
