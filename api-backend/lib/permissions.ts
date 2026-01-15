@@ -204,6 +204,7 @@ export function mapDbRoleToUserRole(dbRole: string | null): UserRole {
     case 'ADMIN':
       return 'admin';
     case 'MANAGER':
+    case 'CHEF_DE_PROJET':
       return 'manager';
     case 'EMPLOYE':
       return 'user';
@@ -340,7 +341,7 @@ export async function initializePermissions(): Promise<void> {
       // Manager gets project, task, stage, document permissions
       ...permissions.filter(p =>
         ['projects', 'tasks', 'stages', 'documents', 'activity-logs', 'dashboard'].includes(p.resource) ||
-        p.name === 'read_users'
+        p.name === 'users.read'
       ).map(p => ({ role_id: managerRole?.id, permission_id: p.id })),
 
       // Employé gets read and create permissions for tasks, stages, documents

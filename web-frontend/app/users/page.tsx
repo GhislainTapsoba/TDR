@@ -15,19 +15,19 @@ import { Plus, Search, Mail, Shield, Crown, Briefcase } from "lucide-react"
 
 const roleLabels = {
   admin: "Administrateur",
-  chef_de_projet: "Chef de projet",
+  manager: "Manager",
   employe: "Employé",
 }
 
 const roleColors = {
   admin: "bg-red-500/10 text-red-400 border-red-500/20",
-  chef_de_projet: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  manager: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   employe: "bg-green-500/10 text-green-400 border-green-500/20",
 }
 
 const roleIcons = {
   admin: Crown,
-  chef_de_projet: Briefcase,
+  manager: Briefcase,
   employe: Plus,
 }
 
@@ -137,7 +137,7 @@ export default function UsersPage() {
               <SelectContent>
                 <SelectItem value="all">Tous les rôles</SelectItem>
                 <SelectItem value="admin">Administrateur</SelectItem>
-                <SelectItem value="chef_projet">Chef de projet</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="employe">Employé</SelectItem>
               </SelectContent>
             </Select>

@@ -185,7 +185,7 @@ export default function CreateUserPage() {
                   {roles.map((role) => (
                     <SelectItem key={role.id} value={role.name}>
                       {role.name === "admin" ? "Administrateur" :
-                       role.name === "chef_de_projet" ? "Chef de projet" :
+                       role.name === "manager" ? "Manager" :
                        role.name === "employe" ? "Employé" : role.name}
                     </SelectItem>
                   ))}

@@ -40,7 +40,7 @@ ALTER TABLE public.users ADD CONSTRAINT users_role_id_fkey FOREIGN KEY (role_id)
 -- Insert default roles
 INSERT INTO public.roles (id, name, description) VALUES
   ('550e8400-e29b-41d4-a716-446655440001', 'admin', 'Administrateur - accès complet'),
-  ('550e8400-e29b-41d4-a716-446655440002', 'chef_projet', 'Chef de projet - gestion des projets'),
+  ('550e8400-e29b-41d4-a716-446655440002', 'manager', 'Manager - gestion des projets'),
   ('550e8400-e29b-41d4-a716-446655440003', 'employe', 'Employé - accès limité'),
   ('550e8400-e29b-41d4-a716-446655440004', 'viewer', 'Observateur - lecture seule')
 ON CONFLICT (name) DO NOTHING;
@@ -69,11 +69,11 @@ FROM public.roles r, public.permissions p
 WHERE r.name = 'admin'
 ON CONFLICT DO NOTHING;
 
--- Chef de projet: dashboard, projects (all), my_tasks, all_tasks, activity, export, settings
+-- Manager: dashboard, projects (all), my_tasks, all_tasks, activity, export, settings
 INSERT INTO public.role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM public.roles r, public.permissions p
-WHERE r.name = 'chef_projet'
+WHERE r.name = 'manager'
   AND p.name IN ('view_dashboard', 'view_projects', 'create_projects', 'edit_projects', 'view_my_tasks', 'view_all_tasks', 'create_tasks', 'edit_tasks', 'view_activity', 'export_data', 'manage_settings')
 ON CONFLICT DO NOTHING;
 

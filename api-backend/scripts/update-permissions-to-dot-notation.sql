@@ -33,12 +33,12 @@ INSERT INTO permissions (name, description, resource, action)
 SELECT 'tasks.assign', 'Assigner des tâches', 'tasks', 'assign'
 WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'tasks.assign');
 
--- Assign tasks.assign to admin and chef_projet roles
+-- Assign tasks.assign to admin and manager roles
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 JOIN permissions p ON p.name = 'tasks.assign'
-WHERE r.name IN ('admin', 'chef_de_projet')
+WHERE r.name IN ('admin', 'manager')
 AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp
     WHERE rp.role_id = r.id AND rp.permission_id = p.id
