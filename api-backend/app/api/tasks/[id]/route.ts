@@ -86,6 +86,7 @@ export async function PATCH(
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
     const userId = user.id as string;
+    const userPermissions = user.permissions as string[];
     const perm = await requirePermission(userRole, 'tasks', 'update');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
@@ -140,6 +141,9 @@ export async function PATCH(
     if (body.title && oldTask?.title !== body.title) changes.push(`Titre modifié`);
     if (body.status && oldTask?.status !== body.status) changes.push(`Statut changé: ${oldTask?.status} → ${body.status}`);
     const hasReassignment = !!(body.assigned_to_id && oldTask?.assigned_to_id !== body.assigned_to_id);
+    if (hasReassignment && !userPermissions.includes('tasks.assign')) {
+      return corsResponse({ error: 'Vous n\'avez pas la permission d\'assigner des tâches' }, request, { status: 403 });
+    }
     const hasStatusChange = !!(body.status && oldTask?.status !== body.status);
     const isCompletedNow = body.status === 'COMPLETED' && oldTask?.status !== 'COMPLETED';
 

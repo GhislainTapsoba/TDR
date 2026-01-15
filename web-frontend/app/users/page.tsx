@@ -15,19 +15,19 @@ import { Plus, Search, Mail, Shield, Crown, Briefcase } from "lucide-react"
 
 const roleLabels = {
   admin: "Administrateur",
-  chef_projet: "Chef de projet",
+  chef_de_projet: "Chef de projet",
   employe: "Employé",
 }
 
 const roleColors = {
   admin: "bg-red-500/10 text-red-400 border-red-500/20",
-  chef_projet: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  chef_de_projet: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   employe: "bg-green-500/10 text-green-400 border-green-500/20",
 }
 
 const roleIcons = {
   admin: Crown,
-  chef_projet: Briefcase,
+  chef_de_projet: Briefcase,
   employe: Plus,
 }
 
@@ -40,12 +40,12 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState("all")
 
   useEffect(() => {
-    if (currentUser?.role === "admin") {
+    if ((session as any)?.permissions?.includes("users.read")) {
       fetchUsers()
     } else {
       setLoading(false)
     }
-  }, [currentUser])
+  }, [session])
 
   const fetchUsers = async () => {
     try {
@@ -86,8 +86,7 @@ export default function UsersPage() {
       )
   }
   
-  // @ts-ignore
-  if (currentUser?.role !== "admin") {
+  if (!(session as any)?.permissions?.includes("users.read")) {
     return (
         <MainLayout>
             <div className="text-center py-12">
@@ -111,12 +110,14 @@ export default function UsersPage() {
               <h1 className="text-3xl font-bold text-foreground">Utilisateurs</h1>
               <p className="text-muted-foreground">Gérez les utilisateurs du système</p>
             </div>
-            <Button asChild className="bg-primary hover:bg-primary/90">
-              <Link href="/users/create">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvel utilisateur
-              </Link>
-            </Button>
+            {(session as any)?.permissions?.includes("users.create") && (
+              <Button asChild className="bg-primary hover:bg-primary/90">
+                <Link href="/users/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvel utilisateur
+                </Link>
+              </Button>
+            )}
           </div>
 
           <div className="flex gap-4 items-center">
@@ -191,22 +192,24 @@ export default function UsersPage() {
                       >
                         <Link href={`/users/${user.id}/edit`}>Modifier</Link>
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="flex-1"
-                        onClick={async () => {
-                          if (!confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) return
-                          try {
-                            await usersApi.delete(user.id.toString())
-                            setUsers((prev) => prev.filter(u => u.id !== user.id))
-                          } catch (error) {
-                            console.error("Erreur lors de la suppression :", error)
-                          }
-                        }}
-                      >
-                        Supprimer
-                      </Button>
+                      {(session as any)?.permissions?.includes("users.delete") && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="flex-1"
+                          onClick={async () => {
+                            if (!confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) return
+                            try {
+                              await usersApi.delete(user.id.toString())
+                              setUsers((prev) => prev.filter(u => u.id !== user.id))
+                            } catch (error) {
+                              console.error("Erreur lors de la suppression :", error)
+                            }
+                          }}
+                        >
+                          Supprimer
+                        </Button>
+                      )}
 
                     </div>
                   </CardContent>

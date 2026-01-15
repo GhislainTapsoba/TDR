@@ -10,19 +10,13 @@ export default withAuth(
     // 🚫 Pas connecté → redirect login
     if (!token) return NextResponse.redirect(new URL("/login", req.url));
 
-    // 🔒 Protection spécifique pour user-settings
-    if (pathname.startsWith("/user-settings")) {
-      const userIdParam = req.nextUrl.searchParams.get("userId") || token.sub;
-      if (pathname.includes("/edit") || pathname.includes("/update")) {
-        if (userIdParam !== token.sub) {
-          return NextResponse.redirect(new URL("/403", req.url));
-        }
-      } else {
-        if (userIdParam !== token.sub) {
-          return NextResponse.redirect(new URL("/403", req.url));
-        }
-      }
-      return NextResponse.next();
+    // 🔒 Protection par permissions
+    if (pathname.startsWith("/users") && !(token.permissions as string[])?.includes("users.read")) {
+      return NextResponse.redirect(new URL("/403", req.url));
+    }
+
+    if (pathname.startsWith("/tasks") && !(token.permissions as string[])?.includes("tasks.read")) {
+      return NextResponse.redirect(new URL("/403", req.url));
     }
 
     // ✅ Pour toutes les autres routes, laisser passer si connecté

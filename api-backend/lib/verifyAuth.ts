@@ -30,6 +30,7 @@ export async function verifyAuth(request: NextRequest) {
             email: payload.email as string,
             name: payload.name as string | null,
             role: payload.role as string,
+            permissions: payload.permissions as string[],
         };
     } catch (error) {
 

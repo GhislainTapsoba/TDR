@@ -227,6 +227,13 @@ export function canManageTeam(userRole: UserRole): boolean {
 }
 
 /**
+ * Check if user has a specific permission
+ */
+export function hasUserPermission(userPermissions: string[], permission: string): boolean {
+  return userPermissions.includes(permission);
+}
+
+/**
  * Initialize default permissions and role assignments
  * This should be called during application startup or via a migration
  */
@@ -268,43 +275,44 @@ export async function initializePermissions(): Promise<void> {
     // Define default permissions
     const defaultPermissions = [
       // Projects
-      { name: 'create_projects', description: 'Créer des projets', resource: 'projects', action: 'create' },
-      { name: 'read_projects', description: 'Lire les projets', resource: 'projects', action: 'read' },
-      { name: 'update_projects', description: 'Modifier les projets', resource: 'projects', action: 'update' },
-      { name: 'delete_projects', description: 'Supprimer les projets', resource: 'projects', action: 'delete' },
+      { name: 'projects.create', description: 'Créer des projets', resource: 'projects', action: 'create' },
+      { name: 'projects.read', description: 'Lire les projets', resource: 'projects', action: 'read' },
+      { name: 'projects.update', description: 'Modifier les projets', resource: 'projects', action: 'update' },
+      { name: 'projects.delete', description: 'Supprimer les projets', resource: 'projects', action: 'delete' },
 
       // Tasks
-      { name: 'create_tasks', description: 'Créer des tâches', resource: 'tasks', action: 'create' },
-      { name: 'read_tasks', description: 'Lire les tâches', resource: 'tasks', action: 'read' },
-      { name: 'update_tasks', description: 'Modifier les tâches', resource: 'tasks', action: 'update' },
-      { name: 'delete_tasks', description: 'Supprimer les tâches', resource: 'tasks', action: 'delete' },
+      { name: 'tasks.create', description: 'Créer des tâches', resource: 'tasks', action: 'create' },
+      { name: 'tasks.read', description: 'Lire les tâches', resource: 'tasks', action: 'read' },
+      { name: 'tasks.update', description: 'Modifier les tâches', resource: 'tasks', action: 'update' },
+      { name: 'tasks.assign', description: 'Assigner des tâches', resource: 'tasks', action: 'assign' },
+      { name: 'tasks.delete', description: 'Supprimer les tâches', resource: 'tasks', action: 'delete' },
 
       // Stages
-      { name: 'create_stages', description: 'Créer des étapes', resource: 'stages', action: 'create' },
-      { name: 'read_stages', description: 'Lire les étapes', resource: 'stages', action: 'read' },
-      { name: 'update_stages', description: 'Modifier les étapes', resource: 'stages', action: 'update' },
-      { name: 'delete_stages', description: 'Supprimer les étapes', resource: 'stages', action: 'delete' },
+      { name: 'stages.create', description: 'Créer des étapes', resource: 'stages', action: 'create' },
+      { name: 'stages.read', description: 'Lire les étapes', resource: 'stages', action: 'read' },
+      { name: 'stages.update', description: 'Modifier les étapes', resource: 'stages', action: 'update' },
+      { name: 'stages.delete', description: 'Supprimer les étapes', resource: 'stages', action: 'delete' },
 
       // Documents
-      { name: 'create_documents', description: 'Créer des documents', resource: 'documents', action: 'create' },
-      { name: 'read_documents', description: 'Lire les documents', resource: 'documents', action: 'read' },
-      { name: 'update_documents', description: 'Modifier les documents', resource: 'documents', action: 'update' },
-      { name: 'delete_documents', description: 'Supprimer les documents', resource: 'documents', action: 'delete' },
+      { name: 'documents.create', description: 'Créer des documents', resource: 'documents', action: 'create' },
+      { name: 'documents.read', description: 'Lire les documents', resource: 'documents', action: 'read' },
+      { name: 'documents.update', description: 'Modifier les documents', resource: 'documents', action: 'update' },
+      { name: 'documents.delete', description: 'Supprimer les documents', resource: 'documents', action: 'delete' },
 
       // Users
-      { name: 'create_users', description: 'Créer des utilisateurs', resource: 'users', action: 'create' },
-      { name: 'read_users', description: 'Lire les utilisateurs', resource: 'users', action: 'read' },
-      { name: 'update_users', description: 'Modifier les utilisateurs', resource: 'users', action: 'update' },
-      { name: 'delete_users', description: 'Supprimer les utilisateurs', resource: 'users', action: 'delete' },
+      { name: 'users.create', description: 'Créer des utilisateurs', resource: 'users', action: 'create' },
+      { name: 'users.read', description: 'Lire les utilisateurs', resource: 'users', action: 'read' },
+      { name: 'users.update', description: 'Modifier les utilisateurs', resource: 'users', action: 'update' },
+      { name: 'users.delete', description: 'Supprimer les utilisateurs', resource: 'users', action: 'delete' },
 
       // Activity logs
-      { name: 'read_activity_logs', description: 'Lire les logs d\'activité', resource: 'activity-logs', action: 'read' },
+      { name: 'activity-logs.read', description: 'Lire les logs d\'activité', resource: 'activity-logs', action: 'read' },
 
       // Dashboard
-      { name: 'read_dashboard', description: 'Lire le tableau de bord', resource: 'dashboard', action: 'read' },
+      { name: 'dashboard.read', description: 'Lire le tableau de bord', resource: 'dashboard', action: 'read' },
 
       // Admin wildcard
-      { name: 'admin_access', description: 'Accès administrateur complet', resource: '*', action: 'manage' },
+      { name: 'admin.access', description: 'Accès administrateur complet', resource: '*', action: 'manage' },
     ];
 
     // Insert permissions
