@@ -4,7 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { MainLayout } from "@/components/layout/main-layout"
-import { api } from "@/lib/api"
+import { api, settingsApi, notificationPreferencesApi, profileApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -56,6 +56,35 @@ export default function SettingsPage() {
       }
   }, [user]);
 
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user) return;
+      try {
+        const [settingsRes, prefsRes] = await Promise.all([
+          settingsApi.get(),
+          notificationPreferencesApi.get()
+        ]);
+
+        setPreferences({
+          language: settingsRes.data.language,
+          timezone: settingsRes.data.timezone,
+          theme: settingsRes.data.theme,
+        });
+
+        setNotifications({
+          emailNotifications: prefsRes.data.push_notifications,
+          taskAssignments: prefsRes.data.email_task_assigned,
+          projectUpdates: prefsRes.data.email_project_created,
+          deadlineReminders: prefsRes.data.email_task_due,
+        });
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };
+
+    loadSettings();
+  }, [user]);
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
@@ -98,9 +127,105 @@ export default function SettingsPage() {
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
-    // TODO: Implement password change via a dedicated backend endpoint
-    e.preventDefault()
-    // ... existing placeholder logic ...
+    e.preventDefault();
+    if (!user) return;
+
+    if (profile.newPassword !== profile.confirmPassword) {
+      toast({
+        title: "Erreur",
+        description: "Les mots de passe ne correspondent pas.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (profile.newPassword.length < 8) {
+      toast({
+        title: "Erreur",
+        description: "Le nouveau mot de passe doit contenir au moins 8 caractères.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await profileApi.changePassword(user.id, {
+        current_password: profile.currentPassword,
+        new_password: profile.newPassword,
+      });
+
+      setProfile(prev => ({
+        ...prev,
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      }));
+
+      toast({
+        title: "Mot de passe mis à jour",
+        description: "Votre mot de passe a été changé avec succès.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.response?.data?.error || "Une erreur est survenue lors du changement de mot de passe.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleNotificationsUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await notificationPreferencesApi.update({
+        push_notifications: notifications.emailNotifications,
+        email_task_assigned: notifications.taskAssignments,
+        email_project_created: notifications.projectUpdates,
+        email_task_due: notifications.deadlineReminders,
+      });
+
+      toast({
+        title: "Notifications mises à jour",
+        description: "Vos préférences de notifications ont été sauvegardées.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la mise à jour des notifications.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handlePreferencesUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await settingsApi.update({
+        language: preferences.language,
+        timezone: preferences.timezone,
+        theme: preferences.theme,
+      });
+
+      toast({
+        title: "Préférences mises à jour",
+        description: "Vos préférences ont été sauvegardées.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la mise à jour des préférences.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   const getInitials = (name: string) => {
@@ -194,19 +319,199 @@ export default function SettingsPage() {
 
             {/* Mot de passe */}
             <Card>
-                {/* ... Password change form remains the same for now ... */}
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <CardTitle>Mot de passe</CardTitle>
+                </div>
+                <CardDescription>Changez votre mot de passe</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      value={profile.currentPassword}
+                      onChange={(e) =>
+                        setProfile((prev) => ({ ...prev, currentPassword: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={profile.newPassword}
+                      onChange={(e) =>
+                        setProfile((prev) => ({ ...prev, newPassword: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirmer le nouveau mot de passe</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={profile.confirmPassword}
+                      onChange={(e) =>
+                        setProfile((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Mise à jour..." : "Changer le mot de passe"}
+                  </Button>
+                </form>
+              </CardContent>
             </Card>
           </div>
 
           <div className="space-y-6">
             {/* Notifications */}
             <Card>
-                {/* ... Notifications form remains the same ... */}
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Bell className="h-5 w-5 text-primary" />
+                  <CardTitle>Notifications</CardTitle>
+                </div>
+                <CardDescription>Configurez vos préférences de notifications</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleNotificationsUpdate} className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Notifications push</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Recevoir des notifications push dans l'application
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.emailNotifications}
+                      onCheckedChange={(checked) =>
+                        setNotifications((prev) => ({ ...prev, emailNotifications: checked }))
+                      }
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Assignation de tâches</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Être notifié quand une tâche vous est assignée
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.taskAssignments}
+                      onCheckedChange={(checked) =>
+                        setNotifications((prev) => ({ ...prev, taskAssignments: checked }))
+                      }
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Mises à jour de projets</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Recevoir des notifications pour les nouveaux projets
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.projectUpdates}
+                      onCheckedChange={(checked) =>
+                        setNotifications((prev) => ({ ...prev, projectUpdates: checked }))
+                      }
+                    />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Rappels d'échéances</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Être notifié avant les échéances des tâches
+                      </p>
+                    </div>
+                    <Switch
+                      checked={notifications.deadlineReminders}
+                      onCheckedChange={(checked) =>
+                        setNotifications((prev) => ({ ...prev, deadlineReminders: checked }))
+                      }
+                    />
+                  </div>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Mise à jour..." : "Sauvegarder les notifications"}
+                  </Button>
+                </form>
+              </CardContent>
             </Card>
 
             {/* Préférences */}
             <Card>
-                {/* ... Preferences form remains the same ... */}
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Palette className="h-5 w-5 text-primary" />
+                  <CardTitle>Préférences</CardTitle>
+                </div>
+                <CardDescription>Personnalisez votre expérience</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePreferencesUpdate} className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="language">Langue</Label>
+                      <select
+                        id="language"
+                        value={preferences.language}
+                        onChange={(e) =>
+                          setPreferences((prev) => ({ ...prev, language: e.target.value }))
+                        }
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="fr">Français</option>
+                        <option value="en">English</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="timezone">Fuseau horaire</Label>
+                      <select
+                        id="timezone"
+                        value={preferences.timezone}
+                        onChange={(e) =>
+                          setPreferences((prev) => ({ ...prev, timezone: e.target.value }))
+                        }
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="Europe/Paris">Europe/Paris</option>
+                        <option value="America/New_York">America/New_York</option>
+                        <option value="Asia/Tokyo">Asia/Tokyo</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="theme">Thème</Label>
+                    <select
+                      id="theme"
+                      value={preferences.theme}
+                      onChange={(e) =>
+                        setPreferences((prev) => ({ ...prev, theme: e.target.value }))
+                      }
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="light">Clair</option>
+                      <option value="dark">Sombre</option>
+                      <option value="system">Système</option>
+                    </select>
+                  </div>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "Mise à jour..." : "Sauvegarder les préférences"}
+                  </Button>
+                </form>
+              </CardContent>
             </Card>
           </div>
         </div>

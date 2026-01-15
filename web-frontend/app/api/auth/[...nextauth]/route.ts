@@ -129,7 +129,7 @@ const authOptions: AuthOptions = {
   },
   pages: {
     signIn: '/login',
-    error: '/login',
+    error: '/403',
   },
   debug: true,
 };
