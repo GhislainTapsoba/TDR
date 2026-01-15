@@ -94,6 +94,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validation du manager : doit avoir le rôle chef_de_projet
+    if (manager_id) {
+      const { rows: managerRows } = await db.query(
+        'SELECT r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = $1',
+        [manager_id]
+      );
+      if (managerRows.length === 0 || managerRows[0].role_name !== 'chef_de_projet') {
+        return corsResponse(
+          { error: 'Le manager doit avoir le rôle chef de projet' },
+          request,
+          { status: 400 }
+        );
+      }
+    }
+
     const insertQuery = `
       INSERT INTO projects (title, description, start_date, due_date, status, manager_id, created_by_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -104,7 +119,7 @@ export async function POST(request: NextRequest) {
       description || null,
       start_date || null,
       due_date || null,
-      'planifie',
+      'PLANNING',
       manager_id || null,
       userId
     ]);

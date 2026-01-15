@@ -1,4 +1,4 @@
-/**
+ /**
  * Role-Based Access Control (RBAC) System using database
  */
 
@@ -203,7 +203,7 @@ export function mapDbRoleToUserRole(dbRole: string | null): UserRole {
   switch (role) {
     case 'ADMIN':
       return 'admin';
-    case 'CHEF_PROJET':
+    case 'MANAGER':
       return 'manager';
     case 'EMPLOYE':
       return 'user';
@@ -326,7 +326,7 @@ export async function initializePermissions(): Promise<void> {
     // Get role IDs
     const { rows: roles } = await db.query('SELECT id, name FROM roles');
     const adminRole = roles.find(r => r.name === 'admin');
-    const chefProjetRole = roles.find(r => r.name === 'chef_de_projet');
+    const managerRole = roles.find(r => r.name === 'manager');
     const employeRole = roles.find(r => r.name === 'employe');
 
     // Get permission IDs
@@ -337,11 +337,11 @@ export async function initializePermissions(): Promise<void> {
       // Admin gets all permissions
       ...permissions.map(p => ({ role_id: adminRole?.id, permission_id: p.id })),
 
-      // Chef de projet gets project, task, stage, document permissions
+      // Manager gets project, task, stage, document permissions
       ...permissions.filter(p =>
         ['projects', 'tasks', 'stages', 'documents', 'activity-logs', 'dashboard'].includes(p.resource) ||
         p.name === 'read_users'
-      ).map(p => ({ role_id: chefProjetRole?.id, permission_id: p.id })),
+      ).map(p => ({ role_id: managerRole?.id, permission_id: p.id })),
 
       // Employé gets read and create permissions for tasks, stages, documents
       ...permissions.filter(p =>

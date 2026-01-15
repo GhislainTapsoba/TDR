@@ -28,31 +28,31 @@ const navigation = [
     name: "Tableau de bord",
     href: "/dashboard",
     icon: LayoutDashboard,
-    roles: ["admin", "chef_projet", "employe"],
+    roles: ["admin", "manager", "employe"],
   },
   {
     name: "Projets",
     href: "/projects",
     icon: FolderKanban,
-    roles: ["admin", "chef_projet", "employe"],
+    roles: ["admin", "manager", "employe"],
   },
   {
     name: "Mes tâches",
     href: "/my-tasks",
     icon: CheckSquare,
-    roles: ["admin", "chef_projet", "employe"],
+    roles: ["admin", "manager", "employe"],
   },
   {
     name: "Toutes les tâches",
     href: "/tasks",
     icon: Briefcase,
-    roles: ["admin", "chef_projet"],
+    roles: ["admin", "manager"],
   },
   {
     name: "Étapes",
     href: "/stages",
     icon: CheckSquare,
-    roles: ["admin", "chef_projet"],
+    roles: ["admin", "manager"],
   },
   {
     name: "Utilisateurs",
@@ -64,26 +64,26 @@ const navigation = [
     name: "Activités",
     href: "/activity",
     icon: Activity,
-    roles: ["admin", "chef_projet"],
+    roles: ["admin", "manager"],
   },
   {
     name: "Export",
     href: "/export",
     icon: Download,
-    roles: ["admin", "chef_projet"],
+    roles: ["admin", "manager"],
   },
   {
     name: "Paramètres",
     href: "/settings",
     icon: Settings,
-    roles: ["admin", "chef_projet", "employe"],
+    roles: ["admin", "manager", "employe"],
   },
 ]
 
 const roleLabels: Record<string, string> = {
   admin: "Administrateur",
   employe: "Employé",
-  chef_projet: "Chef de projet",
+  manager: "Manager",
 }
 
 export function Sidebar() {
