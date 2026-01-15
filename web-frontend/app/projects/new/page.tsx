@@ -51,7 +51,8 @@ export default function NewProjectPage() {
   const loadUsers = async () => {
     if (usersLoaded) return
     try {
-      const users = await api.getUsers() as User[];
+      const response = await api.getUsers();
+      const users = response.data as User[];
       setUsers(users || []);
       setUsersLoaded(true)
     } catch (error) {
