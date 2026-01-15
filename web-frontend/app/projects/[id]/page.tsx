@@ -17,22 +17,22 @@ import { MainLayout } from "@/components/layout/main-layout"
 
 // Interfaces remain largely the same, but we expect teamMembers to be populated
 interface TeamMember {
-  id: number
+  id: string
   name: string
   email: string
   role: string
 }
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   start_date: string;
   end_date: string;
   status: 'planifie' | 'en_cours' | 'en_pause' | 'termine' | 'annule';
-  chef_projet_id: number;
+  chef_projet_id: string;
   chef_projet: TeamMember | null;
-  team_members: number[];
+  team_members: string[];
   teamMembers: TeamMember[]; // This will be populated by the improved backend
   stats: {
     total_tasks: number;
@@ -47,7 +47,7 @@ interface Project {
 }
 
 interface Stage {
-  id: number
+  id: string
   name: string
   description: string
   status: string
@@ -59,15 +59,15 @@ interface Stage {
 }
 
 interface Task {
-  id: number
+  id: string
   title: string
   description: string
   status: string
   priority: string
   due_date: string | null
-  assigned_to: number | null
+  assigned_to: string | null
   assignedUser: {
-    id: number
+    id: string
     name: string
     email: string
   } | null
@@ -113,19 +113,19 @@ export default function ProjectDetailPage() {
     setLoading(true);
     try {
       const [projectResponse, stagesResponse] = await Promise.all([
-        api.getProject(Number(id)),
-        api.getProjectStages(Number(id))
+        api.getProject(id),
+        api.getProjectStages(id)
       ]);
 
-      if (projectResponse?.project) {
-        setProject(projectResponse.project);
+      if (projectResponse?.data) {
+        setProject(projectResponse.data);
       } else {
         throw new Error('Project data is not in the expected format.');
       }
 
-      if (stagesResponse?.stages) {
+      if (stagesResponse?.data) {
         // TODO: The stages API should also populate tasks for each stage
-        setStages(stagesResponse.stages);
+        setStages(stagesResponse.data);
       } else {
         console.warn("Stages data not in expected format, setting to empty array.");
         setStages([]);
