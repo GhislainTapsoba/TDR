@@ -173,7 +173,7 @@ export default function NewProjectPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {(users || [])
-                        .filter((u) => u.role === "chef_projet" || u.role === "admin")
+                        .filter((u) => u.role === "CHEF_PROJET" || u.role === "ADMIN")
                         .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
                             {user.name} ({user.email})
@@ -223,7 +223,7 @@ export default function NewProjectPage() {
                 <Label>Membres de l'équipe</Label>
                 <div className="grid gap-2 max-h-40 overflow-y-auto">
                   {(users || [])
-                    .filter((u) => u.role === "employe")
+                    .filter((u) => u.role === "EMPLOYE")
                     .map((user) => (
                       <div key={user.id} className="flex items-center space-x-2">
                         <input
