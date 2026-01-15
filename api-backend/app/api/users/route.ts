@@ -9,7 +9,7 @@ export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
 }
 
-// GET /api/users - Récupérer tous les utilisateurs (admin seulement)
+// GET /api/users - Récupérer tous les utilisateurs (rôles autorisés)
 export async function GET(request: NextRequest) {
   try {
     const user = await verifyAuth(request);
@@ -21,11 +21,6 @@ export async function GET(request: NextRequest) {
     const perm = await requirePermission(userRole, 'users', 'read');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
-    }
-
-    // Seuls les admins peuvent lister tous les utilisateurs
-    if (userRole !== 'admin') {
-      return corsResponse({ error: 'Accès refusé' }, request, { status: 403 });
     }
 
     const query = 'SELECT id, name, email, role, created_at, updated_at, is_active FROM users ORDER BY name ASC';
