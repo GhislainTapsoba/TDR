@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 
 export async function POST(req: Request) {
   process.stderr.write('>>> API Backend /auth/login route hit\n');
+
   try {
     const { email, password } = await req.json();
 
@@ -16,18 +17,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // Normalize email
     const normalizedEmail = email.toLowerCase();
-
-    // Validate email
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
       process.stderr.write('❌ Format d\'email invalide\n');
       return NextResponse.json({ error: 'Format d\'email invalide.' }, { status: 400 });
     }
 
-    // Fetch user from DB
+    // Fetch user
     const userQuery = `
-      SELECT id, name, email, password, role, created_at, updated_at
+      SELECT id, name, email, password, role
       FROM users
       WHERE email = $1
     `;
@@ -35,44 +33,56 @@ export async function POST(req: Request) {
 
     if (users.length === 0) {
       process.stderr.write('❌ Utilisateur non trouvé\n');
-      return NextResponse.json(
-        { error: 'Email ou mot de passe incorrect.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Email ou mot de passe incorrect.' }, { status: 401 });
     }
 
     const user = users[0];
 
-    // Check password
+    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       process.stderr.write('❌ Mot de passe incorrect\n');
-      return NextResponse.json(
-        { error: 'Email ou mot de passe incorrect.' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Email ou mot de passe incorrect.' }, { status: 401 });
     }
 
     // Remove password
     const { password: _, ...userWithoutPassword } = user;
 
-    // Ensure id is string
-    const userResponse = { ...userWithoutPassword, id: String(userWithoutPassword.id) };
-
-    // Generate JWT token for NextAuth
-
-
+    // Lowercase role
     const lowercasedRole = user.role?.toLowerCase() || 'user';
-    const token = jwt.sign(
-        { sub: user.id, email: user.email, role: lowercasedRole, id: user.id }, // Explicitly set 'sub' and convert role to lowercase
-        process.env.NEXTAUTH_SECRET!,
-        { expiresIn: '30d' }
-    );
-        process.stderr.write('✅ Connexion réussie, jeton généré\n');
 
+    // Fetch permissions from role_permissions
+    const permsQuery = `
+      SELECT p.name
+      FROM role_permissions rp
+      JOIN permissions p ON rp.permission_id = p.id
+      JOIN roles r ON rp.role_id = r.id
+      WHERE r.name = $1
+    `;
+    const { rows: perms } = await db.query(permsQuery, [lowercasedRole]);
+    const permissions = perms.map(p => p.name); // array of strings
 
+    process.stderr.write(`🔑 Permissions pour ${lowercasedRole}: ${permissions.join(', ')}\n`);
 
-    // Return in NextAuth format
+    // Build user object with permissions
+    const userResponse = { 
+      ...userWithoutPassword, 
+      id: String(userWithoutPassword.id),
+      permissions
+    };
+
+    // Generate JWT with permissions
+    const tokenPayload = { 
+      sub: user.id, 
+      email: user.email, 
+      role: lowercasedRole, 
+      id: user.id,
+      permissions
+    };
+    const token = jwt.sign(tokenPayload, process.env.NEXTAUTH_SECRET!, { expiresIn: '30d' });
+    process.stderr.write('✅ Connexion réussie, jeton généré\n');
+
+    // Return for NextAuth
     return NextResponse.json({
       success: true,
       user: userResponse,
@@ -81,11 +91,10 @@ export async function POST(req: Request) {
 
   } catch (error) {
     process.stderr.write(`💥 ERREUR CRITIQUE dans /auth/login: ${error}\n`);
-    console.error('LOGIN ERROR >>>', error); // Keep original console.error as fallback
+    console.error('LOGIN ERROR >>>', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Erreur interne' },
       { status: 500 }
     );
   }
 }
-
