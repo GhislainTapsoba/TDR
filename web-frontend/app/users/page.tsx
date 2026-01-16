@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Plus, Search, Mail, Shield, Crown, Briefcase } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context" // Import useAuth
+import { hasPermission } from "@/lib/permissions" // Import hasPermission
 
 const roleLabels = {
   admin: "Administrateur",
@@ -34,18 +36,25 @@ const roleIcons = {
 export default function UsersPage() {
   const { data: session, status } = useSession();
   const currentUser = session?.user;
+  const { user: authUser } = useAuth(); // Use useAuth for permissions
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
 
+  const canReadUsers = hasPermission(authUser?.permissions || [], 'users', 'read');
+  const canCreateUsers = hasPermission(authUser?.permissions || [], 'users', 'create');
+  const canUpdateUsers = hasPermission(authUser?.permissions || [], 'users', 'update');
+  const canDeleteUsers = hasPermission(authUser?.permissions || [], 'users', 'delete');
+
+
   useEffect(() => {
-    if ((session as any)?.permissions?.includes("users.read")) {
+    if (canReadUsers) {
       fetchUsers()
     } else {
       setLoading(false)
     }
-  }, [session])
+  }, [canReadUsers])
 
   const fetchUsers = async () => {
     try {
@@ -86,7 +95,7 @@ export default function UsersPage() {
       )
   }
   
-  if (!(session as any)?.permissions?.includes("users.read")) {
+  if (!canReadUsers) {
     return (
         <MainLayout>
             <div className="text-center py-12">
@@ -110,7 +119,7 @@ export default function UsersPage() {
               <h1 className="text-3xl font-bold text-foreground">Utilisateurs</h1>
               <p className="text-muted-foreground">Gérez les utilisateurs du système</p>
             </div>
-            {(session as any)?.permissions?.includes("users.create") && (
+            {canCreateUsers && (
               <Button asChild className="bg-primary hover:bg-primary/90">
                 <Link href="/users/create">
                   <Plus className="h-4 w-4 mr-2" />
@@ -196,7 +205,7 @@ export default function UsersPage() {
                       >
                         <Link href={`/users/${user.id}/view`}>Voir</Link>
                       </Button>
-                      {(currentUser as any)?.permissions?.includes("users.update") && (
+                      {canUpdateUsers && (
                         <Button
                           asChild
                           size="sm"
@@ -205,7 +214,7 @@ export default function UsersPage() {
                           <Link href={`/users/${user.id}/edit`}>Modifier</Link>
                         </Button>
                       )}
-                      {(currentUser as any)?.permissions?.includes("users.delete") && (
+                      {canDeleteUsers && (
                         <Button
                           size="sm"
                           variant="destructive"

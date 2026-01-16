@@ -13,6 +13,8 @@ import { Plus, Search, Calendar, User, AlertTriangle, CheckCircle, Clock } from 
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { useAuth } from "@/contexts/auth-context" // Import useAuth
+import { hasPermission } from "@/lib/permissions" // Import hasPermission
 
 interface Task {
   id: number
@@ -64,12 +66,30 @@ const priorityColors = {
 export default function TasksPage() {
   const { data: session, status: sessionStatus } = useSession()
   const user = session?.user;
+  const { user: authUser } = useAuth(); // Use useAuth for permissions
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
+
+  // Permission check for page access
+  if (sessionStatus === 'authenticated' && !hasPermission(authUser?.permissions || [], 'tasks', 'read')) {
+    return (
+      <MainLayout>
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
+          <p className="text-muted-foreground mb-4">
+            Vous n'avez pas la permission de voir cette page.
+          </p>
+          <Link href="/dashboard">
+            <Button>Retour au tableau de bord</Button>
+          </Link>
+        </div>
+      </MainLayout>
+    );
+  }
 
   useEffect(() => {
     fetchTasks()

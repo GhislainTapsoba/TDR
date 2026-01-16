@@ -18,6 +18,8 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
+    const userId = user.id as string;
+
     const perm = await requirePermission(userRole, 'users', 'read');
     if (!perm.allowed) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
@@ -26,15 +28,79 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get('role');
 
-    let queryText = 'SELECT id, name, email, role, created_at, updated_at, is_active FROM users';
-    const queryParams: string[] = [];
+    let queryText = `
+      SELECT DISTINCT u.id, u.name, u.email, u.role, u.created_at, u.updated_at, u.is_active
+      FROM users u
+    `;
+    const queryParams: (string | number)[] = [];
+    let whereClauses: string[] = [];
+    let paramIndex = 1;
 
-    if (roleFilter) {
-      queryText += ' WHERE role = $1';
-      queryParams.push(roleFilter);
+    if (userRole === 'admin') {
+      // Admin sees all users (optionally filtered by role)
+      if (roleFilter) {
+        whereClauses.push(`u.role = $${paramIndex++}`);
+        queryParams.push(roleFilter);
+      }
+    } else if (userRole === 'manager') {
+      // Manager sees:
+      // 1. All admins and managers
+      // 2. Employees in projects they manage (as manager_id)
+      // 3. Employees assigned to tasks in projects they manage
+      // 4. The manager themselves
+      let managerSpecificWhere: string[] = [];
+
+      // Always include admin and manager roles
+      managerSpecificWhere.push(`u.role IN ('admin', 'manager')`);
+
+      // Include employees related to projects managed by the current manager
+      managerSpecificWhere.push(`
+        u.id IN (
+          SELECT DISTINCT pm.user_id
+          FROM project_members pm
+          JOIN projects p ON pm.project_id = p.id
+          WHERE p.manager_id = $${paramIndex++}
+        )
+      `);
+      queryParams.push(userId);
+
+      managerSpecificWhere.push(`
+        u.id IN (
+          SELECT DISTINCT t.assigned_to
+          FROM tasks t
+          JOIN projects p ON t.project_id = p.id
+          WHERE p.manager_id = $${paramIndex++}
+        )
+      `);
+      queryParams.push(userId);
+      
+      // Always include the manager themselves
+      managerSpecificWhere.push(`u.id = $${paramIndex++}`);
+      queryParams.push(userId);
+
+      let finalManagerWhere = `(${managerSpecificWhere.join(' OR ')})`;
+
+      if (roleFilter) {
+        // If a role filter is provided, refine the results further
+        // Ensure the filtered role is included in the manager's view
+        if (roleFilter === 'admin' || roleFilter === 'manager' || roleFilter === 'employe') {
+            finalManagerWhere += ` AND u.role = $${paramIndex++}`;
+            queryParams.push(roleFilter);
+        }
+      }
+      whereClauses.push(finalManagerWhere);
+
+    } else {
+      // Other roles (employe) only see themselves
+      whereClauses.push(`u.id = $${paramIndex++}`);
+      queryParams.push(userId);
     }
 
-    queryText += ' ORDER BY name ASC';
+    if (whereClauses.length > 0) {
+      queryText += ' WHERE ' + whereClauses.join(' AND ');
+    }
+
+    queryText += ' ORDER BY u.name ASC';
 
     const { rows } = await db.query(queryText, queryParams);
 
