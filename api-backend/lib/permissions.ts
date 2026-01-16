@@ -11,7 +11,7 @@ export interface Permission {
   name: string;
   description?: string;
   resource: string;
-  action: 'create' | 'read' | 'update' | 'delete' | 'manage';
+  action: 'create' | 'read' | 'update' | 'delete' | 'manage' | 'assign';
 }
 
 export interface Role {
@@ -87,13 +87,10 @@ async function loadRolePermissionsFromDB(): Promise<Map<string, Permission[]>> {
  * Get permissions for a role, using cache or loading from DB
  */
 async function getRolePermissionsFromDB(roleName: string): Promise<Permission[]> {
-  const now = Date.now();
-  if (now - lastCacheUpdate > CACHE_DURATION) {
-    // Refresh cache
-    permissionsCache = await loadPermissionsFromDB();
-    rolePermissionsCache = await loadRolePermissionsFromDB();
-    lastCacheUpdate = now;
-  }
+  // TEMPORARILY bypass cache for validation
+  permissionsCache = await loadPermissionsFromDB();
+  rolePermissionsCache = await loadRolePermissionsFromDB();
+  lastCacheUpdate = Date.now(); // Update timestamp to prevent immediate re-load if cache is used again
 
   return rolePermissionsCache.get(roleName) || [];
 }
@@ -107,6 +104,14 @@ export async function hasPermission(
   action: Permission['action']
 ): Promise<boolean> {
   const permissions = await getRolePermissionsFromDB(userRole);
+
+  // TEMPORARY DEBUG LOG
+  console.log({
+    role: userRole,
+    resource,
+    action,
+    permissions
+  });
 
   // Check for wildcard permission (admin)
   const hasWildcard = permissions.some(
@@ -199,6 +204,8 @@ export async function getRolePermissions(userRole: UserRole): Promise<Permission
  * vers le rôle applicatif du système de permissions
  */
 export function mapDbRoleToUserRole(dbRole: string | null): UserRole {
+  // TEMPORARY DEBUG LOG
+  console.log('DB ROLE:', dbRole);
   const role = dbRole?.toUpperCase();
   switch (role) {
     case 'ADMIN':
@@ -359,6 +366,11 @@ export async function initializePermissions(): Promise<void> {
     }
 
     console.log('Permissions initialized successfully!');
+
+    // Force cache refresh after init
+    permissionsCache = [];
+    rolePermissionsCache.clear();
+    lastCacheUpdate = 0;
 
   } catch (error) {
     console.error('Error initializing permissions:', error);
