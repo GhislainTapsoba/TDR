@@ -71,6 +71,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/public* ./public
 # Copier les scripts pour l'init (permissions, etc.)
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
+# Copier lib pour les scripts TypeScript
+COPY --from=builder --chown=nextjs:nodejs /app/lib ./lib
 
 USER nextjs
 
