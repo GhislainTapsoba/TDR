@@ -23,8 +23,20 @@ export async function GET(request: NextRequest) {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
-    const query = 'SELECT id, name, email, role, created_at, updated_at, is_active FROM users ORDER BY name ASC';
-    const { rows } = await db.query(query);
+    const { searchParams } = new URL(request.url);
+    const roleFilter = searchParams.get('role');
+
+    let queryText = 'SELECT id, name, email, role, created_at, updated_at, is_active FROM users';
+    const queryParams: string[] = [];
+
+    if (roleFilter) {
+      queryText += ' WHERE role = $1';
+      queryParams.push(roleFilter);
+    }
+
+    queryText += ' ORDER BY name ASC';
+
+    const { rows } = await db.query(queryText, queryParams);
 
     return corsResponse(rows, request);
   } catch (error) {
