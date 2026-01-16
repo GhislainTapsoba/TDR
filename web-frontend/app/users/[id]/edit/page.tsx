@@ -106,13 +106,13 @@ export default function EditUserPage() {
               Retour aux utilisateurs
             </Button>
           </Link>
-          {userId && (
+          {/* {userId && (
             <Link href={`/users/${userId}/view`}>
               <Button variant="outline" size="sm">
                 Voir l'utilisateur
               </Button>
             </Link>
-          )}
+          )} */}
         </div>
         <Card className="max-w-md mx-auto">
           <CardHeader>
