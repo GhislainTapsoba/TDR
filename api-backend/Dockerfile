@@ -68,6 +68,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 # Copier les fichiers publics si ils existent
 COPY --from=builder --chown=nextjs:nodejs /app/public* ./public
 
+# Copier les scripts pour l'init (permissions, etc.)
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
+
 USER nextjs
 
 EXPOSE 3000
