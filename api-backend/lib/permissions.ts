@@ -363,7 +363,4 @@ export async function initializePermissions(): Promise<void> {
   } catch (error) {
     console.error('Error initializing permissions:', error);
   }
-  } catch (error) {
-    console.error('Error initializing permissions:', error);
-  }
 }
