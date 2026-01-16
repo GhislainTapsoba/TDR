@@ -144,7 +144,7 @@ export default function TasksPage() {
               <p className="text-muted-foreground">Gérez et suivez toutes vos tâches</p>
             </div>
             {/* @ts-ignore */}
-            {(user?.role === "admin" || user?.role === "chef_projet") && (
+            {(user?.role === "admin" || user?.role === "manager") && (
               <Link href="/tasks/new">
                 <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
@@ -281,7 +281,7 @@ export default function TasksPage() {
                     : "Aucune tâche n'est encore créée."}
                 </p>
                 {/* @ts-ignore */}
-                {(user?.role === "admin" || user?.role === "chef_projet") &&
+                {(user?.role === "admin" || user?.role === "manager") &&
                 !searchTerm &&
                 statusFilter === "all" &&
                 priorityFilter === "all" && (

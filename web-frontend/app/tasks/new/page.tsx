@@ -352,7 +352,7 @@ export default function NewTaskPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {users
-                      .filter((u) => u.role === "employe" || u.role === "chef_projet")
+                      .filter((u) => u.role === "employe" || u.role === "manager")
                       .map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           <div className="flex items-center gap-2">

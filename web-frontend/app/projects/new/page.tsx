@@ -42,7 +42,7 @@ export default function NewProjectPage() {
     description: "",
     start_date: "",
     end_date: "",
-    chef_projet_id: "",
+    manager_id: "",
     team_members: [] as number[],
   })
 
@@ -67,7 +67,7 @@ export default function NewProjectPage() {
     try {
         const payload = {
             ...formData,
-            chef_projet_id: Number.parseInt(formData.chef_projet_id),
+            manager_id: formData.manager_id || undefined,
             stages: stages.length > 0 ? stages : undefined,
         }
 
@@ -162,10 +162,10 @@ export default function NewProjectPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="chef_projet_id">Chef de projet *</Label>
+                  <Label htmlFor="manager_id">Manager *</Label>
                   <Select
-                    value={formData.chef_projet_id}
-                    onValueChange={(value) => setFormData((prev) => ({ ...prev, chef_projet_id: value }))}
+                    value={formData.manager_id}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, manager_id: value }))}
                     onOpenChange={loadUsers}
                     required
                   >
@@ -174,7 +174,7 @@ export default function NewProjectPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {(users || [])
-                        .filter((u) => u.role.toUpperCase() === "CHEF_PROJET")
+                        .filter((u) => u.role.toUpperCase() === "MANAGER")
                         .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
                             {user.name} ({user.email})

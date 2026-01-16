@@ -30,8 +30,8 @@ interface Project {
   start_date: string;
   end_date: string;
   status: 'planifie' | 'en_cours' | 'en_pause' | 'termine' | 'annule';
-  chef_projet_id: string;
-  chef_projet: TeamMember | null;
+  manager_id: string;
+  manager: TeamMember | null;
   team_members: string[];
   teamMembers: TeamMember[]; // This will be populated by the improved backend
   stats: {
@@ -170,7 +170,7 @@ export default function ProjectDetailPage() {
     )
   }
 
-  const canEdit = user?.role === "admin" || user?.id === project.chef_projet_id
+  const canEdit = user?.role === "admin" || user?.id === project.manager_id
 
   const getTaskProgress = (stage: any) => {
     if (!stage.tasks || !Array.isArray(stage.tasks)) {
@@ -228,7 +228,7 @@ export default function ProjectDetailPage() {
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {/* Chef de projet */}
-              {project.chef_projet && (
+              {project.manager && (
                 <Card className="border-primary/20">
                   <CardContent className="p-6">
                       <div className="flex items-center gap-3">
@@ -238,13 +238,13 @@ export default function ProjectDetailPage() {
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                             <p className="font-medium text-foreground truncate">
-                                {project.chef_projet.name}
+                                {project.manager.name}
                             </p>
                             <Badge variant="outline" className="text-xs">Chef</Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">Chef de projet</p>
+                            <p className="text-sm text-muted-foreground">Manager</p>
                             <p className="text-xs text-muted-foreground truncate">
-                            {project.chef_projet.email}
+                            {project.manager.email}
                             </p>
                         </div>
                       </div>

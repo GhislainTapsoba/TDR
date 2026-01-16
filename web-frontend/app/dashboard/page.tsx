@@ -111,7 +111,7 @@ export default function DashboardPage() {
           color: "text-chart-4",
         },
       ]
-    } else if (user?.role === "chef_projet") {
+    } else if (user?.role === "manager") {
       return [
         {
           title: "Mes projets",

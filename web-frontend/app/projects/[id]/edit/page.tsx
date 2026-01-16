@@ -22,7 +22,7 @@ interface Project {
   start_date: string
   end_date: string
   status: string
-  chef_projet_id: number
+  manager_id: number
   team_members: number[]
 }
 
@@ -44,7 +44,7 @@ export default function EditProjectPage() {
   const [users, setUsers] = useState<User[]>([])
   const [usersLoaded, setUsersLoaded] = useState(false)
 
-  const canDelete = user?.role === "admin" || (project && user?.id === project.chef_projet_id)
+  const canDelete = user?.role === "admin" || (project && user?.id === project.manager_id)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -52,7 +52,7 @@ export default function EditProjectPage() {
     start_date: "",
     end_date: "",
     status: "",
-    chef_projet_id: "",
+    manager_id: "",
     team_members: [] as number[],
   })
 
@@ -75,7 +75,7 @@ export default function EditProjectPage() {
         start_date: projectData.start_date.split("T")[0],
         end_date: projectData.end_date.split("T")[0],
         status: projectData.status,
-        chef_projet_id: projectData.chef_projet_id.toString(),
+        manager_id: projectData.manager_id.toString(),
         team_members: projectData.team_members || [],
       })
 
@@ -110,7 +110,7 @@ export default function EditProjectPage() {
     try {
       await api.put(`/projects/${params.id}`, {
         ...formData,
-        chef_projet_id: Number(formData.chef_projet_id),
+        manager_id: Number(formData.manager_id),
       })
 
       toast({ title: "Projet modifié", description: "Le projet a été modifié avec succès." })
@@ -162,7 +162,7 @@ export default function EditProjectPage() {
   }
 
   // Vérifier les permissions
-  if (project && user && user.role !== "admin" && user.id !== project.chef_projet_id) {
+  if (project && user && user.role !== "admin" && user.id !== project.manager_id) {
     return (
       <MainLayout>
         <div className="text-center py-12">
@@ -278,10 +278,10 @@ export default function EditProjectPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="chef_projet_id">Chef de projet *</Label>
+                <Label htmlFor="manager_id">Manager *</Label>
                 <Select
-                  value={formData.chef_projet_id}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, chef_projet_id: value }))}
+                  value={formData.manager_id}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, manager_id: value }))}
                   onOpenChange={loadUsers}
                   required
                 >
@@ -290,7 +290,7 @@ export default function EditProjectPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {users
-                      .filter((u) => u.role === "chef_projet" || u.role === "admin")
+                      .filter((u) => u.role === "manager" || u.role === "admin")
                       .map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.name} ({user.email})
