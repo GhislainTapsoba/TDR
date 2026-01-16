@@ -39,9 +39,12 @@ export default function EditProjectPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const [deleting, setDeleting] = useState(false) // New state for delete loading
   const [project, setProject] = useState<Project | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [usersLoaded, setUsersLoaded] = useState(false)
+
+  const canDelete = user?.role === "admin" || (project && user?.id === project.chef_projet_id)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -122,6 +125,32 @@ export default function EditProjectPage() {
       setLoading(false)
     }
   }
+
+  const handleDelete = async () => {
+    if (!project) return;
+
+    if (!canDelete) {
+      toast({ title: "Accès refusé", description: "Vous n'avez pas la permission de supprimer ce projet.", variant: "destructive" });
+      return;
+    }
+
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible et supprimera toutes les tâches et étapes associées.")) {
+      setDeleting(true);
+      try {
+        await api.delete(`/projects/${project.id}`);
+        toast({ title: "Projet supprimé", description: "Le projet a été supprimé avec succès." });
+        router.push("/projects");
+      } catch (error: any) {
+        toast({
+          title: "Erreur",
+          description: error.response?.data?.message ?? "Une erreur est survenue lors de la suppression.",
+          variant: "destructive",
+        });
+      } finally {
+        setDeleting(false);
+      }
+    }
+  };
 
   const toggleTeamMember = (userId: number) => {
     setFormData((prev) => ({
@@ -295,7 +324,7 @@ export default function EditProjectPage() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <Button type="submit" disabled={loading}>
               <Save className="h-4 w-4 mr-2" />
               {loading ? "Modification..." : "Enregistrer les modifications"}
@@ -305,6 +334,11 @@ export default function EditProjectPage() {
                 Annuler
               </Button>
             </Link>
+            {canDelete && (
+                <Button type="button" variant="destructive" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? "Suppression..." : "Supprimer le projet"}
+                </Button>
+            )}
           </div>
         </form>
       </div>

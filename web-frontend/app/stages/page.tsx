@@ -141,10 +141,10 @@ export default function StagesPage() {
 
           <div className="grid gap-4">
             {filteredStages.map((stage) => (
-              <Card
-                key={stage.id}
-                className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
-              >
+              <Link key={stage.id} href={`/stages/${stage.id}/view`}>
+                <Card
+                  className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
+                >
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 space-y-3">
@@ -197,7 +197,8 @@ export default function StagesPage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
 

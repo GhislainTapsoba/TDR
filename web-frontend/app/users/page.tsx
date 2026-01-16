@@ -158,7 +158,11 @@ export default function UsersPage() {
                         <AvatarFallback className="bg-primary/10 text-primary">{getInitials(user.name)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <CardTitle className="text-lg text-foreground">{user.name}</CardTitle>
+                        <CardTitle className="text-lg text-foreground">
+                          <Link href={`/users/${user.id}/view`} className="hover:underline">
+                            {user.name}
+                          </Link>
+                        </CardTitle>
                         <CardDescription className="flex items-center gap-1">
                           <Mail className="h-3 w-3" />
                           {user.email}
@@ -190,9 +194,18 @@ export default function UsersPage() {
                         variant="outline"
                         className="flex-1 bg-transparent"
                       >
-                        <Link href={`/users/${user.id}/edit`}>Modifier</Link>
+                        <Link href={`/users/${user.id}/view`}>Voir</Link>
                       </Button>
-                      {(session as any)?.permissions?.includes("users.delete") && (
+                      {(currentUser as any)?.permissions?.includes("users.update") && (
+                        <Button
+                          asChild
+                          size="sm"
+                          className="flex-1"
+                        >
+                          <Link href={`/users/${user.id}/edit`}>Modifier</Link>
+                        </Button>
+                      )}
+                      {(currentUser as any)?.permissions?.includes("users.delete") && (
                         <Button
                           size="sm"
                           variant="destructive"

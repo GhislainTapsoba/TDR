@@ -90,21 +90,21 @@ export async function PUT(request: NextRequest) {
     const queryParams = [];
     let paramIndex = 1;
 
-    if (language !== undefined) { updateFields.push(`language = ${paramIndex++}`); queryParams.push(language); }
-    if (timezone !== undefined) { updateFields.push(`timezone = ${paramIndex++}`); queryParams.push(timezone); }
-    if (notifications_enabled !== undefined) { updateFields.push(`notifications_enabled = ${paramIndex++}`); queryParams.push(notifications_enabled); }
-    if (email_notifications !== undefined) { updateFields.push(`email_notifications = ${paramIndex++}`); queryParams.push(email_notifications); }
-    if (theme !== undefined) { updateFields.push(`theme = ${paramIndex++}`); queryParams.push(theme); }
-    if (date_format !== undefined) { updateFields.push(`date_format = ${paramIndex++}`); queryParams.push(date_format); }
-    if (items_per_page !== undefined) { updateFields.push(`items_per_page = ${paramIndex++}`); queryParams.push(items_per_page); }
-    if (font_size !== undefined) { updateFields.push(`font_size = ${paramIndex++}`); queryParams.push(font_size); }
-    if (compact_mode !== undefined) { updateFields.push(`compact_mode = ${paramIndex++}`); queryParams.push(compact_mode); }
+    if (language !== undefined) { updateFields.push(`language = $${paramIndex++}`); queryParams.push(language); }
+    if (timezone !== undefined) { updateFields.push(`timezone = $${paramIndex++}`); queryParams.push(timezone); }
+    if (notifications_enabled !== undefined) { updateFields.push(`notifications_enabled = $${paramIndex++}`); queryParams.push(notifications_enabled); }
+    if (email_notifications !== undefined) { updateFields.push(`email_notifications = $${paramIndex++}`); queryParams.push(email_notifications); }
+    if (theme !== undefined) { updateFields.push(`theme = $${paramIndex++}`); queryParams.push(theme); }
+    if (date_format !== undefined) { updateFields.push(`date_format = $${paramIndex++}`); queryParams.push(date_format); }
+    if (items_per_page !== undefined) { updateFields.push(`items_per_page = $${paramIndex++}`); queryParams.push(items_per_page); }
+    if (font_size !== undefined) { updateFields.push(`font_size = $${paramIndex++}`); queryParams.push(font_size); }
+    if (compact_mode !== undefined) { updateFields.push(`compact_mode = $${paramIndex++}`); queryParams.push(compact_mode); }
 
     queryParams.push(user.id);
     const updateQuery = `
       UPDATE user_settings 
       SET ${updateFields.join(', ')} 
-      WHERE user_id = ${paramIndex}
+      WHERE user_id = $${paramIndex}
       RETURNING *
     `;
 

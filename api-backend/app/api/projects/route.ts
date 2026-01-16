@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
         'SELECT r.name as role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = $1',
         [manager_id]
       );
-      if (managerRows.length === 0 || managerRows[0].role_name !== 'chef_de_projet') {
+      if (managerRows.length === 0 || managerRows[0].role_name !== 'manager') {
         return corsResponse(
-          { error: 'Le manager doit avoir le rôle chef de projet' },
+          { error: 'Le manager doit avoir le rôle de manager' },
           request,
           { status: 400 }
         );

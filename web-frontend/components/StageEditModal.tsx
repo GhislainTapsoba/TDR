@@ -1,11 +1,11 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { stagesApi, projectsApi, Stage, Project } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, Layers, FileText, Hash, Clock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { hasPermission, mapRole } from '@/lib/permissions';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 interface StageEditModalProps {
   stage: Stage;
@@ -26,6 +26,8 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
   });
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
+
+  const canDelete = hasPermission(user ? mapRole(user.role) : undefined, 'stages', 'delete');
 
   useEffect(() => {
     // Mettre à jour le formulaire quand l'étape change
@@ -51,6 +53,29 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
       setProjects(data);
     } catch (error) {
       console.error('Error loading projects:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error("Vous n'avez pas la permission de supprimer une étape.");
+      return;
+    }
+
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette étape ? Cette action est irréversible.')) {
+      setLoading(true);
+      const toastId = toast.loading('Suppression de l\'étape en cours...');
+      try {
+        await stagesApi.delete(stage.id.toString());
+        toast.success('Étape supprimée avec succès !', { id: toastId });
+        onSuccess(); // To trigger a refresh
+        onClose();
+      } catch (error: any) {
+        const message = error.response?.data?.error || 'Erreur lors de la suppression de l\'étape';
+        toast.error(message, { id: toastId });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -99,6 +124,11 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
               <Layers className="text-purple-600" size={24} />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Modifier l'Étape</h2>
+            <Link href={`/stages/${stage.id}/view`}>
+              <Button variant="outline" size="sm">
+                Voir l'étape
+              </Button>
+            </Link>
           </div>
           <button
             onClick={onClose}
@@ -223,6 +253,16 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
 
           {/* Boutons */}
           <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+            {canDelete && (
+                <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="flex-1 px-6 py-3 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                    {loading ? 'Suppression...' : 'Supprimer'}
+                </button>
+            )}
             <button
               type="button"
               onClick={onClose}

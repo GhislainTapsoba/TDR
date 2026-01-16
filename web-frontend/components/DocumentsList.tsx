@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { File, Download, Trash2, Upload, X } from 'lucide-react';
+import { File, Download, Trash2, Upload, X, Edit } from 'lucide-react';
 import { documentsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatDate, formatFileSize } from '@/lib/utils';
+import DocumentEditModal from './DocumentEditModal';
+import { useAuth } from '@/hooks/useAuth';
+import { hasPermission, mapRole } from '@/lib/permissions';
 
 interface Document {
   id: string;
@@ -21,10 +24,10 @@ interface DocumentsListProps {
   projectId?: string;
   taskId?: string;
   canUpload?: boolean;
-  canDelete?: boolean;
 }
 
-export default function DocumentsList({ projectId, taskId, canUpload = false, canDelete = false }: DocumentsListProps) {
+export default function DocumentsList({ projectId, taskId, canUpload = false }: DocumentsListProps) {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -32,6 +35,12 @@ export default function DocumentsList({ projectId, taskId, canUpload = false, ca
   const [uploadName, setUploadName] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+
+  const canDelete = hasPermission(user ? mapRole(user.role) : undefined, 'documents', 'delete');
+  const canUpdate = hasPermission(user ? mapRole(user.role) : undefined, 'documents', 'update');
+
 
   // Charger les documents
   const loadDocuments = async () => {
@@ -176,136 +185,160 @@ export default function DocumentsList({ projectId, taskId, canUpload = false, ca
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={doc.file_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="Télécharger"
-                >
-                  <Download size={18} />
-                </a>
-                {canDelete && (
-                  <button
-                    onClick={() => handleDelete(doc.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Supprimer"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Modal d'upload */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900">Ajouter un document</h3>
-              <button
-                onClick={() => setShowUploadModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fichier *
-                </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    id="file-upload"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      setUploadFile(file || null);
-                      if (file && !uploadName) {
-                        setUploadName(file.name);
-                      }
-                    }}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className="flex items-center justify-center w-full border-2 border-dashed border-gray-400 rounded-lg p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors bg-gray-50"
-                  >
-                    <div className="text-center">
-                      <Upload className="mx-auto h-12 w-12 text-gray-500" />
-                      <p className="mt-2 text-base font-medium text-gray-900">
-                        {uploadFile ? (
-                          <span className="text-blue-700">{uploadFile.name}</span>
-                        ) : (
-                          <>
-                            <span className="text-blue-700">Cliquez pour choisir un fichier</span>
-                          </>
-                        )}
-                      </p>
-                      {!uploadFile && (
-                        <p className="mt-1 text-sm text-gray-700">
-                          ou glissez-déposez le fichier ici
-                        </p>
+                              <div className="flex items-center gap-2">
+                                {canUpdate && (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedDocument(doc);
+                                      setShowEditModal(true);
+                                    }}
+                                    className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                                    title="Modifier"
+                                  >
+                                    <Edit size={18} />
+                                  </button>
+                                )}
+                                <a
+                                  href={doc.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Télécharger"
+                                >
+                                  <Download size={18} />
+                                </a>
+                                {canDelete && (
+                                  <button
+                                    onClick={() => handleDelete(doc.id)}
+                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       )}
-                      <p className="mt-2 text-xs text-gray-600 font-medium">
-                        PDF, DOC, XLS, PNG, JPG... (max 10MB)
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom du document *
-                </label>
-                <input
-                  type="text"
-                  value={uploadName}
-                  onChange={(e) => setUploadName(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                  placeholder="Ex: Rapport final.pdf"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description (optionnel)
-                </label>
-                <textarea
-                  value={uploadDescription}
-                  onChange={(e) => setUploadDescription(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
-                  rows={3}
-                  placeholder="Description du document..."
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleUpload}
-                  disabled={uploading || !uploadFile || !uploadName.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                >
-                  {uploading ? 'Upload en cours...' : 'Uploader'}
-                </button>
-                <button
-                  onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+              
+                      {/* Modal d'upload */}
+                      {showUploadModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                            <div className="flex items-center justify-between mb-4">
+                              <h3 className="text-lg font-bold text-gray-900">Ajouter un document</h3>
+                              <button
+                                onClick={() => setShowUploadModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                <X size={20} />
+                              </button>
+                            </div>
+              
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Fichier *
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="file"
+                                    id="file-upload"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      setUploadFile(file || null);
+                                      if (file && !uploadName) {
+                                        setUploadName(file.name);
+                                      }
+                                    }}
+                                    className="hidden"
+                                  />
+                                  <label
+                                    htmlFor="file-upload"
+                                    className="flex items-center justify-center w-full border-2 border-dashed border-gray-400 rounded-lg p-6 cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors bg-gray-50"
+                                  >
+                                    <div className="text-center">
+                                      <Upload className="mx-auto h-12 w-12 text-gray-500" />
+                                      <p className="mt-2 text-base font-medium text-gray-900">
+                                        {uploadFile ? (
+                                          <span className="text-blue-700">{uploadFile.name}</span>
+                                        ) : (
+                                          <>
+                                            <span className="text-blue-700">Cliquez pour choisir un fichier</span>
+                                          </>
+                                        )}
+                                      </p>
+                                      {!uploadFile && (
+                                        <p className="mt-1 text-sm text-gray-700">
+                                          ou glissez-déposez le fichier ici
+                                        </p>
+                                      )}
+                                      <p className="mt-2 text-xs text-gray-600 font-medium">
+                                        PDF, DOC, XLS, PNG, JPG... (max 10MB)
+                                      </p>
+                                    </div>
+                                  </label>
+                                </div>
+                              </div>
+              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Nom du document *
+                                </label>
+                                <input
+                                  type="text"
+                                  value={uploadName}
+                                  onChange={(e) => setUploadName(e.target.value)}
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                                  placeholder="Ex: Rapport final.pdf"
+                                />
+                              </div>
+              
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Description (optionnel)
+                                </label>
+                                <textarea
+                                  value={uploadDescription}
+                                  onChange={(e) => setUploadDescription(e.target.value)}
+                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none bg-white"
+                                  rows={3}
+                                  placeholder="Description du document..."
+                                />
+                              </div>
+              
+                              <div className="flex gap-3 pt-4">
+                                <button
+                                  onClick={handleUpload}
+                                  disabled={uploading || !uploadFile || !uploadName.trim()}
+                                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                                >
+                                  {uploading ? 'Upload en cours...' : 'Uploader'}
+                                </button>
+                                <button
+                                  onClick={() => setShowUploadModal(false)}
+                                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+              
+                      {selectedDocument && (
+                          <DocumentEditModal
+                              document={selectedDocument}
+                              isOpen={showEditModal}
+                              onClose={() => setShowEditModal(false)}
+                              onSuccess={() => {
+                                  loadDocuments();
+                                  setShowEditModal(false);
+                              }}
+                          />
+                      )}
+                  </div>
+                );
+              }

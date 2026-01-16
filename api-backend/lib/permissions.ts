@@ -204,7 +204,6 @@ export function mapDbRoleToUserRole(dbRole: string | null): UserRole {
     case 'ADMIN':
       return 'admin';
     case 'MANAGER':
-    case 'CHEF_DE_PROJET':
       return 'manager';
     case 'EMPLOYE':
       return 'user';

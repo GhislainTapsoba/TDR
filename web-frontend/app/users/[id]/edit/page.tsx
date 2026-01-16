@@ -11,6 +11,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { useToast } from "@/hooks/use-toast"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 export default function EditUserPage() {
   const router = useRouter()
@@ -26,6 +28,7 @@ export default function EditUserPage() {
     email: "",
     role: "employe",
     is_active: true,
+    password: "",
   })
 
   useEffect(() => {
@@ -40,6 +43,7 @@ export default function EditUserPage() {
         email: response.data.email,
         role: response.data.role,
         is_active: response.data.is_active ?? true,
+        password: "",
       })
     } catch (error) {
       toast({
@@ -61,11 +65,21 @@ export default function EditUserPage() {
     setSubmitting(true)
 
     try {
+      const payload: any = {
+        name: form.name,
+        email: form.email,
+        role: form.role,
+        is_active: form.is_active,
+      }
+      if (form.password) {
+        payload.password = form.password
+      }
+
       if (userId) {
-        await api.put(`/users/${userId}`, form)
+        await api.put(`/users/${userId}`, payload)
         toast({ title: "Utilisateur mis à jour" })
       } else {
-        await api.post("/users", form)
+        await api.post("/users", payload)
         toast({ title: "Utilisateur créé" })
       }
       router.push("/users")
@@ -84,15 +98,31 @@ export default function EditUserPage() {
 
   return (
     <MainLayout>
-      <Card className="max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>{userId ? "Modifier l'utilisateur" : "Créer un utilisateur"}</CardTitle>
-          <CardDescription>
-            {userId ? "Mettez à jour les informations de l'utilisateur" : "Remplissez le formulaire pour créer un nouvel utilisateur"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Link href="/users">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Retour aux utilisateurs
+            </Button>
+          </Link>
+          {userId && (
+            <Link href={`/users/${userId}/view`}>
+              <Button variant="outline" size="sm">
+                Voir l'utilisateur
+              </Button>
+            </Link>
+          )}
+        </div>
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>{userId ? "Modifier l'utilisateur" : "Créer un utilisateur"}</CardTitle>
+            <CardDescription>
+              {userId ? "Mettez à jour les informations de l'utilisateur" : "Remplissez le formulaire pour créer un nouvel utilisateur"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nom</Label>
               <Input
@@ -115,6 +145,17 @@ export default function EditUserPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="password">Nouveau mot de passe</Label>
+              <Input
+                id="password"
+                type="password"
+                value={form.password}
+                onChange={(e) => handleChange("password", e.target.value)}
+                placeholder="Laissez vide pour ne pas changer"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="role">Rôle</Label>
               <Select value={form.role} onValueChange={(val) => handleChange("role", val)}>
                 <SelectTrigger>
@@ -122,7 +163,7 @@ export default function EditUserPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrateur</SelectItem>
-                  <SelectItem value="chef_projet">Chef de projet</SelectItem>
+                  <SelectItem value="manager">Chef de projet</SelectItem>
                   <SelectItem value="employe">Employé</SelectItem>
                 </SelectContent>
               </Select>

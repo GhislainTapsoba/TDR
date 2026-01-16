@@ -10,7 +10,7 @@ interface User {
   id: string
   name: string
   email: string
-  role: "admin" | "chef_projet" | "employe"
+  role: "admin" | "manager" | "employe"
   is_active: boolean
   avatar?: string | null
 }

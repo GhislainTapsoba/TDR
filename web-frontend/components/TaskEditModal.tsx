@@ -25,6 +25,8 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
   });
   const [loading, setLoading] = useState(false);
 
+  const canDelete = hasPermission(user ? mapRole(user.role) : undefined, 'tasks', 'delete');
+
   useEffect(() => {
     // Mettre à jour le formulaire quand la tâche change
     setFormData({
@@ -35,6 +37,29 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
       due_date: task.due_date ? task.due_date.split('T')[0] : '',
     });
   }, [task]);
+
+  const handleDelete = async () => {
+    if (!canDelete) {
+      toast.error("Vous n'avez pas la permission de supprimer une tâche.");
+      return;
+    }
+
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible.')) {
+      setLoading(true);
+      const toastId = toast.loading('Suppression de la tâche en cours...');
+      try {
+        await tasksApi.delete(task.id);
+        toast.success('Tâche supprimée avec succès !', { id: toastId });
+        onSave(task); // To trigger a refresh
+        onClose();
+      } catch (error: any) {
+        const message = error.response?.data?.error || 'Erreur lors de la suppression de la tâche';
+        toast.error(message, { id: toastId });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,6 +204,16 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
 
           {/* Boutons */}
           <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+            {canDelete && (
+                <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="flex-1 px-6 py-3 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                    {loading ? 'Suppression...' : 'Supprimer'}
+                </button>
+            )}
             <button
               type="button"
               onClick={onClose}

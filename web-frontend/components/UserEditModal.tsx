@@ -46,17 +46,10 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
     const toastId = toast.loading("Modification de l'utilisateur en cours...");
 
     try {
-      // Le backend attend 'manager', 'admin', 'user' mais stocke 'PROJECT_MANAGER', 'ADMIN', 'EMPLOYEE'
-      const roleMapping: Record<string, string> = {
-        'ADMIN': 'admin',
-        'PROJECT_MANAGER': 'manager',
-        'EMPLOYEE': 'user',
-      };
-
       const updateData: any = {
         name: formData.name,
         email: formData.email,
-        role: roleMapping[formData.role] || 'user',
+        role: formData.role,
       };
 
       // N'envoyer le mot de passe que s'il a été modifié
@@ -163,9 +156,9 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
             >
-              <option value="EMPLOYEE">Employé</option>
-              <option value="PROJECT_MANAGER">Chef de Projet</option>
-              <option value="ADMIN">Administrateur</option>
+              <option value="employe">Employé</option>
+              <option value="manager">Chef de Projet</option>
+              <option value="admin">Administrateur</option>
             </select>
             <div className="mt-2 text-xs text-gray-600 space-y-1">
               <p>• <strong>Employé</strong> : Accès de base, peut gérer ses tâches</p>
