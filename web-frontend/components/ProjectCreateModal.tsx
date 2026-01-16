@@ -35,8 +35,8 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
 
   const loadUsers = async () => {
     try {
-      // Charger uniquement les chefs de projet (PROJECT_MANAGER)
-      const { data } = await usersApi.getAll({ role: 'PROJECT_MANAGER' });
+      // Charger uniquement les managers
+      const { data } = await usersApi.getAll({ role: 'manager' });
       setUsers(data);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -200,7 +200,7 @@ export default function ProjectCreateModal({ isOpen, onClose, onSuccess }: Proje
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <UserIcon size={18} />
-              Chef de Projet
+              Manager
             </label>
             <select
               value={formData.manager_id}
