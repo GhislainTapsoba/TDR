@@ -15,6 +15,8 @@ import { ArrowLeft, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
+import { useAuth } from "@/contexts/auth-context" // Import useAuth
+import { hasPermission } from "@/lib/permissions" // Import hasPermission
 
 interface User {
   id: number
@@ -31,11 +33,29 @@ interface Stage {
 
 export default function NewProjectPage() {
   const { data: session } = useSession();
+  const { user: authUser } = useAuth(); // Use useAuth for permissions
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [usersLoaded, setUsersLoaded] = useState(false)
+
+  // Permission check for page access
+  if (session.status === 'authenticated' && !hasPermission(authUser?.permissions || [], 'projects', 'create')) {
+    return (
+      <MainLayout>
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
+          <p className="text-muted-foreground mb-4">
+            Vous n'avez pas la permission de créer un projet.
+          </p>
+          <Link href="/dashboard">
+            <Button>Retour au tableau de bord</Button>
+          </Link>
+        </div>
+      </MainLayout>
+    );
+  }
 
   const [formData, setFormData] = useState({
     title: "",
