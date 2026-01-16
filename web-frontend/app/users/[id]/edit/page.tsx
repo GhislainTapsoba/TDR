@@ -114,7 +114,7 @@ export default function EditUserPage() {
             </Link>
           )} */}
         </div>
-        <Card className="max-w-md mx-auto">
+        {/* <Card className="max-w-md mx-auto">
           <CardHeader>
             <CardTitle>{userId ? "Modifier l'utilisateur" : "Créer un utilisateur"}</CardTitle>
             <CardDescription>
@@ -182,7 +182,7 @@ export default function EditUserPage() {
             </Button>
           </form>
         </CardContent>
-      </Card>
+      </Card> */}
     </MainLayout>
   )
 }
