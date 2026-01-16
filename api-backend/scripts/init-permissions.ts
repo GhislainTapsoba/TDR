@@ -11,4 +11,13 @@ async function main() {
   }
 }
 
-main();
+main()
+  .then(() => {
+    console.log("Permissions initialized successfully!");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("Error initializing permissions:", err);
+    process.exit(1);
+  });
+
