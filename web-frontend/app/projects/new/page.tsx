@@ -41,7 +41,7 @@ export default function NewProjectPage() {
   const [usersLoaded, setUsersLoaded] = useState(false)
 
   // Permission check for page access
-  if (session.status === 'authenticated' && !hasPermission(authUser?.permissions || [], 'projects', 'create')) {
+  if (session && session.status === 'authenticated' && !hasPermission(authUser?.permissions || [], 'projects', 'create')) {
     return (
       <MainLayout>
         <div className="text-center py-12">
