@@ -29,8 +29,8 @@ import { cn } from "@/lib/utils"
 const projectSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
   description: z.string().optional(),
-  start_date: z.date(),
-  end_date: z.date(),
+  start_date: z.date({ required_error: "La date de début est requise." }),
+  end_date: z.date({ required_error: "La date de fin est requise." }),
   manager_id: z.string().min(1, "Le manager est requis"),
   team_members: z.array(z.number()).optional(),
   stages: z.array(z.object({
