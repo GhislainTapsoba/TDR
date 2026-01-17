@@ -193,7 +193,7 @@ export default function NewProjectPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {(users || [])
-                        .filter((u) => u.role.toUpperCase() === \"MANAGER\" || u.role.toUpperCase() === \"ADMIN\")
+                        .filter((u) => u.role.toUpperCase() === "MANAGER" || u.role.toUpperCase() === "ADMIN")
                         .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
                             {user.name} ({user.email})
