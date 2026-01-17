@@ -16,6 +16,12 @@ const projectSchema = z.object({
     start_date: z.string(),
     end_date: z.string(),
     manager_id: z.string().optional(),
+    team_members: z.array(z.number()).optional(),
+    stages: z.array(z.object({
+        name: z.string().min(1, "Le nom de l'étape est requis"),
+        description: z.string().optional(),
+        estimated_duration: z.number().min(1, "La durée estimée doit être d'au moins 1 jour"),
+    })).optional(),
 })
 
 // GET /api/projects - Récupérer tous les projets accessibles
@@ -92,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, start_date, end_date, manager_id } = projectSchema.parse(body);
+    const { title, description, start_date, end_date, manager_id, team_members, stages } = projectSchema.parse(body);
 
     // Validation du manager : doit avoir le rôle chef_de_projet
     if (manager_id) {
@@ -125,6 +131,24 @@ export async function POST(request: NextRequest) {
     ]);
 
     const newProject = rows[0];
+
+    // Insert team members if provided
+    if (team_members && team_members.length > 0) {
+      const memberInserts = team_members.map(memberId => `(${newProject.id}, ${memberId})`).join(', ');
+      await db.query(`INSERT INTO project_members (project_id, user_id) VALUES ${memberInserts}`);
+    }
+
+    // Insert stages if provided
+    if (stages && stages.length > 0) {
+      for (let i = 0; i < stages.length; i++) {
+        const stage = stages[i];
+        await db.query(
+          `INSERT INTO stages (name, description, "order", duration, project_id, created_by_id)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [stage.name, stage.description || null, i, stage.estimated_duration, newProject.id, userId]
+        );
+      }
+    }
 
     // Log de l'activité
     await db.query(
