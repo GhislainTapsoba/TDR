@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { projectsApi } from "@/lib/api"
+import { api, projectsApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -79,12 +79,14 @@ export function ProjectCreateModal({ isOpen, onClose, onProjectCreated }: Projec
   const loadUsers = async () => {
     if (usersLoaded) return
     try {
-      const response = await fetch('/api/users')
-      const users = await response.json()
+      const response = await api.get('/users')
+      const users = response.data as User[]
       setUsers(users || [])
       setUsersLoaded(true)
     } catch (error) {
       console.error("Erreur lors du chargement des utilisateurs:", error)
+      setUsers([])
+      setUsersLoaded(true)
     }
   }
 
