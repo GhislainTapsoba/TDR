@@ -75,7 +75,7 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
 
   // Permission check for page access
-  if (sessionStatus === 'authenticated' && !hasPermission(authUser?.permissions || [], 'tasks', 'read')) {
+  if (sessionStatus === 'authenticated' && !hasPermission(authUser?.permissions || [], 'tasks.read')) {
     return (
       <MainLayout>
         <div className="text-center py-12">

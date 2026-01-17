@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
+import { useMemo, useState, useEffect } from "react"
+import { canCreateProject } from "@/lib/permissions"
 import { ProjectCreateModal } from "@/components/ProjectCreateModal"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Badge } from "@/components/ui/badge"
@@ -54,7 +56,9 @@ const statusColors = {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
-  const user = session?.user;
+  const user = session?.user
+  const userPermissions = useMemo(() => user?.permissions || [], [user])
+  const canCreate = useMemo(() => canCreateProject(userPermissions), [userPermissions])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -103,7 +107,7 @@ export default function ProjectsPage() {
               <p className="text-muted-foreground">Gérez et suivez tous vos projets</p>
             </div>
             {/* @ts-ignore */}
-            {(user?.role === "admin" || user?.role === "manager") && (
+            {canCreate && (
               <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsModalOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nouveau projet
@@ -209,7 +213,7 @@ export default function ProjectsPage() {
                   : "Commencez par créer votre premier projet."}
               </p>
               {/* @ts-ignore */}
-              {(user?.role === "admin" || user?.role === "manager") && !searchTerm && statusFilter === "all" && (
+              {canCreate && !searchTerm && statusFilter === "all" && (
                 <Button onClick={() => setIsModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Créer un projet

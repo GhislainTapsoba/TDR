@@ -50,10 +50,24 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
+          // Fetch role name and permissions
+          const roleQuery = `
+            SELECT r.name as role_name, p.name as permission_name
+            FROM roles r
+            LEFT JOIN role_permissions rp ON r.id = rp.role_id
+            LEFT JOIN permissions p ON rp.permission_id = p.id
+            WHERE r.id = $1
+          `;
+          const { rows: roleRows } = await db.query(roleQuery, [user.role_id]);
+          
+          const role = roleRows[0]?.role_name || 'user';
+          const permissions = roleRows.map(r => r.permission_name).filter(p => p);
+
+
           console.log('[Auth authorize] Login successful. Generating custom token.');
           
           const customToken = jwt.sign(
-            { id: user.id, email: user.email, role: user.role, sub: user.id },
+            { id: user.id, email: user.email, role, permissions, sub: user.id },
             process.env.NEXTAUTH_SECRET!,
             { expiresIn: '30d' }
           );
@@ -62,7 +76,8 @@ export const authOptions: NextAuthOptions = {
             id: user.id.toString(),
             email: user.email,
             name: user.name,
-            role: user.role,
+            role,
+            permissions,
             customToken: customToken,
           };
         } catch (e) {
@@ -91,6 +106,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.permissions = user.permissions;
         if (user.customToken) {
           token.customToken = user.customToken
         }
@@ -101,6 +117,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as string;
+        session.user.permissions = token.permissions as string[];
         session.customToken = token.customToken as string;
       }
       return session;

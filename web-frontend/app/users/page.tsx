@@ -42,10 +42,10 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
 
-  const canReadUsers = hasPermission(authUser?.permissions || [], 'users', 'read');
-  const canCreateUsers = hasPermission(authUser?.permissions || [], 'users', 'create');
-  const canUpdateUsers = hasPermission(authUser?.permissions || [], 'users', 'update');
-  const canDeleteUsers = hasPermission(authUser?.permissions || [], 'users', 'delete');
+  const canReadUsers = hasPermission(authUser?.permissions || [], 'users.read');
+  const canCreateUsers = hasPermission(authUser?.permissions || [], 'users.create');
+  const canUpdateUsers = hasPermission(authUser?.permissions || [], 'users.update');
+  const canDeleteUsers = hasPermission(authUser?.permissions || [], 'users.delete');
 
 
   useEffect(() => {

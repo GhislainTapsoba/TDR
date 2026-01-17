@@ -11,6 +11,7 @@ interface User {
   name: string
   email: string
   role: "admin" | "manager" | "employe"
+  permissions: string[]
   is_active: boolean
   avatar?: string | null
 }
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: session.user.name as string,
         email: session.user.email as string,
         role: session.user.role as User['role'],
+        permissions: session.user.permissions as string[],
         is_active: true, // Assume active if logged in
         avatar: null,
       }
