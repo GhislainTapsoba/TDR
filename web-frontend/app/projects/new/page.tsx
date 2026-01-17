@@ -37,12 +37,15 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [usersLoaded, setUsersLoaded] = useState(false)
+  const [stages, setStages] = useState<Stage[]>([])
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     start_date: "",
     end_date: "",
+    manager_id: "",
+    team_members: [] as number[],
   })
 
   // Permission check - must be after all hooks
