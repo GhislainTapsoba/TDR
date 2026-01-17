@@ -12,9 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { projectsApi } from "@/lib/api"
 import { fr } from "date-fns/locale"
 import { AlertTriangle, BarChart3, Calendar, Plus, Search, Users } from "lucide-react"
-import { useSession } from "next-auth/react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
 import { format } from "date-fns"
 
 interface Project {
