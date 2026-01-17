@@ -84,8 +84,8 @@ const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.role = token.role as string;
+        session.user.permissions = token.permissions as string[];
         (session as any).accessToken = token.accessToken;
-        (session as any).permissions = token.permissions; // ✅ Permissions disponibles côté frontend
       }
       return session;
     },

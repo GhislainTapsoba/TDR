@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/api"
@@ -15,8 +15,7 @@ import { ArrowLeft, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
-import { useAuth } from "@/contexts/auth-context" // Import useAuth
-import { hasPermission } from "@/lib/permissions" // Import hasPermission
+import { hasPermission } from "@/lib/permissions"
 
 interface User {
   id: number
@@ -33,29 +32,11 @@ interface Stage {
 
 export default function NewProjectPage() {
   const { data: session } = useSession();
-  const { user: authUser } = useAuth(); // Use useAuth for permissions
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [usersLoaded, setUsersLoaded] = useState(false)
-
-  // Permission check for page access
-  if (session && session.status === 'authenticated' && !hasPermission(authUser?.permissions || [], 'projects', 'create')) {
-    return (
-      <MainLayout>
-        <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
-          <p className="text-muted-foreground mb-4">
-            Vous n'avez pas la permission de créer un projet.
-          </p>
-          <Link href="/dashboard">
-            <Button>Retour au tableau de bord</Button>
-          </Link>
-        </div>
-      </MainLayout>
-    );
-  }
 
   const [formData, setFormData] = useState({
     title: "",
@@ -68,10 +49,29 @@ export default function NewProjectPage() {
 
   const [stages, setStages] = useState<Stage[]>([])
 
+  // Permission check - must be after all hooks
+  const hasCreatePermission = hasPermission(session?.user?.permissions || [], 'projects.create')
+
+  if (session && !hasCreatePermission) {
+    return (
+      <MainLayout>
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
+          <p className="text-muted-foreground mb-4">
+            Vous n&apos;avez pas la permission de créer un projet.
+          </p>
+          <Link href="/dashboard">
+            <Button>Retour au tableau de bord</Button>
+          </Link>
+        </div>
+      </MainLayout>
+    );
+  }
+
   const loadUsers = async () => {
     if (usersLoaded) return
     try {
-      const response = await api.getUsers();
+      const response = await api.get('/users');
       const users = response.data as User[];
       setUsers(users || []);
       setUsersLoaded(true)
@@ -91,14 +91,14 @@ export default function NewProjectPage() {
             stages: stages.length > 0 ? stages : undefined,
         }
 
-        const response = await api.createProject(payload) as { project: { id: number } };
+        const response = await api.post('/projects', payload);
 
         toast({
             title: "Projet créé",
             description: "Le projet a été créé avec succès.",
         })
 
-        const projectId = response.project?.id;
+        const projectId = response.data?.project?.id;
 
         if (projectId) {
             router.push(`/projects/${projectId}`)
@@ -133,7 +133,6 @@ export default function NewProjectPage() {
 
   const updateStage = (index: number, field: keyof Stage, value: any) => {
     const updatedStages = [...stages]
-    // @ts-ignore
     updatedStages[index][field] = value;
     setStages(updatedStages)
   }
@@ -194,7 +193,7 @@ export default function NewProjectPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {(users || [])
-                        .filter((u) => u.role.toUpperCase() === "MANAGER")
+                        .filter((u) => u.role.toUpperCase() === \"MANAGER\" || u.role.toUpperCase() === \"ADMIN\")
                         .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
                             {user.name} ({user.email})
@@ -241,7 +240,7 @@ export default function NewProjectPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Membres de l'équipe</Label>
+                <Label>Membres de l&apos;équipe</Label>
                 <div className="grid gap-2 max-h-40 overflow-y-auto">
                   {(users || [])
                     .filter((u) => u.role.toUpperCase() === "EMPLOYE")
@@ -288,7 +287,7 @@ export default function NewProjectPage() {
                   </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Nom de l'étape</Label>
+                      <Label>Nom de l&apos;étape</Label>
                       <Input
                         value={stage.name}
                         onChange={(e) => updateStage(index, "name", e.target.value)}
@@ -310,7 +309,7 @@ export default function NewProjectPage() {
                     <Textarea
                       value={stage.description}
                       onChange={(e) => updateStage(index, "description", e.target.value)}
-                      placeholder="Description de l'étape"
+                      placeholder="Description de l&apos;étape"
                       rows={2}
                     />
                   </div>

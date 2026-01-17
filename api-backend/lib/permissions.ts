@@ -105,13 +105,7 @@ export async function hasPermission(
 ): Promise<boolean> {
   const permissions = await getRolePermissionsFromDB(userRole);
 
-  // TEMPORARY DEBUG LOG
-  console.log({
-    role: userRole,
-    resource,
-    action,
-    permissions
-  });
+
 
   // Check for wildcard permission (admin)
   const hasWildcard = permissions.some(
@@ -204,8 +198,6 @@ export async function getRolePermissions(userRole: UserRole): Promise<Permission
  * vers le rôle applicatif du système de permissions
  */
 export function mapDbRoleToUserRole(dbRole: string | null): UserRole {
-  // TEMPORARY DEBUG LOG
-  console.log('DB ROLE:', dbRole);
   const role = dbRole?.toUpperCase();
   switch (role) {
     case 'ADMIN':
