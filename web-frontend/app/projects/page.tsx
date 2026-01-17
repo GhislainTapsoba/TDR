@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useSession } from "next-auth/react"
-import { useMemo, useState, useEffect } from "react"
 import { canCreateProject } from "@/lib/permissions"
 import { ProjectCreateModal } from "@/components/ProjectCreateModal"
 import { MainLayout } from "@/components/layout/main-layout"
