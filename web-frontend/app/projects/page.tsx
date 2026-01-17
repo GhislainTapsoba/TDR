@@ -57,7 +57,7 @@ export default function ProjectsPage() {
   const { data: session } = useSession();
   const user = session?.user
   const userPermissions = useMemo(() => user?.permissions || [], [user])
-  const canCreate = useMemo(() => canCreateProject(userPermissions), [userPermissions])
+  const canCreate = useMemo(() => user && canCreateProject(userPermissions), [userPermissions, user])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
