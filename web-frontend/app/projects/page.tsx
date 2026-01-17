@@ -2,17 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { projectsApi } from "@/lib/api"
+import { ProjectCreateModal } from "@/components/ProjectCreateModal"
 import { MainLayout } from "@/components/layout/main-layout"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Calendar, Users, BarChart3, AlertTriangle } from "lucide-react"
-import Link from "next/link"
-import { format } from "date-fns"
+import { projectsApi } from "@/lib/api"
 import { fr } from "date-fns/locale"
+import { AlertTriangle, BarChart3, Calendar, Plus, Search, Users } from "lucide-react"
+import { useSession } from "next-auth/react"
+import Link from "next/link"
+import { useState, useEffect } from "react"
+import { format } from "date-fns"
 
 interface Project {
   id: string
@@ -58,6 +61,12 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleProjectCreated = () => {
+    setIsModalOpen(false)
+    fetchProjects()
+  }
 
   useEffect(() => {
     fetchProjects()
@@ -97,14 +106,18 @@ export default function ProjectsPage() {
             </div>
             {/* @ts-ignore */}
             {(user?.role === "admin" || user?.role === "manager") && (
-              <Link href="/projects/new">
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nouveau projet
-                </Button>
-              </Link>
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nouveau projet
+              </Button>
             )}
           </div>
+
+          <ProjectCreateModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onProjectCreated={handleProjectCreated}
+          />
 
           <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-sm">
@@ -199,12 +212,10 @@ export default function ProjectsPage() {
               </p>
               {/* @ts-ignore */}
               {(user?.role === "admin" || user?.role === "manager") && !searchTerm && statusFilter === "all" && (
-                <Link href="/projects/new">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Créer un projet
-                  </Button>
-                </Link>
+                <Button onClick={() => setIsModalOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer un projet
+                </Button>
               )}
             </div>
           )}

@@ -3,11 +3,20 @@ import { verifyAuth } from '@/lib/verifyAuth';
 import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
+import { z } from "zod";
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
 }
+
+const projectSchema = z.object({
+    title: z.string().min(1, "Le titre est requis"),
+    description: z.string().optional(),
+    start_date: z.string(),
+    end_date: z.string(),
+    manager_id: z.string().optional(),
+})
 
 // GET /api/projects - Récupérer tous les projets accessibles
 export async function GET(request: NextRequest) {
@@ -83,16 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, start_date, due_date, manager_id } = body;
-
-    // Validation
-    if (!title) {
-      return corsResponse(
-        { error: 'Le titre est requis' },
-        request,
-        { status: 400 }
-      );
-    }
+    const { title, description, start_date, end_date, manager_id } = projectSchema.parse(body);
 
     // Validation du manager : doit avoir le rôle chef_de_projet
     if (manager_id) {
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     const insertQuery = `
-      INSERT INTO projects (title, description, start_date, due_date, status, manager_id, created_by_id)
+      INSERT INTO projects (title, description, start_date, end_date, status, manager_id, created_by_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
@@ -118,8 +118,8 @@ export async function POST(request: NextRequest) {
       title,
       description || null,
       start_date || null,
-      due_date || null,
-      'PLANNING',
+      end_date || null,
+      'planifie',
       manager_id || null,
       userId
     ]);
