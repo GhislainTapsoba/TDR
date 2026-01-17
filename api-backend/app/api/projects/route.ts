@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
     }
 
     const insertQuery = `
-      INSERT INTO projects (title, description, start_date, end_date, status, manager_id, created_by_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO projects (title, description, start_date, end_date, due_date, status, manager_id, created_by_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
     const { rows } = await db.query(insertQuery, [
@@ -128,6 +128,7 @@ export async function POST(request: NextRequest) {
       description || null,
       start_date || null,
       end_date || null,
+      end_date || null, // due_date = end_date
       'planifie',
       manager_id || null,
       userId

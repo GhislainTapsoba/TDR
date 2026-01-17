@@ -1,31 +1,29 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { canCreateProject } from "@/lib/permissions"
-import { ProjectCreateModal } from "@/components/ProjectCreateModal"
+import { api } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { projectsApi } from "@/lib/api"
-import { fr } from "date-fns/locale"
-import { AlertTriangle, BarChart3, Calendar, Plus, Search, Users } from "lucide-react"
+import { Plus, Search, Calendar, Users, BarChart3, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
+import { fr } from "date-fns/locale"
 
 interface Project {
-  id: string
+  id: number
   title: string
   description: string
   start_date: string
   end_date: string
   status: "planifie" | "en_cours" | "en_pause" | "termine" | "annule"
-  manager_id: string
-  manager: {
-    id: string
+  chef_projet_id: number
+  chef_projet: {
+    id: number
     name: string
     email: string
   } | null
@@ -55,19 +53,11 @@ const statusColors = {
 
 export default function ProjectsPage() {
   const { data: session } = useSession();
-  const user = session?.user
-  const userPermissions = useMemo(() => user?.permissions || [], [user])
-  const canCreate = useMemo(() => user && canCreateProject(userPermissions), [userPermissions, user])
+  const user = session?.user;
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  const handleProjectCreated = () => {
-    setIsModalOpen(false)
-    fetchProjects()
-  }
 
   useEffect(() => {
     fetchProjects()
@@ -75,8 +65,8 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await projectsApi.getAll();
-      setProjects(response.data as any || []);
+      const response = await api.getProjects() as { projects: Project[] };
+      setProjects(response.projects || []);
     } catch (error) {
       console.error("Erreur lors du chargement des projets:", error)
     } finally {
@@ -86,8 +76,8 @@ export default function ProjectsPage() {
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
-      (project.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (project.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || project.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -106,19 +96,15 @@ export default function ProjectsPage() {
               <p className="text-muted-foreground">Gérez et suivez tous vos projets</p>
             </div>
             {/* @ts-ignore */}
-            {canCreate && (
-              <Button className="bg-primary hover:bg-primary/90" onClick={() => setIsModalOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nouveau projet
-              </Button>
+            {(user?.role === "admin" || user?.role === "chef_projet") && (
+              <Link href="/projects/new">
+                <Button className="bg-primary hover:bg-primary/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouveau projet
+                </Button>
+              </Link>
             )}
           </div>
-
-          <ProjectCreateModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onProjectCreated={handleProjectCreated}
-          />
 
           <div className="flex gap-4 items-center">
             <div className="relative flex-1 max-w-sm">
@@ -172,7 +158,7 @@ export default function ProjectsPage() {
 
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Users className="h-4 w-4" />
-                      <span>Chef: {project.manager?.name || "Non assigné"}</span>
+                      <span>Chef: {project.chef_projet?.name || "Non assigné"}</span>
                     </div>
 
                     {project.stats && (
@@ -212,11 +198,13 @@ export default function ProjectsPage() {
                   : "Commencez par créer votre premier projet."}
               </p>
               {/* @ts-ignore */}
-              {canCreate && !searchTerm && statusFilter === "all" && (
-                <Button onClick={() => setIsModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer un projet
-                </Button>
+              {(user?.role === "admin" || user?.role === "chef_projet") && !searchTerm && statusFilter === "all" && (
+                <Link href="/projects/new">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Créer un projet
+                  </Button>
+                </Link>
               )}
             </div>
           )}
