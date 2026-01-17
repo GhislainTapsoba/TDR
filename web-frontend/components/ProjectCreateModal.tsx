@@ -91,6 +91,8 @@ export function ProjectCreateModal({ isOpen, onClose, onProjectCreated }: Projec
   }
 
   const onSubmit = async (values: z.infer<typeof projectSchema>) => {
+    console.log("onSubmit called with values:", values)
+    console.log("stages state:", stages)
     setLoading(true)
     try {
       const payload = {
@@ -100,12 +102,15 @@ export function ProjectCreateModal({ isOpen, onClose, onProjectCreated }: Projec
         team_members: values.team_members || [],
         stages: stages.length > 0 ? stages : undefined,
       }
-      await projectsApi.create(payload)
+      console.log("Payload to send:", payload)
+      const response = await projectsApi.create(payload)
+      console.log("API response:", response)
       toast({
         title: "Projet créé",
         description: "Le nouveau projet a été créé avec succès.",
       })
       onProjectCreated()
+      onClose() // Close modal after success
     } catch (error) {
       console.error("Erreur lors de la création du projet:", error)
       toast({
