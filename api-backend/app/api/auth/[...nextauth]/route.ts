@@ -10,7 +10,7 @@ const authOptions: AuthOptions = {
         email: {},
         password: {},
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -37,6 +37,7 @@ const authOptions: AuthOptions = {
           email: data.user.email,
           name: data.user.name || '',
           role: data.user.role || 'user',
+          permissions: data.user.permissions || [],
           accessToken: data.token,
         };
       },
@@ -54,6 +55,7 @@ const authOptions: AuthOptions = {
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
+        token.permissions = user.permissions;
         token.accessToken = (user as any).accessToken;
       }
       return token;
@@ -64,6 +66,7 @@ const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.role = token.role as string;
+        session.user.permissions = token.permissions as string[];
         (session as any).accessToken = token.accessToken;
       }
       return session;
