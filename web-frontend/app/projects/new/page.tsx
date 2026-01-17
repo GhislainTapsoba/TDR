@@ -43,11 +43,7 @@ export default function NewProjectPage() {
     description: "",
     start_date: "",
     end_date: "",
-    manager_id: "",
-    team_members: [] as number[],
   })
-
-  const [stages, setStages] = useState<Stage[]>([])
 
   // Permission check - must be after all hooks
   const hasCreatePermission = hasPermission(session?.user?.permissions || [], 'projects.create')
