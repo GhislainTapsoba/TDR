@@ -44,6 +44,7 @@ export default function NewProjectPage() {
     description: "",
     start_date: "",
     end_date: "",
+    due_date: "",
     manager_id: "",
     team_members: [] as number[],
   })
