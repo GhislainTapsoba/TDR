@@ -11,6 +11,7 @@ declare module 'next-auth' {
       permissions: string[];
     };
     customToken?: string;
+    accessToken?: string;
   }
 
   interface User {
@@ -20,6 +21,7 @@ declare module 'next-auth' {
     role: string;
     permissions: string[];
     customToken?: string;
+    accessToken?: string;
   }
 }
 
@@ -29,6 +31,7 @@ declare module 'next-auth/jwt' {
     id?: string;
     permissions?: string[];
     customToken?: string;
+    accessToken?: string;
   }
 }
 

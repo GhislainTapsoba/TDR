@@ -32,35 +32,21 @@ const authOptions: AuthOptions = {
           return null;
         }
 
-        return {
-          id: String(data.user.id),
-          email: data.user.email,
-          name: data.user.name || '',
-          role: data.user.role || 'user',
-          permissions: data.user.permissions || [],
-          accessToken: data.token,
-        };
+        return data.user;
       },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.permissions = user.permissions;
-        token.accessToken = user.accessToken;
+        const customUser = user as any;
+        token.id = customUser.id;
+        token.role = customUser.role;
+        token.permissions = customUser.permissions;
+        token.accessToken = customUser.token;
+        token.customToken = customUser.token;
       }
       return token;
-    },
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.permissions = token.permissions as string[];
-        session.accessToken = token.accessToken as string;
-      }
-      return session;
     },
   },
   session: { strategy: "jwt" },

@@ -19,7 +19,8 @@ declare module 'next-auth' {
         name: string;
         role: string;
         permissions: string[];
-        token?: string;
+        accessToken?: string;
+        customToken?: string;
     }
 }
 

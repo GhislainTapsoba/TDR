@@ -30,7 +30,8 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "scripts/**/*.ts",               // <-- inclure les scripts
-    "lib/**/*.ts"                    // <-- inclure le dossier lib pour les imports
+    "lib/**/*.ts",                    // <-- inclure le dossier lib pour les imports
+    "types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
