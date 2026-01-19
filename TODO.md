@@ -1,5 +1,8 @@
-- [x] Add validation for stage_id in POST /api/tasks to check if stage exists and belongs to the project
-- [x] Add validation for assignee_ids in POST /api/tasks to check if all assigned users exist
-- [x] Fix the query for project details in POST /api/tasks to select title instead of name
-- [x] Add filter in frontend to prevent mapping over undefined users
-- [x] Test the fix by attempting to create a task (user will test)
+# Fix React Error #300 in Tasks Page
+
+## Steps to Complete
+- [x] Import useCallback and useMemo from React in web-frontend/app/tasks/page.tsx
+- [x] Move isOverdue function outside the component
+- [x] Memoize updateTaskStatus with useCallback
+- [x] Memoize filteredTasks with useMemo
+- [x] Test the changes in dev mode

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { tasksApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
@@ -63,6 +63,10 @@ const priorityColors = {
   high: "bg-red-500/10 text-red-400 border-red-500/20",
 }
 
+const isOverdue = (task: Task) => {
+  return task.due_date && new Date(task.due_date) < new Date() && task.status !== "termine"
+}
+
 export default function TasksPage() {
   const { data: session, status: sessionStatus } = useSession()
   const user = session?.user;
@@ -73,23 +77,6 @@ export default function TasksPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
-
-  // Permission check for page access
-  if (sessionStatus === 'authenticated' && !hasPermission(authUser?.permissions || [], 'tasks.read')) {
-    return (
-      <MainLayout>
-        <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
-          <p className="text-muted-foreground mb-4">
-            Vous n'avez pas la permission de voir cette page.
-          </p>
-          <Link href="/dashboard">
-            <Button>Retour au tableau de bord</Button>
-          </Link>
-        </div>
-      </MainLayout>
-    );
-  }
 
   useEffect(() => {
     fetchTasks()
@@ -108,29 +95,44 @@ export default function TasksPage() {
     }
   }
 
-  const updateTaskStatus = async (taskId: number, newStatus: string) => {
+  const updateTaskStatus = useCallback(async (taskId: number, newStatus: string) => {
     try {
       await tasksApi.update(taskId.toString(), { status: newStatus });
       setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus as any } : task)))
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error)
     }
-  }
+  }, [tasks])
 
-  const filteredTasks = tasks
-    .filter(Boolean) // Ensure task is not null or undefined
-    .filter((task) => {
-    const matchesSearch =
-      (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (task.project.title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || task.status === statusFilter
-    const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter
-    return matchesSearch && matchesStatus && matchesPriority
-  })
+  const filteredTasks = useMemo(() => {
+    return tasks
+      .filter(Boolean) // Ensure task is not null or undefined
+      .filter((task) => {
+      const matchesSearch =
+        (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (task.project.title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+      const matchesStatus = statusFilter === "all" || task.status === statusFilter
+      const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter
+      return matchesSearch && matchesStatus && matchesPriority
+    })
+  }, [tasks, searchTerm, statusFilter, priorityFilter])
 
-  const isOverdue = (task: Task) => {
-    return task.due_date && new Date(task.due_date) < new Date() && task.status !== "termine"
+  // Permission check for page access
+  if (sessionStatus === 'authenticated' && !hasPermission(authUser?.permissions || [], 'tasks.read')) {
+    return (
+      <MainLayout>
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
+          <p className="text-muted-foreground mb-4">
+            Vous n'avez pas la permission de voir cette page.
+          </p>
+          <Link href="/dashboard">
+            <Button>Retour au tableau de bord</Button>
+          </Link>
+        </div>
+      </MainLayout>
+    );
   }
 
   if (loading || sessionStatus === 'loading') {
