@@ -233,9 +233,11 @@ export default function TasksPage() {
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <span>Projet:</span>
-                              <Link href={`/projects/${task.project.id}`} className="text-primary hover:underline">
-                                {task.project.title}
-                              </Link>
+                              {task.project && ( // Added conditional rendering for task.project
+                                <Link href={`/projects/${task.project.id}`} className="text-primary hover:underline">
+                                  {task.project.title}
+                                </Link>
+                              )}
                             </div>
                             {task.stage && (
                               <div className="flex items-center gap-1">
