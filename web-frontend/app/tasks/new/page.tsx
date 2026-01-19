@@ -267,7 +267,8 @@ export default function NewTaskPage() {
                       <SelectValue placeholder="Sélectionner un projet" />
                     </SelectTrigger>
                     <SelectContent>
-                      {projects.map((project) => (
+                      {Array.isArray(projects) &&
+                        projects.filter(Boolean).map((project) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
                           {project.title}
                         </SelectItem>
@@ -297,7 +298,8 @@ export default function NewTaskPage() {
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {stages.map((stage) => (
+                      {Array.isArray(stages) &&
+                        stages.filter(Boolean).map((stage) => (
                         <SelectItem key={stage.id} value={stage.id.toString()}>
                           {stage.name}
                         </SelectItem>
@@ -353,7 +355,8 @@ export default function NewTaskPage() {
               <div className="space-y-2">
                 <Label>Assigner à</Label>
                 <div className="border rounded-md p-2 h-40 overflow-y-auto">
-                  {users
+                  {Array.isArray(users) && users
+                    .filter(Boolean) // Added filter(Boolean) here
                     .filter((u) => u.role === "employe" || u.role === "manager")
                     .map((user) => (
                       <div key={user.id} className="flex items-center space-x-2 p-1">

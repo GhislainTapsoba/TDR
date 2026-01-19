@@ -118,7 +118,7 @@ function TaskColumn({ title, status, tasks, taskIds }: { title: string; status: 
       </div>
       <SortableContext id={status} items={taskIds} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="space-y-3 min-h-[200px] bg-muted/20 p-2 rounded-lg">
-          {tasks.map(task => <TaskCard key={task.id} task={task} />)}
+          {Array.isArray(tasks) && tasks.filter(Boolean).map(task => <TaskCard key={task.id} task={task} />)}
           {tasks.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
@@ -165,7 +165,7 @@ export default function MyTasksPage() {
   const updateTaskStatus = async (taskId: number, newStatus: string) => {
     // Optimistic update
     const oldTasks = tasks;
-    setTasks(prevTasks => prevTasks.map(task =>
+    setTasks(prevTasks => prevTasks.filter(Boolean).map(task =>
       task.id === taskId ? { ...task, status: newStatus as any } : task
     ));
     try {
@@ -209,9 +209,9 @@ export default function MyTasksPage() {
   }
   
   const taskIdsByStatus = useMemo(() => ({
-    a_faire: tasksByStatus.a_faire.map(t => t.id),
-    en_cours: tasksByStatus.en_cours.map(t => t.id),
-    termine: tasksByStatus.termine.map(t => t.id),
+    a_faire: tasksByStatus.a_faire.filter(Boolean).map(t => t.id),
+    en_cours: tasksByStatus.en_cours.filter(Boolean).map(t => t.id),
+    termine: tasksByStatus.termine.filter(Boolean).map(t => t.id),
   }), [tasksByStatus]);
 
 

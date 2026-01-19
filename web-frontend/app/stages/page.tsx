@@ -140,7 +140,8 @@ export default function StagesPage() {
           </div>
 
           <div className="grid gap-4">
-            {filteredStages.map((stage) => (
+            {Array.isArray(filteredStages) &&
+              filteredStages.filter(Boolean).map((stage) => (
               <Link key={stage.id} href={`/stages/${stage.id}/view`}>
                 <Card
                   className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"

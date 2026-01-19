@@ -153,7 +153,7 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
             >
               <option value="">Sélectionner un projet</option>
-              {projects.map((project) => (
+              {Array.isArray(projects) && projects.filter(Boolean).map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.title}
                 </option>

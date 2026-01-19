@@ -216,7 +216,7 @@ export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
             >
               <option value="">Sélectionner un manager</option>
-              {users.map((user) => (
+              {Array.isArray(users) && users.filter(Boolean).map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.name} ({user.email})
                 </option>

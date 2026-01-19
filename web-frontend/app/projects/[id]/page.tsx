@@ -296,7 +296,8 @@ export default function ProjectDetailPage() {
               )}
             </div>
             <div className="space-y-4">
-              {stages.map((stage) => (
+              {Array.isArray(stages) &&
+                stages.filter(Boolean).map((stage) => (
                 <Card key={stage.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -340,7 +341,8 @@ export default function ProjectDetailPage() {
               )}
             </div>
             <div className="space-y-4">
-              {tasks.map((task) => (
+              {Array.isArray(tasks) &&
+                tasks.filter(Boolean).map((task) => (
                 <Card key={task.id}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -405,7 +407,7 @@ export default function ProjectDetailPage() {
               )}
 
               {/* Membres de l'équipe */}
-              {project.teamMembers?.map((member) => (
+              {project.teamMembers?.filter(Boolean).map((member) => (
                 <Card key={member.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3">

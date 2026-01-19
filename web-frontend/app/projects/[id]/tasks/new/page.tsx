@@ -329,7 +329,8 @@ export default function NewTaskPage() {
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {stages.map((stage) => (
+                      {Array.isArray(stages) &&
+                        stages.filter(Boolean).map((stage) => (
                         <SelectItem key={stage.id} value={stage.id.toString()}>
                           {stage.name}
                         </SelectItem>
@@ -385,7 +386,7 @@ export default function NewTaskPage() {
               <div className="space-y-2">
                 <Label>Assigner à</Label>
                 <div className="border rounded-md p-2 h-40 overflow-y-auto">
-                  {users
+                  {Array.isArray(users) && users.filter(Boolean)
                     .map((user) => (
                       <div key={user.id} className="flex items-center space-x-2 p-1">
                         <input

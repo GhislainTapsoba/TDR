@@ -83,7 +83,7 @@ export default function NewStagePage() {
       // Auto-set next order index
       const stages = Array.isArray(stagesData) ? stagesData : []
       const maxOrderIndex = stages.length > 0 
-        ? Math.max(...stages.map((stage: Stage) => stage.order_index))
+        ? Math.max(...stages.filter(Boolean).map((stage: Stage) => stage.order_index))
         : 0
       setFormData(prev => ({ ...prev, order_index: (maxOrderIndex + 1).toString() }))
 
@@ -344,9 +344,9 @@ export default function NewStagePage() {
                     <SelectValue placeholder="Aucune dépendance (optionnel)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Aucune dépendance</SelectItem>
-                    {availableDependencies.map((stage) => (
-                      <SelectItem key={stage.id} value={stage.id.toString()}>
+                                        <SelectItem value="none">Aucune dépendance</SelectItem>
+                                          {Array.isArray(availableDependencies) &&
+                                            availableDependencies.filter(Boolean).map((stage) => (                      <SelectItem key={stage.id} value={stage.id.toString()}>
                         <div className="flex items-center gap-2">
                           <LinkIcon className="h-3 w-3" />
                           {stage.order_index}. {stage.name}
@@ -370,7 +370,7 @@ export default function NewStagePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {existingStages
+                  {existingStages.filter(Boolean)
                     .sort((a, b) => a.order_index - b.order_index)
                     .map((stage) => (
                       <div key={stage.id} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">

@@ -168,7 +168,8 @@ export default function DocumentsList({ projectId, taskId, canUpload = false }: 
         </div>
       ) : (
         <div className="space-y-2">
-          {documents.map((doc) => (
+          {Array.isArray(documents) &&
+            documents.filter(Boolean).map((doc) => (
             <div
               key={doc.id}
               className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"

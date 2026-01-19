@@ -182,7 +182,8 @@ export default function CreateUserPage() {
                   <SelectValue placeholder={rolesLoading ? "Chargement..." : "Sélectionner un rôle"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {roles.map((role) => (
+                  {Array.isArray(roles) &&
+                    roles.filter(Boolean).map((role) => (
                     <SelectItem key={role.id} value={role.name}>
                       {role.name === "admin" ? "Administrateur" :
                        role.name === "manager" ? "Manager" :

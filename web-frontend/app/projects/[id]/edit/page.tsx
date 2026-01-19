@@ -289,7 +289,8 @@ export default function EditProjectPage() {
                     <SelectValue placeholder="Sélectionner un manager" />
                   </SelectTrigger>
                   <SelectContent>
-                    {users
+                    {Array.isArray(users) && users
+                      .filter(Boolean)
                       .filter((u) => u.role === "manager" || u.role === "admin")
                       .map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
@@ -303,7 +304,8 @@ export default function EditProjectPage() {
               <div className="space-y-2">
                 <Label>Membres de l'équipe</Label>
                 <div className="grid gap-2 max-h-40 overflow-y-auto">
-                  {users
+                  {Array.isArray(users) && users
+                    .filter(Boolean)
                     .filter((u) => u.role === "employe")
                     .map((user) => (
                       <div key={user.id} className="flex items-center space-x-2">

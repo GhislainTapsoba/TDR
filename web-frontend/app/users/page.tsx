@@ -153,7 +153,8 @@ export default function UsersPage() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredUsers.map((user) => {
+            {Array.isArray(filteredUsers) &&
+              filteredUsers.filter(Boolean).map((user) => {
                 // @ts-ignore
               const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || Plus
               return (

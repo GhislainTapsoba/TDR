@@ -132,7 +132,8 @@ export default function ProjectsPage() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProjects.map((project) => (
+            {Array.isArray(filteredProjects) &&
+              filteredProjects.filter(Boolean).map((project) => (
               <Link key={project.id} href={`/projects/${project.id}`}>
                 <Card className="h-full hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm">
                   <CardHeader className="pb-3">

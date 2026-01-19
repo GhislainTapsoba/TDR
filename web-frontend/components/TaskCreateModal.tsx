@@ -197,7 +197,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
             >
               <option value="">Sélectionner un projet</option>
-              {projects.map((project) => (
+              {Array.isArray(projects) && projects.filter(Boolean).map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.title}
                 </option>
@@ -218,7 +218,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
                 <option value="">Aucune étape</option>
-                {stages.map((stage) => (
+                {Array.isArray(stages) && stages.filter(Boolean).map((stage) => (
                   <option key={stage.id} value={stage.id}>
                     {stage.name}
                   </option>
@@ -294,7 +294,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
                 <option value="">Non assignée</option>
-                {users.map((user) => (
+                {Array.isArray(users) && users.filter(Boolean).map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.name} ({user.email}) - {user.role}
                   </option>

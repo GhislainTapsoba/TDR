@@ -60,7 +60,7 @@ function TaskCard({ task }: { task: Task }) {
 // --- Stage Column Component ---
 function StageColumn({ stage }: { stage: Stage }) {
     const { setNodeRef } = useSortable({ id: stage.id, data: { type: 'column' } });
-    const taskIds = useMemo(() => stage.tasks?.map(t => t.id) ?? [], [stage.tasks]);
+    const taskIds = useMemo(() => stage.tasks?.filter(Boolean).map(t => t.id) ?? [], [stage.tasks]);
 
     return (
         <div ref={setNodeRef} className="w-72 flex-shrink-0">
@@ -68,7 +68,7 @@ function StageColumn({ stage }: { stage: Stage }) {
                 <h3 className="font-semibold text-foreground mb-3 px-1">{stage.name} ({stage.tasks.length})</h3>
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                     <div className="space-y-3 min-h-[50px]">
-                        {stage.tasks.map(task => <TaskCard key={task.id} task={task} />)}
+                        {Array.isArray(stage.tasks) && stage.tasks.filter(Boolean).map(task => <TaskCard key={task.id} task={task} />)}
                     </div>
                 </SortableContext>
             </div>
@@ -137,7 +137,7 @@ export default function ProjectBoardPage() {
         const newActiveItems = activeItems.filter(t => t.id !== taskId);
         const newOverItems = [...overItems, taskToMove];
         
-        return prevStages.map(stage => {
+        return prevStages.filter(Boolean).map(stage => {
             if (stage.id === activeContainer.id) {
                 return { ...stage, tasks: newActiveItems };
             }
@@ -184,7 +184,7 @@ export default function ProjectBoardPage() {
             <div className="flex-1 overflow-x-auto pb-4">
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <div className="flex gap-4 h-full">
-                        {stages.map(stage => <StageColumn key={stage.id} stage={stage} />)}
+                        {Array.isArray(stages) && stages.filter(Boolean).map(stage => <StageColumn key={stage.id} stage={stage} />)}
                     </div>
                 </DndContext>
             </div>

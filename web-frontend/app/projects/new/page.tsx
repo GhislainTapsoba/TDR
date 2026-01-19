@@ -192,7 +192,7 @@ export default function NewProjectPage() {
                       <SelectValue placeholder="Sélectionner un manager" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(users || [])
+                      {Array.isArray(users) && users.filter(Boolean)
                         .filter((u) => u.role.toUpperCase() === "MANAGER" || u.role.toUpperCase() === "ADMIN")
                         .map((user) => (
                           <SelectItem key={user.id} value={user.id.toString()}>
@@ -242,7 +242,7 @@ export default function NewProjectPage() {
               <div className="space-y-2">
                 <Label>Membres de l&apos;équipe</Label>
                 <div className="grid gap-2 max-h-40 overflow-y-auto">
-                  {(users || [])
+                  {Array.isArray(users) && users.filter(Boolean)
                     .filter((u) => u.role.toUpperCase() === "EMPLOYE")
                     .map((user) => (
                       <div key={user.id} className="flex items-center space-x-2">
@@ -277,7 +277,8 @@ export default function NewProjectPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {stages.map((stage, index) => (
+              {Array.isArray(stages) &&
+                stages.filter(Boolean).map((stage, index) => (
                 <div key={index} className="p-4 border border-border rounded-lg space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">Étape {index + 1}</h4>
