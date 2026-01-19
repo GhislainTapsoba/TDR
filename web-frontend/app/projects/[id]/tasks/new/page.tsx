@@ -32,10 +32,10 @@ interface Project {
 }
 
 interface Stage {
-  id: number
+  id: string
   name: string
   description: string
-  project_id: number
+  project_id: string
 }
 
 export default function NewTaskPage() {
@@ -175,9 +175,9 @@ export default function NewTaskPage() {
       }
 
       // Déterminer le stage_id à utiliser
-      let stageId: number
+      let stageId: string
       if (formData.stage_id && formData.stage_id !== "") {
-        stageId = Number.parseInt(formData.stage_id)
+        stageId = formData.stage_id
       } else {
         // Utiliser la première étape disponible
         stageId = stages[0].id
@@ -394,7 +394,6 @@ export default function NewTaskPage() {
                 <Label>Assigner à</Label>
                 <div className="border rounded-md p-2 h-40 overflow-y-auto">
                   {users
-                    .filter((u) => u.role === "employe" || u.role === "manager")
                     .map((user) => (
                       <div key={user.id} className="flex items-center space-x-2 p-1">
                         <input
