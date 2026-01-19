@@ -57,38 +57,17 @@ export default function NewStagePage() {
   })
 
   useEffect(() => {
-    // Validate projectId before attempting to load data
-    if (!projectId || isNaN(Number(projectId))) {
-      toast({
-        title: "Erreur",
-        description: "ID de projet invalide.",
-        variant: "destructive",
-      });
-      router.push("/projects"); // Redirect to projects page
-      return;
+    if (projectId) {
+      loadProjectData()
     }
-    loadProjectData();
-  }, [projectId, router, toast]); // Add router and toast to dependency array
+  }, [projectId])
 
   const loadProjectData = async () => {
     setLoadingProject(true)
-    const numericProjectId = Number(projectId); // Explicitly convert and store
-    // Re-check for NaN here for extreme robustness, though useEffect should handle it
-    if (isNaN(numericProjectId)) {
-      console.error("[NewStage] numericProjectId is NaN in loadProjectData. Redirecting.");
-      toast({
-        title: "Erreur",
-        description: "ID de projet invalide.",
-        variant: "destructive",
-      });
-      router.push("/projects");
-      return;
-    }
-
     try {
       const [projectResponse, stagesResponse] = await Promise.all([
-        api.getProject(numericProjectId),
-        api.getProjectStages(numericProjectId)
+        api.getProject(projectId),
+        api.getProjectStages(projectId)
       ])
 
       console.log("[NewStage] Project response:", projectResponse)
@@ -170,7 +149,7 @@ export default function NewStagePage() {
       }
 
       const payload: any = {
-        project_id: Number(projectId),
+        project_id: projectId,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
         order_index: orderIndex,

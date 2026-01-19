@@ -63,10 +63,10 @@ export default function NewTaskPage() {
   // New useEffect to handle projectId from URL and initial data loading
   useEffect(() => {
     const projectIdFromUrl = params.id as string;
-    if (!projectIdFromUrl || isNaN(Number(projectIdFromUrl))) {
+    if (!projectIdFromUrl) { // Check only for existence
       toast({
         title: "Erreur",
-        description: "ID de projet invalide.",
+        description: "ID de projet manquant dans l'URL.", // Changed message
         variant: "destructive",
       });
       router.push("/projects");
@@ -104,14 +104,14 @@ export default function NewTaskPage() {
   }
 
   const loadProjectStages = async (projectId: string) => {
-    if (!projectId || isNaN(Number(projectId))) {
+    if (!projectId) {
       setStages([])
       return
     }
 
     setLoadingStages(true)
     try {
-      const response = await api.getProjectStages(Number(projectId))
+      const response = await api.getProjectStages(projectId)
       const stagesData = (response as any).data || []
       setStages(stagesData)
 
@@ -198,7 +198,7 @@ export default function NewTaskPage() {
       const payload: any = {
         title: formData.title,
         description: formData.description,
-        project_id: Number(formData.project_id),
+        project_id: formData.project_id,
         stage_id: stageId, // Always send a valid stage_id
         priority: formData.priority,
         due_date: formData.due_date || null,

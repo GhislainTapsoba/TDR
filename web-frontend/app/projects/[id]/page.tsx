@@ -110,16 +110,14 @@ export default function ProjectDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
-      const fetchData = useCallback(async (id: string) => {
-        setLoading(true);
-        try {
-          const numericId = Number(id); // Convert to number after validation
-          const [projectResponse, stagesResponse, tasksResponse] = await Promise.all([
-            api.getProject(numericId),
-            api.getProjectStages(numericId),
-            tasksApi.getAll({ project_id: numericId })
-          ]);
-      if (projectResponse?.data) {
+          const fetchData = useCallback(async (id: string) => {
+            setLoading(true);
+            try {
+              const [projectResponse, stagesResponse, tasksResponse] = await Promise.all([
+                api.getProject(id),
+                api.getProjectStages(id),
+                tasksApi.getAll({ project_id: id })
+              ]);      if (projectResponse?.data) {
         setProject(projectResponse.data);
       } else {
         throw new Error('Project data is not in the expected format.');
@@ -151,21 +149,10 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     const projectId = params.id as string;
-    // Validate projectId before attempting to load data
-    if (!projectId || isNaN(Number(projectId))) {
-      // Assuming useToast and useRouter are available in this scope
-      // If not, you might need to import them or get them from context
-      console.error("ID de projet invalide:", projectId); // Log for debugging
-      // toast({
-      //   title: "Erreur",
-      //   description: "ID de projet invalide.",
-      //   variant: "destructive",
-      // });
-      router.push("/projects"); // Redirect to projects page
-      return;
+    if (projectId) {
+      fetchData(projectId);
     }
-    fetchData(projectId);
-  }, [params.id, fetchData, router]); // Add router to dependency array
+  }, [params.id, fetchData]);
 
 
   if (loading) {
