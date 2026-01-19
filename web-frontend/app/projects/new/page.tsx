@@ -98,7 +98,7 @@ export default function NewProjectPage() {
             description: "Le projet a été créé avec succès.",
         })
 
-        const projectId = response.data?.project?.id;
+        const projectId = response.data?.id;
 
         if (projectId) {
             router.push(`/projects/${projectId}`)
