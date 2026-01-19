@@ -138,6 +138,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate assignee_ids if provided
+    if (assignee_ids && Array.isArray(assignee_ids) && assignee_ids.length > 0) {
+      const { rows: userRows } = await db.query('SELECT id FROM users WHERE id = ANY($1::uuid[])', [assignee_ids]);
+      if (userRows.length !== assignee_ids.length) {
+        return corsResponse({ error: 'Un ou plusieurs utilisateurs assignés n\'existent pas' }, request, { status: 400 });
+      }
+    }
+
     const insertQuery = `
       INSERT INTO tasks (title, description, status, priority, due_date, project_id, stage_id, created_by_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -172,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     // Get project details for notifications
     const { rows: detailsRows } = await db.query(
-      'SELECT name as project_name, title as project_title FROM projects WHERE id = $1',
+      'SELECT title as project_name, title as project_title FROM projects WHERE id = $1',
       [task.project_id]
     );
     const details = detailsRows[0] || {};
