@@ -1,4 +1,5 @@
 - [x] Add validation for stage_id in POST /api/tasks to check if stage exists and belongs to the project
 - [x] Add validation for assignee_ids in POST /api/tasks to check if all assigned users exist
 - [x] Fix the query for project details in POST /api/tasks to select title instead of name
+- [x] Add filter in frontend to prevent mapping over undefined users
 - [x] Test the fix by attempting to create a task (user will test)

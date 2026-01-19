@@ -85,7 +85,7 @@ export default function NewTaskPage() {
       ]);
 
       setProject((projectResponse as any).data || null);
-      setUsers((usersResponse as any).data || []);
+      setUsers((usersResponse as any).data?.filter((user: any) => user && user.id) || []);
       
       // Also load stages for the project immediately
       loadProjectStages(projectId); 
