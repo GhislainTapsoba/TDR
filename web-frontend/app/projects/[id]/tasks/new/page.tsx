@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
 
 interface UserType {
-  id: number
+  id: string
   name: string
   email: string
   role: string
@@ -41,12 +41,14 @@ interface Stage {
 export default function NewTaskPage() {
   const { user } = useAuth()
   const router = useRouter()
+  const params = useParams()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [project, setProject] = useState<Project | null>(null)
   const [users, setUsers] = useState<UserType[]>([])
   const [stages, setStages] = useState<Stage[]>([])
   const [loadingStages, setLoadingStages] = useState(false)
+  const [loadingProjectData, setLoadingProjectData] = useState(true)
 
   const [formData, setFormData] = useState({
     title: "",
@@ -55,38 +57,61 @@ export default function NewTaskPage() {
     stage_id: "",
     priority: "medium" as "low" | "medium" | "high",
     due_date: "",
-    assigned_to: "",
+    assignee_ids: [] as string[],
   })
 
+  // New useEffect to handle projectId from URL and initial data loading
   useEffect(() => {
-    loadInitialData()
-  }, [])
-
-  const loadInitialData = async () => {
-    try {
-      const [projectsResponse, usersResponse] = await Promise.all([api.getProjects(), api.getUsers()])
-
-      setProjects((projectsResponse as any).data || [])
-      setUsers((usersResponse as any).data || [])
-    } catch (error) {
-      console.error("Erreur lors du chargement des données:", error)
+    const projectIdFromUrl = params.id as string;
+    if (!projectIdFromUrl || isNaN(Number(projectIdFromUrl))) {
       toast({
         title: "Erreur",
-        description: "Impossible de charger les données nécessaires.",
+        description: "ID de projet invalide.",
         variant: "destructive",
-      })
+      });
+      router.push("/projects");
+      return;
+    }
+    setFormData((prev) => ({ ...prev, project_id: projectIdFromUrl })); // Set project_id from URL
+    loadProjectAndInitialData(projectIdFromUrl); // Call new loading function
+  }, [params.id, router, toast]);
+
+  const loadProjectAndInitialData = async (projectId: string) => {
+    setLoadingProjectData(true);
+    try {
+      const [projectResponse, usersResponse] = await Promise.all([
+        api.getProject(Number(projectId)), // Fetch specific project
+        api.getUsers()
+      ]);
+
+      setProject((projectResponse as any).data || null);
+      setUsers((usersResponse as any).data || []);
+      
+      // Also load stages for the project immediately
+      loadProjectStages(projectId); 
+
+    } catch (error) {
+      console.error("Erreur lors du chargement des données initiales:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les données initiales du projet.",
+        variant: "destructive",
+      });
+      router.push("/projects"); // Redirect if project data cannot be loaded
+    } finally {
+      setLoadingProjectData(false);
     }
   }
 
   const loadProjectStages = async (projectId: string) => {
-    if (!projectId) {
+    if (!projectId || isNaN(Number(projectId))) {
       setStages([])
       return
     }
 
     setLoadingStages(true)
     try {
-      const response = await api.getProjectStages(Number.parseInt(projectId))
+      const response = await api.getProjectStages(Number(projectId))
       const stagesData = (response as any).data || []
       setStages(stagesData)
 
@@ -108,6 +133,15 @@ export default function NewTaskPage() {
     setFormData((prev) => ({ ...prev, project_id: projectId, stage_id: "" }))
     loadProjectStages(projectId)
   }
+
+  const handleAssigneeToggle = (userId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      assignee_ids: prev.assignee_ids.includes(userId)
+        ? prev.assignee_ids.filter((id) => id !== userId)
+        : [...prev.assignee_ids, userId],
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -164,11 +198,11 @@ export default function NewTaskPage() {
       const payload: any = {
         title: formData.title,
         description: formData.description,
-        project_id: Number.parseInt(formData.project_id),
+        project_id: Number(formData.project_id),
         stage_id: stageId, // Always send a valid stage_id
         priority: formData.priority,
         due_date: formData.due_date || null,
-        assigned_to: formData.assigned_to ? Number.parseInt(formData.assigned_to) : null,
+        assignee_ids: formData.assignee_ids,
         status: "a_faire",
       }
 
@@ -205,15 +239,32 @@ export default function NewTaskPage() {
     high: "text-red-600",
   }
 
-  // Function to handle back navigation
+  if (loadingProjectData) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Chargement du projet...</p>
+        </div>
+      </MainLayout>
+    )
+  }
+
+  if (!project) {
+    return (
+      <MainLayout>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-destructive">Projet non trouvé</h2>
+          <p className="text-muted-foreground mt-2">Le projet demandé n'existe pas ou vous n'y avez pas accès.</p>
+          <Link href="/projects">
+            <Button className="mt-4">Retour aux projets</Button>
+          </Link>
+        </div>
+      </MainLayout>
+    )
+  }
   const handleGoBack = () => {
-    if (formData.project_id) {
-      // If a project is selected, go to that project's tasks
-      router.push(`/projects/${formData.project_id}/tasks`)
-    } else {
-      // Otherwise, go to general tasks page
-      router.push("/tasks")
-    }
+    router.push(`/projects/${formData.project_id}/tasks`);
   }
 
   return (
@@ -262,18 +313,7 @@ export default function NewTaskPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="project_id">Projet *</Label>
-                  <Select value={formData.project_id} onValueChange={handleProjectChange} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un projet" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id.toString()}>
-                          {project.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input value={project.title || ""} disabled />
                 </div>
 
                 <div className="space-y-2">
@@ -351,27 +391,24 @@ export default function NewTaskPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="assigned_to">Assigner à</Label>
-                <Select
-                  value={formData.assigned_to}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, assigned_to: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un utilisateur (optionnel)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users
-                      .filter((u) => u.role === "employe" || u.role === "manager")
-                      .map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <User className="h-3 w-3" />
-                            {user.name} ({user.email})
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <Label>Assigner à</Label>
+                <div className="border rounded-md p-2 h-40 overflow-y-auto">
+                  {users
+                    .filter((u) => u.role === "employe" || u.role === "manager")
+                    .map((user) => (
+                      <div key={user.id} className="flex items-center space-x-2 p-1">
+                        <input
+                          type="checkbox"
+                          id={`assignee-${user.id}`}
+                          checked={formData.assignee_ids.includes(user.id)}
+                          onChange={() => handleAssigneeToggle(user.id)}
+                        />
+                        <Label htmlFor={`assignee-${user.id}`} className="font-normal">
+                          {user.name} ({user.email})
+                        </Label>
+                      </div>
+                    ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -380,11 +417,9 @@ export default function NewTaskPage() {
             <Button type="submit" disabled={loading || !formData.project_id || stages.length === 0}>
               {loading ? "Création..." : "Créer la tâche"}
             </Button>
-            <Link href="/tasks">
-              <Button type="button" variant="outline">
-                Annuler
-              </Button>
-            </Link>
+            <Button type="button" variant="outline" onClick={handleGoBack}>
+              Annuler
+            </Button>
           </div>
         </form>
       </div>
