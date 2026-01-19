@@ -43,9 +43,9 @@ export async function GET(request: NextRequest) {
       db.query("SELECT COUNT(*)::int FROM tasks WHERE status = 'COMPLETED'"),
       db.query('SELECT COUNT(*)::int FROM users'),
       db.query('SELECT COUNT(*)::int FROM projects WHERE manager_id = $1', [userId]),
-      db.query('SELECT COUNT(*)::int FROM tasks WHERE assigned_to_id = $1', [userId]),
-      db.query("SELECT COUNT(*)::int FROM tasks WHERE assigned_to_id = $1 AND status = 'TODO'", [userId]),
-      db.query("SELECT COUNT(*)::int FROM tasks WHERE assigned_to_id = $1 AND status = 'IN_PROGRESS'", [userId]),
+      db.query('SELECT COUNT(DISTINCT t.id)::int FROM tasks t JOIN task_assignees ta ON t.id = ta.task_id WHERE ta.user_id = $1', [userId]),
+      db.query("SELECT COUNT(DISTINCT t.id)::int FROM tasks t JOIN task_assignees ta ON t.id = ta.task_id WHERE ta.user_id = $1 AND t.status = 'TODO'", [userId]),
+      db.query("SELECT COUNT(DISTINCT t.id)::int FROM tasks t JOIN task_assignees ta ON t.id = ta.task_id WHERE ta.user_id = $1 AND t.status = 'IN_PROGRESS'", [userId]),
       db.query(`
         SELECT p.*, m.name as manager_name, c.name as created_by_name
         FROM projects p
@@ -55,9 +55,12 @@ export async function GET(request: NextRequest) {
         LIMIT 5
       `),
       db.query(`
-        SELECT t.*, a.name as assigned_to_name, c.name as created_by_name
+        SELECT t.*, c.name as created_by_name,
+               (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email)) 
+                FROM task_assignees ta
+                JOIN users u ON ta.user_id = u.id
+                WHERE ta.task_id = t.id) as assignees
         FROM tasks t
-        LEFT JOIN users a ON t.assigned_to_id = a.id
         LEFT JOIN users c ON t.created_by_id = c.id
         ORDER BY t.created_at DESC
         LIMIT 5

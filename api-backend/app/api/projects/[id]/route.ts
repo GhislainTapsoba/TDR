@@ -55,7 +55,7 @@ export async function GET(
        WHERE u.id IN (
          SELECT pm.user_id FROM project_members pm WHERE pm.project_id = $1
          UNION
-         SELECT t.assigned_to_id FROM tasks t WHERE t.project_id = $1 AND t.assigned_to_id IS NOT NULL
+         SELECT ta.user_id FROM task_assignees ta JOIN tasks t ON ta.task_id = t.id WHERE t.project_id = $1
        )`,
       [id]
     );
@@ -92,10 +92,9 @@ export async function GET(
 
         if (memberCount === 0) {
           const { rowCount: taskCount } = await db.query(
-            'SELECT id FROM tasks WHERE project_id = $1 AND assigned_to_id = $2 LIMIT 1',
+            'SELECT ta.user_id FROM task_assignees ta JOIN tasks t ON ta.task_id = t.id WHERE t.project_id = $1 AND ta.user_id = $2 LIMIT 1',
             [id, user.id]
           );
-
           if (taskCount === 0) {
             return corsResponse({ error: 'Vous n\'avez pas accès à ce projet' }, request, { status: 403 });
           }
