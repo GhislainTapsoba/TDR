@@ -117,7 +117,9 @@ export default function TasksPage() {
     }
   }
 
-  const filteredTasks = tasks.filter((task) => {
+  const filteredTasks = tasks
+    .filter(Boolean) // Ensure task is not null or undefined
+    .filter((task) => {
     const matchesSearch =
       (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
