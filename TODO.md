@@ -1,0 +1,2 @@
+- [x] Add validation for stage_id in POST /api/tasks to check if stage exists and belongs to the project
+- [x] Test the fix by attempting to create a task (user will test)

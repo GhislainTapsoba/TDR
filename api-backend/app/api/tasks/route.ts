@@ -126,6 +126,18 @@ export async function POST(request: NextRequest) {
       return corsResponse({ error: 'Vous ne pouvez créer des tâches que sur vos projets' }, request, { status: 403 });
     }
 
+    // Validate stage_id if provided
+    if (stage_id) {
+      const { rows: stageRows } = await db.query('SELECT id, project_id FROM stages WHERE id = $1', [stage_id]);
+      if (stageRows.length === 0) {
+        return corsResponse({ error: 'Étape introuvable' }, request, { status: 400 });
+      }
+      const stage = stageRows[0];
+      if (stage.project_id !== project_id) {
+        return corsResponse({ error: 'L\'étape n\'appartient pas au projet spécifié' }, request, { status: 400 });
+      }
+    }
+
     const insertQuery = `
       INSERT INTO tasks (title, description, status, priority, due_date, project_id, stage_id, created_by_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
