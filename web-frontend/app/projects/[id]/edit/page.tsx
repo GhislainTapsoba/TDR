@@ -53,7 +53,7 @@ export default function EditProjectPage() {
     end_date: "",
     status: "",
     manager_id: "",
-    team_members: [] as number[],
+    team_members: [] as string[],
   })
 
   // Charger le projet
@@ -65,7 +65,7 @@ export default function EditProjectPage() {
 
   const fetchProject = async () => {
     try {
-      const response = await api.getProject(Number(params.id)) as any
+      const response = await api.getProject(params.id) as any
       const projectData: Project = response.project ?? response
 
       setProject(projectData)
@@ -110,7 +110,7 @@ export default function EditProjectPage() {
     try {
       await api.put(`/projects/${params.id}`, {
         ...formData,
-        manager_id: Number(formData.manager_id),
+        manager_id: formData.manager_id,
       })
 
       toast({ title: "Projet modifié", description: "Le projet a été modifié avec succès." })
@@ -152,7 +152,7 @@ export default function EditProjectPage() {
     }
   };
 
-  const toggleTeamMember = (userId: number) => {
+  const toggleTeamMember = (userId: string) => {
     setFormData((prev) => ({
       ...prev,
       team_members: prev.team_members.includes(userId)

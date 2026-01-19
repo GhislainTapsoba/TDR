@@ -80,7 +80,7 @@ export default function NewTaskPage() {
     setLoadingProjectData(true);
     try {
       const [projectResponse, usersResponse] = await Promise.all([
-        api.getProject(Number(projectId)), // Fetch specific project
+        api.getProject(projectId), // Fetch specific project
         api.getUsers()
       ]);
 
