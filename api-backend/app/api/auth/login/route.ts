@@ -53,14 +53,14 @@ export async function POST(req: Request) {
 
     // Fetch permissions from role_permissions
     const permsQuery = `
-      SELECT p.name
+      SELECT p.resource, p.action
       FROM role_permissions rp
       JOIN permissions p ON rp.permission_id = p.id
       JOIN roles r ON rp.role_id = r.id
       WHERE r.name = $1
     `;
     const { rows: perms } = await db.query(permsQuery, [lowercasedRole]);
-    const permissions = perms.map(p => p.name); // array of strings
+    const permissions = perms.map(p => `${p.resource}.${p.action}`); // array of strings like 'projects.create'
 
     process.stderr.write(`🔑 Permissions pour ${lowercasedRole}: ${permissions.join(', ')}\n`);
 
