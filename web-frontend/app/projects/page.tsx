@@ -65,7 +65,7 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await api.getProjects() as { projects: Project[] };
+      const response = await api.getProjects();
       setProjects(response.projects || []);
     } catch (error) {
       console.error("Erreur lors du chargement des projets:", error)

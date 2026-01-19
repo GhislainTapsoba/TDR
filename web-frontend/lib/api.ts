@@ -48,7 +48,10 @@ api.interceptors.response.use(
 
 // Additional methods for compatibility
 (api as any).getProject = (id: string | number) => api.get(`/projects/${id}`);
-(api as any).getProjects = (params?: Record<string, unknown>) => api.get('/projects', { params });
+(api as any).getProjects = async (params?: Record<string, unknown>) => {
+  const res = await api.get('/projects', { params });
+  return { projects: res.data };
+};
 (api as any).getUsers = (params?: Record<string, unknown>) => api.get('/users', { params });
 (api as any).getProjectStages = (projectId: string | number) => api.get('/stages', { params: { project_id: projectId } });
 (api as any).updateUser = (id: string, data: Partial<User>) => api.put(`/users/${id}`, data);

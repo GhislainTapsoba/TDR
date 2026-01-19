@@ -33,10 +33,11 @@ export async function GET(
       return corsResponse({ error: 'Invalid UUID format' }, request, { status: 400 });
     }
 
+    // Get project with manager info
     const { rows, rowCount } = await db.query(
-      `SELECT p.*, u.name as manager_name 
-       FROM projects p 
-       LEFT JOIN users u ON p.manager_id = u.id 
+      `SELECT p.*, u.name as manager_name, u.email as manager_email
+       FROM projects p
+       LEFT JOIN users u ON p.manager_id = u.id
        WHERE p.id = $1`,
       [id]
     );
@@ -46,6 +47,38 @@ export async function GET(
     }
 
     const project = rows[0];
+
+    // Get team members (from project_members table or tasks assigned to project)
+    const { rows: teamMemberRows } = await db.query(
+      `SELECT DISTINCT u.id, u.name, u.email, u.role
+       FROM users u
+       WHERE u.id IN (
+         SELECT pm.user_id FROM project_members pm WHERE pm.project_id = $1
+         UNION
+         SELECT t.assigned_to_id FROM tasks t WHERE t.project_id = $1 AND t.assigned_to_id IS NOT NULL
+       )`,
+      [id]
+    );
+
+    // Get project statistics
+    const { rows: statsRows } = await db.query(
+      `SELECT
+        COUNT(DISTINCT t.id) as total_tasks,
+        COUNT(DISTINCT CASE WHEN t.status = 'COMPLETED' THEN t.id END) as completed_tasks,
+        COUNT(DISTINCT CASE WHEN t.status = 'IN_PROGRESS' THEN t.id END) as in_progress_tasks,
+        COUNT(DISTINCT CASE WHEN t.status = 'TODO' AND t.due_date < NOW() THEN t.id END) as overdue_tasks,
+        COUNT(DISTINCT s.id) as total_stages,
+        COUNT(DISTINCT CASE WHEN s.status = 'COMPLETED' THEN s.id END) as completed_stages
+       FROM projects p
+       LEFT JOIN stages s ON s.project_id = p.id
+       LEFT JOIN tasks t ON t.project_id = p.id
+       WHERE p.id = $1`,
+      [id]
+    );
+
+    const stats = statsRows[0];
+    const progress_percentage = stats.total_tasks > 0 ? Math.round((stats.completed_tasks / stats.total_tasks) * 100) : 0;
+    const is_overdue = stats.overdue_tasks > 0;
 
     // Si non-ADMIN, vérifier l'accès au projet
     if (userRole !== 'admin') {
@@ -70,7 +103,39 @@ export async function GET(
       }
     }
 
-    return corsResponse(project, request);
+    // Transform data to match frontend expectations
+    const transformedProject = {
+      id: project.id,
+      title: project.title,
+      description: project.description,
+      start_date: project.start_date,
+      end_date: project.end_date,
+      status: project.status === 'PLANNING' ? 'planifie' :
+              project.status === 'IN_PROGRESS' ? 'en_cours' :
+              project.status === 'ON_HOLD' ? 'en_pause' :
+              project.status === 'COMPLETED' ? 'termine' :
+              project.status === 'CANCELLED' ? 'annule' : 'planifie',
+      manager_id: project.manager_id,
+      manager: project.manager_name ? {
+        id: project.manager_id,
+        name: project.manager_name,
+        email: project.manager_email
+      } : null,
+      team_members: teamMemberRows.map(tm => tm.id),
+      teamMembers: teamMemberRows,
+      stats: {
+        total_tasks: parseInt(stats.total_tasks) || 0,
+        completed_tasks: parseInt(stats.completed_tasks) || 0,
+        in_progress_tasks: parseInt(stats.in_progress_tasks) || 0,
+        overdue_tasks: parseInt(stats.overdue_tasks) || 0,
+        total_stages: parseInt(stats.total_stages) || 0,
+        completed_stages: parseInt(stats.completed_stages) || 0,
+        progress_percentage: progress_percentage,
+        is_overdue: is_overdue
+      }
+    };
+
+    return corsResponse(transformedProject, request);
   } catch (error) {
     console.error('Get project error:', error);
     return corsResponse(
