@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { hasPermission, mapRole } from '@/lib/permissions';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface StagesManagerProps {
   projectId: string;
@@ -29,6 +30,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState({
@@ -111,12 +113,12 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
   };
 
   const handleDeleteStage = async (stageId: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer cette étape ?')) return;
-
     try {
       await stagesApi.delete(stageId.toString());
       setStages(stages.filter(s => s.id !== stageId));
       toast.success('Étape supprimée avec succès');
+      setIsDeleteModalOpen(false);
+      setSelectedStage(null);
     } catch (error: any) {
       console.error('Error deleting stage:', error);
       toast.error(error.response?.data?.error || 'Erreur lors de la suppression');
@@ -349,7 +351,10 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
                     )}
                     {canDelete && (
                       <button
-                        onClick={() => handleDeleteStage(stage.id)}
+                        onClick={() => {
+                          setSelectedStage(stage);
+                          setIsDeleteModalOpen(true);
+                        }}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Supprimer"
                       >
@@ -668,3 +673,19 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
     </div>
   );
 }
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedStage(null);
+        }}
+        onConfirm={async () => {
+          if (selectedStage) {
+            await handleDeleteStage(selectedStage.id);
+          }
+        }}
+        title="Confirmer la suppression"
+        description="Êtes-vous sûr de vouloir supprimer cette étape ?"
+        itemName={selectedStage?.name}
+      />

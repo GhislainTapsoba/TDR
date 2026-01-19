@@ -14,6 +14,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Plus, Search, Mail, Shield, Crown, Briefcase } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
+import UserEditModal from "@/components/UserEditModal"
+import UserDeleteModal from "@/components/UserDeleteModal"
 
 const roleLabels = {
   admin: "Administrateur",
@@ -41,6 +43,9 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [roleFilter, setRoleFilter] = useState("all")
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
 
   const canReadUsers = hasPermission(authUser?.permissions || [], 'users.read');
   const canCreateUsers = hasPermission(authUser?.permissions || [], 'users.create');
@@ -208,11 +213,14 @@ export default function UsersPage() {
                       </Button>
                       {canUpdateUsers && (
                         <Button
-                          asChild
                           size="sm"
                           className="flex-1"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsEditModalOpen(true);
+                          }}
                         >
-                          <Link href={`/users/${user.id}/edit`}>Modifier</Link>
+                          Modifier
                         </Button>
                       )}
                       {canDeleteUsers && (
@@ -220,14 +228,9 @@ export default function UsersPage() {
                           size="sm"
                           variant="destructive"
                           className="flex-1"
-                          onClick={async () => {
-                            if (!confirm("Voulez-vous vraiment supprimer cet utilisateur ?")) return
-                            try {
-                              await usersApi.delete(user.id.toString())
-                              setUsers((prev) => prev.filter(u => u.id !== user.id))
-                            } catch (error) {
-                              console.error("Erreur lors de la suppression :", error)
-                            }
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsDeleteModalOpen(true);
                           }}
                         >
                           Supprimer
@@ -253,6 +256,38 @@ export default function UsersPage() {
                   : "Aucun utilisateur n'est encore créé."}
               </p>
             </div>
+          )}
+
+          {/* Modals */}
+          {selectedUser && (
+            <>
+              <UserEditModal
+                user={selectedUser}
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                  setIsEditModalOpen(false);
+                  setSelectedUser(null);
+                }}
+                onSuccess={() => {
+                  setIsEditModalOpen(false);
+                  setSelectedUser(null);
+                  fetchUsers(); // Refresh the list
+                }}
+              />
+              <UserDeleteModal
+                user={selectedUser}
+                isOpen={isDeleteModalOpen}
+                onClose={() => {
+                  setIsDeleteModalOpen(false);
+                  setSelectedUser(null);
+                }}
+                onSuccess={() => {
+                  setIsDeleteModalOpen(false);
+                  setSelectedUser(null);
+                  fetchUsers(); // Refresh the list
+                }}
+              />
+            </>
           )}
         </div>
     </MainLayout>

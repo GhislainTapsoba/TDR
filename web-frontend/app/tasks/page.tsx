@@ -24,11 +24,11 @@ interface Task {
   priority: "low" | "medium" | "high"
   due_date: string | null
   assigned_to: number | null
-  assignedUser: {
-    id: number
+  assignees: {
+    id: string
     name: string
     email: string
-  } | null
+  }[]
   project: {
     id: number
     title: string
@@ -245,10 +245,10 @@ export default function TasksPage() {
                                 <span className="text-foreground">{task.stage.name}</span>
                               </div>
                             )}
-                            {task.assignedUser && (
+                            {task.assignees && task.assignees.length > 0 && (
                               <div className="flex items-center gap-1">
                                 <User className="h-3 w-3" />
-                                <span>{task.assignedUser.name}</span>
+                                <span>{task.assignees.map(a => a.name).join(', ')}</span>
                               </div>
                             )}
                             {task.due_date && (
