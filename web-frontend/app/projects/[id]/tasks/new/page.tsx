@@ -165,42 +165,27 @@ export default function NewTaskPage() {
         return
       }
 
-      // Vérifier qu'il y a des étapes disponibles pour ce projet
-      if (stages.length === 0) {
-        toast({
-          title: "Erreur",
-          description:
-            "Ce projet n'a pas d'étapes disponibles. Veuillez contacter l'administrateur pour ajouter des étapes à ce projet.",
-          variant: "destructive",
-        })
-        setLoading(false)
-        return
-      }
-
       // Déterminer le stage_id à utiliser
-      let stageId: string
+      let stageId: string | null = null
       if (formData.stage_id && formData.stage_id !== "") {
         stageId = formData.stage_id
-      } else {
+        // Vérifier que le stage_id est valide
+        const selectedStage = stages.find((stage) => stage.id === stageId)
+        if (!selectedStage) {
+          toast({
+            title: "Erreur",
+            description: "L'étape sélectionnée n'est pas valide pour ce projet.",
+            variant: "destructive",
+          })
+          setLoading(false)
+          return
+        }
+      } else if (stages.length > 0) {
         // Utiliser la première étape disponible
         stageId = stages[0].id
         console.log("[NewTaskPage] handleSubmit - Defaulting stageId to:", stageId);
       }
       console.log("[NewTaskPage] handleSubmit - determined stageId:", stageId);
-
-
-      // Vérifier que le stage_id est valide
-      const selectedStage = stages.find((stage) => stage.id === stageId)
-      console.log("[NewTaskPage] handleSubmit - selectedStage:", selectedStage);
-      if (!selectedStage) {
-        toast({
-          title: "Erreur",
-          description: "L'étape sélectionnée n'est pas valide pour ce projet.",
-          variant: "destructive",
-        })
-        setLoading(false)
-        return
-      }
 
       const payload: any = {
         title: formData.title,
