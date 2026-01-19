@@ -166,7 +166,7 @@ export async function PATCH(
         if (project.manager_id) {
             const { rows: managerRows } = await db.query('SELECT name, email FROM users WHERE id = $1', [project.manager_id]);
             if (managerRows.length > 0) {
-                recipients.push({ email: managerRows[0].email, name: managerRows[0].name || 'Chef de projet' });
+                recipients.push({ email: managerRows[0].email, name: managerRows[0].name || 'Manager' });
             }
         }
 

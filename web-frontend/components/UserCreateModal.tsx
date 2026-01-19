@@ -38,7 +38,7 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
       // Le backend attend 'manager', 'admin', 'user' mais stocke 'PROJECT_MANAGER', 'ADMIN', 'EMPLOYEE'
       const roleMapping: Record<string, string> = {
         'ADMIN': 'admin',
-        'PROJECT_MANAGER': 'manager',
+        'MANAGER': 'manager',
         'EMPLOYEE': 'user',
       };
 
@@ -152,12 +152,12 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
             >
               <option value="EMPLOYEE">Employé</option>
-              <option value="PROJECT_MANAGER">Chef de Projet</option>
+              <option value="MANAGER">Manager</option>
               <option value="ADMIN">Administrateur</option>
             </select>
             <div className="mt-2 text-xs text-gray-600 space-y-1">
               <p>• <strong>Employé</strong> : Accès de base, peut gérer ses tâches</p>
-              <p>• <strong>Chef de Projet</strong> : Peut gérer des projets et des équipes</p>
+              <p>• <strong>Manager</strong> : Peut gérer des projets et des équipes</p>
               <p>• <strong>Administrateur</strong> : Accès complet à toutes les fonctionnalités</p>
             </div>
           </div>

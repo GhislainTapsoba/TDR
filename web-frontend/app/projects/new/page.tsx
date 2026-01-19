@@ -189,7 +189,7 @@ export default function NewProjectPage() {
                     required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un chef de projet" />
+                      <SelectValue placeholder="Sélectionner un manager" />
                     </SelectTrigger>
                     <SelectContent>
                       {(users || [])

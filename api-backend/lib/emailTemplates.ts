@@ -303,7 +303,7 @@ export function projectCreatedTemplate(data: {
   return baseTemplate(content);
 }
 
-// Template: Changement de statut de tâche par chef de projet
+// Template: Changement de statut de tâche par manager
 export function taskStatusChangeByManagerTemplate(data: {
   userName: string;
   taskTitle: string;
@@ -317,7 +317,7 @@ export function taskStatusChangeByManagerTemplate(data: {
   const content = `
     <h2>🔄 Statut de tâche modifié</h2>
     <p>Bonjour <strong>${data.userName}</strong>,</p>
-    <p>Le chef de projet <strong>${data.managerName}</strong> a modifié le statut de votre tâche dans le projet <strong>${data.projectName}</strong>.</p>
+    <p>Le manager <strong>${data.managerName}</strong> a modifié le statut de votre tâche dans le projet <strong>${data.projectName}</strong>.</p>
 
     <div class="task-details">
       <h3 style="margin-top: 0;">${data.taskTitle}</h3>
@@ -337,7 +337,7 @@ export function taskStatusChangeByManagerTemplate(data: {
       </p>
 
       <p style="font-size: 12px; color: #666; text-align: center;">
-        Une fois confirmé, le chef de projet pourra poursuivre la gestion de cette tâche.
+        Une fois confirmé, le manager pourra poursuivre la gestion de cette tâche.
       </p>
     ` : ''}
 
@@ -427,7 +427,7 @@ export function projectCreatedNotificationTemplate(data: {
   return baseTemplate(content);
 }
 
-// Template: Tâche terminée - Notification au chef
+// Template: Tâche terminée - Notification au manager
 export function taskCompletedByEmployeeTemplate(data: {
   managerName: string;
   taskTitle: string;
@@ -496,7 +496,7 @@ export function weeklyReportTemplate(data: {
   return baseTemplate(content);
 }
 
-// Template: Toutes les étapes terminées - Notification au chef de projet
+// Template: Toutes les étapes terminées - Notification au manager
 export function allStagesCompletedTemplate(data: {
   managerName: string;
   projectName: string;

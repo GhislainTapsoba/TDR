@@ -16,18 +16,18 @@ import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
 
 interface Project {
-  id: number
+  id: string
   title: string
   description: string
   start_date: string
   end_date: string
   status: string
-  manager_id: number
-  team_members: number[]
+  manager_id: string
+  team_members: string[]
 }
 
 interface User {
-  id: number
+  id: string
   name: string
   email: string
   role: string
@@ -286,7 +286,7 @@ export default function EditProjectPage() {
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un chef de projet" />
+                    <SelectValue placeholder="Sélectionner un manager" />
                   </SelectTrigger>
                   <SelectContent>
                     {users

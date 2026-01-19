@@ -15,15 +15,15 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
 interface Project {
-  id: number
+  id: string
   title: string
   description: string
   start_date: string
   end_date: string
   status: "planifie" | "en_cours" | "en_pause" | "termine" | "annule"
-  chef_projet_id: number
-  chef_projet: {
-    id: number
+  manager_id: string
+  manager: {
+    id: string
     name: string
     email: string
   } | null
@@ -96,7 +96,7 @@ export default function ProjectsPage() {
               <p className="text-muted-foreground">Gérez et suivez tous vos projets</p>
             </div>
             {/* @ts-ignore */}
-            {(user?.role === "admin" || user?.role === "chef_projet") && (
+            {(user?.role === "admin" || user?.role === "manager") && (
               <Link href="/projects/new">
                 <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
@@ -158,7 +158,7 @@ export default function ProjectsPage() {
 
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Users className="h-4 w-4" />
-                      <span>Chef: {project.chef_projet?.name || "Non assigné"}</span>
+                      <span>Manager: {project.manager?.name || "Non assigné"}</span>
                     </div>
 
                     {project.stats && (
@@ -198,7 +198,7 @@ export default function ProjectsPage() {
                   : "Commencez par créer votre premier projet."}
               </p>
               {/* @ts-ignore */}
-              {(user?.role === "admin" || user?.role === "chef_projet") && !searchTerm && statusFilter === "all" && (
+              {(user?.role === "admin" || user?.role === "manager") && !searchTerm && statusFilter === "all" && (
                 <Link href="/projects/new">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />

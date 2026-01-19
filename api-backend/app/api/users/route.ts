@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
 
-    // Seuls les admins et chefs de projet peuvent créer des utilisateurs
+    // Seuls les admins et managers peuvent créer des utilisateurs
     if (userRole !== 'admin' && userRole !== 'manager') {
       return corsResponse({ error: 'Accès refusé' }, request, { status: 403 });
     }

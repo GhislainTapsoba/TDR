@@ -49,7 +49,7 @@ export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }
 
   const loadUsers = async () => {
     try {
-      const { data } = await usersApi.getAll({ role: 'PROJECT_MANAGER' });
+      const { data } = await usersApi.getAll({ role: 'MANAGER' });
       setUsers(data);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -208,14 +208,14 @@ export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <UserIcon size={18} />
-              Chef de Projet
+              Manager
             </label>
             <select
               value={formData.manager_id}
               onChange={(e) => setFormData({ ...formData, manager_id: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
             >
-              <option value="">Sélectionner un chef de projet</option>
+              <option value="">Sélectionner un manager</option>
               {users.map((user) => (
                 <option key={user.id} value={user.id}>
                   {user.name} ({user.email})

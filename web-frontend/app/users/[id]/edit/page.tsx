@@ -163,7 +163,7 @@ export default function EditUserPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Administrateur</SelectItem>
-                    <SelectItem value="manager">Chef de projet</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
                     <SelectItem value="employe">Employé</SelectItem>
                   </SelectContent>
                 </Select>

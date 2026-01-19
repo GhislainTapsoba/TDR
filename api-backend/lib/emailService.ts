@@ -94,7 +94,7 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
   }
 }
 
-// Envoyer un email aux responsables (Chef de projet + Responsable général)
+// Envoyer un email aux responsables (Manager + Responsable général)
 export async function sendEmailToResponsibles(
   projectId: string, // Changed from number to string to match UUID
   subject: string,
@@ -102,7 +102,7 @@ export async function sendEmailToResponsibles(
   metadata?: any
 ): Promise<void> {
   try {
-    // Récupérer le chef de projet
+    // Récupérer le manager
     const { rows: projectRows } = await db.query(
       `SELECT p.id, p.title, p.created_by_id, p.manager_id, 
               u.id as created_by_user_id, u.email as created_by_email, u.name as created_by_name, u.role as created_by_role
@@ -123,12 +123,12 @@ export async function sendEmailToResponsibles(
 
     const recipients: Array<{ id: string; email: string; name: string }> = []; // Changed id to string
 
-    // Ajouter le créateur du projet (souvent le chef de projet)
+    // Ajouter le créateur du projet (souvent le manager)
     if (project.created_by_email) {
       recipients.push({
         id: project.created_by_user_id,
         email: project.created_by_email,
-        name: project.created_by_name || 'Chef de projet'
+        name: project.created_by_name || 'Manager'
       });
     }
 

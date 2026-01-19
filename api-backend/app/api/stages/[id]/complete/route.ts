@@ -62,7 +62,7 @@ export async function POST(
         id: user.id,
         name: user.name || 'Utilisateur',
         email: user.email,
-        role: user.role as 'ADMIN' | 'PROJECT_MANAGER' | 'EMPLOYEE'
+        role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
       },
       entity: {
         type: 'stage',

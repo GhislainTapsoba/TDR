@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
                ELSE 'planifie'
              END as status,
              p.start_date, p.end_date, p.due_date,
-             p.manager_id as chef_projet_id, p.created_by_id, p.created_at, p.updated_at,
+             p.manager_id, p.created_by_id, p.created_at, p.updated_at,
              u.name as manager_name, u.email as manager_email, cu.name as created_by_name
       FROM projects p
       LEFT JOIN users u ON p.manager_id = u.id
@@ -128,15 +128,15 @@ export async function GET(request: NextRequest) {
 
     // Transform data to match frontend expectations
     const transformedRows = rows.map(row => ({
-      id: parseInt(row.id),
+      id: row.id,
       title: row.title,
       description: row.description,
       start_date: row.start_date,
       end_date: row.end_date,
       status: row.status,
-      chef_projet_id: parseInt(row.chef_projet_id),
-      chef_projet: row.manager_name ? {
-        id: parseInt(row.chef_projet_id),
+      manager_id: row.manager_id,
+      manager: row.manager_name ? {
+        id: row.manager_id,
         name: row.manager_name,
         email: row.manager_email
       } : null
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
 
     // Transform to match frontend expectations
     const transformedProject = {
-      id: parseInt(createdProject.id),
+      id: createdProject.id,
       title: createdProject.title,
       description: createdProject.description,
       start_date: createdProject.start_date,
@@ -233,9 +233,9 @@ export async function POST(request: NextRequest) {
               createdProject.status === 'ON_HOLD' ? 'en_pause' :
               createdProject.status === 'COMPLETED' ? 'termine' :
               createdProject.status === 'CANCELLED' ? 'annule' : 'planifie',
-      chef_projet_id: parseInt(createdProject.manager_id),
-      chef_projet: createdProject.manager_name ? {
-        id: parseInt(createdProject.manager_id),
+      manager_id: createdProject.manager_id,
+      manager: createdProject.manager_name ? {
+        id: createdProject.manager_id,
         name: createdProject.manager_name,
         email: createdProject.manager_email
       } : null

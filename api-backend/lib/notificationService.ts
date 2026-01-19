@@ -20,7 +20,7 @@ export interface NotificationContext {
     id: string;
     name: string;
     email: string;
-    role: 'ADMIN' | 'PROJECT_MANAGER' | 'EMPLOYEE';
+    role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
   };
   entity: {
     type: 'task' | 'project' | 'stage';
@@ -44,7 +44,7 @@ async function determineRecipients(context: NotificationContext): Promise<string
   const recipients = new Set<string>();
   const { performedBy, affectedUsers, projectId } = context;
 
-  // Récupérer le chef de projet si nécessaire
+  // Récupérer le manager si nécessaire
   let projectManager: any = null;
   if (projectId) {
     const { rows: projectRows } = await db.query(
@@ -64,7 +64,7 @@ async function determineRecipients(context: NotificationContext): Promise<string
   // Règles de notification selon le rôle de celui qui fait l'action
   switch (performedBy.role) {
     case 'EMPLOYEE':
-      // Employé → Email à : Employé + Chef de projet + Admin
+      // Employé → Email à : Employé + Manager + Admin
       recipients.add(performedBy.email);
       if (projectManager) {
         recipients.add(projectManager.email);
@@ -72,8 +72,8 @@ async function determineRecipients(context: NotificationContext): Promise<string
       adminEmails.forEach(email => recipients.add(email));
       break;
 
-    case 'PROJECT_MANAGER':
-      // Chef de projet → Email à : Chef + Admin + (Employés concernés si applicable)
+    case 'MANAGER':
+      // Manager → Email à : Manager + Admin + (Employés concernés si applicable)
       recipients.add(performedBy.email);
       adminEmails.forEach(email => recipients.add(email));
 
@@ -91,7 +91,7 @@ async function determineRecipients(context: NotificationContext): Promise<string
       // Admin → Email à : Admin + (Personnes concernées si applicable)
       recipients.add(performedBy.email);
 
-      // Ajouter les personnes concernées (employés ou chefs de projet)
+      // Ajouter les personnes concernées (employés ou managers)
       if (affectedUsers && affectedUsers.length > 0) {
         affectedUsers.forEach(user => recipients.add(user.email));
       }

@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
     
     await sendActionNotification({
       actionType: task.assigned_to_id ? 'TASK_ASSIGNED' : 'TASK_CREATED',
-      performedBy: { id: user.id, name: user.name || 'Utilisateur', email: user.email, role: user.role as 'ADMIN' | 'PROJECT_MANAGER' | 'EMPLOYEE' },
+      performedBy: { id: user.id, name: user.name || 'Utilisateur', email: user.email, role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' },
       entity: { type: 'task', id: task.id, data: task },
       affectedUsers: assignedUser ? [assignedUser] : [],
       projectId: task.project_id,

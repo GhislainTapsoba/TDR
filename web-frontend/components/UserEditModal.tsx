@@ -157,12 +157,12 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
             >
               <option value="employe">Employé</option>
-              <option value="manager">Chef de Projet</option>
+              <option value="manager">Manager</option>
               <option value="admin">Administrateur</option>
             </select>
             <div className="mt-2 text-xs text-gray-600 space-y-1">
               <p>• <strong>Employé</strong> : Accès de base, peut gérer ses tâches</p>
-              <p>• <strong>Chef de Projet</strong> : Peut gérer des projets et des équipes</p>
+              <p>• <strong>Manager</strong> : Peut gérer des projets et des équipes</p>
               <p>• <strong>Administrateur</strong> : Accès complet à toutes les fonctionnalités</p>
             </div>
           </div>

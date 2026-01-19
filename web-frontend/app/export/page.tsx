@@ -41,7 +41,7 @@ const exportOptions: ExportOption[] = [
     name: "Projets",
     description: "Exporter tous les projets avec leurs détails",
     icon: FolderKanban,
-    fields: ["Nom", "Description", "Statut", "Chef de projet", "Date de début", "Date de fin", "Budget"],
+    fields: ["Nom", "Description", "Statut", "Manager", "Date de début", "Date de fin", "Budget"],
   },
   {
     id: "tasks",

@@ -58,7 +58,7 @@ export async function POST(
 
     const recipients: Array<{ id: number; email: string; name: string }> = [];
     if (project.creator_email) {
-      recipients.push({ id: project.creator_id, email: project.creator_email, name: project.creator_name || 'Chef de projet' });
+      recipients.push({ id: project.creator_id, email: project.creator_email, name: project.creator_name || 'Manager' });
     }
     if (admins && admins.length > 0) {
       const admin = admins[0];

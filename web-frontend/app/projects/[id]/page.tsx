@@ -227,7 +227,7 @@ export default function ProjectDetailPage() {
             </div>
             
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {/* Chef de projet */}
+              {/* Manager */}
               {project.manager && (
                 <Card className="border-primary/20">
                   <CardContent className="p-6">
@@ -240,7 +240,7 @@ export default function ProjectDetailPage() {
                             <p className="font-medium text-foreground truncate">
                                 {project.manager.name}
                             </p>
-                            <Badge variant="outline" className="text-xs">Chef</Badge>
+                            <Badge variant="outline" className="text-xs">Manager</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground">Manager</p>
                             <p className="text-xs text-muted-foreground truncate">

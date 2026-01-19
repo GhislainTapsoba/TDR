@@ -83,7 +83,7 @@ export default function UserViewPage() {
 
   const roleLabels = {
     admin: "Administrateur",
-    manager: "Chef de projet",
+    manager: "Manager",
     employe: "Employé",
   }
 

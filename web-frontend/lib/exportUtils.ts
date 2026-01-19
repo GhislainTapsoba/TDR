@@ -136,7 +136,7 @@ export function exportUsersToPDF(users: User[]) {
   doc.setFontSize(11);
   doc.text('Résumé:', 14, 40);
   doc.setFontSize(9);
-  doc.text(`Total: ${stats.total} | Administrateurs: ${stats.admins} | Chefs de Projet: ${stats.managers} | Employés: ${stats.users}`, 14, 46);
+  doc.text(`Total: ${stats.total} | Administrateurs: ${stats.admins} | Managers: ${stats.managers} | Employés: ${stats.users}`, 14, 46);
 
   // Table
   const tableData = users.map(u => [
@@ -452,7 +452,7 @@ function getPriorityLabel(priority: string): string {
 function getRoleLabel(role: string): string {
   const labels: Record<string, string> = {
     admin: 'Administrateur',
-    manager: 'Chef de Projet',
+    manager: 'Manager',
     user: 'Employé',
   };
   return labels[role] || role;
