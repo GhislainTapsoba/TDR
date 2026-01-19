@@ -57,6 +57,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# Installer curl pour les health checks
+RUN apk add --no-cache curl
+
 # Copier les fichiers de configuration
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.* ./
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
