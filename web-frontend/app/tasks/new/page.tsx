@@ -175,10 +175,10 @@ export default function NewTaskPage() {
         description: formData.description,
         project_id: formData.project_id,
         stage_id: stageId, // Always send a valid stage_id
-        priority: formData.priority,
+        priority: formData.priority.toUpperCase(),
         due_date: formData.due_date || null,
         assignee_ids: formData.assignee_ids,
-        status: "a_faire",
+        status: "TODO",
       }
 
       console.log("[v0] Task payload:", payload)

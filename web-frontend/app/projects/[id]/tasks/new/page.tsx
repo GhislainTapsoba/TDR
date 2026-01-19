@@ -25,7 +25,7 @@ interface UserType {
 }
 
 interface Project {
-  id: number
+  id: string
   title: string
   description: string
   status: string
@@ -113,7 +113,10 @@ export default function NewTaskPage() {
     try {
       const response = await api.getProjectStages(projectId)
       const stagesData = (response as any).data || []
+      console.log("[NewTaskPage] Stages data received:", stagesData); // Log stages data
       setStages(stagesData)
+      console.log("[NewTaskPage] Stages after setting state:", stagesData); // Log stages state
+
 
       if (stagesData.length > 0) {
         setFormData((prev) => ({ ...prev, stage_id: stagesData[0].id.toString() }))
@@ -148,8 +151,8 @@ export default function NewTaskPage() {
     setLoading(true)
 
     try {
-      console.log("[v0] Form data:", formData)
-      console.log("[v0] Available stages:", stages)
+      console.log("[NewTaskPage] handleSubmit - formData.project_id:", formData.project_id);
+      console.log("[NewTaskPage] handleSubmit - stages.length:", stages.length);
 
       // Vérifier qu'un projet est sélectionné
       if (!formData.project_id) {
@@ -181,10 +184,14 @@ export default function NewTaskPage() {
       } else {
         // Utiliser la première étape disponible
         stageId = stages[0].id
+        console.log("[NewTaskPage] handleSubmit - Defaulting stageId to:", stageId);
       }
+      console.log("[NewTaskPage] handleSubmit - determined stageId:", stageId);
+
 
       // Vérifier que le stage_id est valide
       const selectedStage = stages.find((stage) => stage.id === stageId)
+      console.log("[NewTaskPage] handleSubmit - selectedStage:", selectedStage);
       if (!selectedStage) {
         toast({
           title: "Erreur",
@@ -200,10 +207,10 @@ export default function NewTaskPage() {
         description: formData.description,
         project_id: formData.project_id,
         stage_id: stageId, // Always send a valid stage_id
-        priority: formData.priority,
+        priority: formData.priority.toUpperCase(),
         due_date: formData.due_date || null,
         assignee_ids: formData.assignee_ids,
-        status: "a_faire",
+        status: "TODO",
       }
 
       console.log("[v0] Task payload:", payload)

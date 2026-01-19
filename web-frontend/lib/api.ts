@@ -55,6 +55,7 @@ api.interceptors.response.use(
 (api as any).getUsers = (params?: Record<string, unknown>) => api.get('/users', { params });
 (api as any).getProjectStages = (projectId: string | number) => api.get('/stages', { params: { project_id: projectId } });
 (api as any).updateUser = (id: string, data: Partial<User>) => api.put(`/users/${id}`, data);
+(api as any).createTask = (data: any) => api.post('/tasks', data);
 
 // Types
 export interface Project {
