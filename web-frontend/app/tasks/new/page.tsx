@@ -18,24 +18,24 @@ import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
 
 interface UserType {
-  id: number
+  id: string
   name: string
   email: string
   role: string
 }
 
 interface Project {
-  id: number
+  id: string
   title: string
   description: string
   status: string
 }
 
 interface Stage {
-  id: number
+  id: string
   name: string
   description: string
-  project_id: number
+  project_id: string
 }
 
 export default function NewTaskPage() {
@@ -55,7 +55,7 @@ export default function NewTaskPage() {
     stage_id: "",
     priority: "medium" as "low" | "medium" | "high",
     due_date: "",
-    assigned_to: "",
+    assignee_ids: [] as string[],
   })
 
   useEffect(() => {
@@ -66,8 +66,8 @@ export default function NewTaskPage() {
     try {
       const [projectsResponse, usersResponse] = await Promise.all([api.getProjects(), api.getUsers()])
 
-      setProjects((projectsResponse as any).data || [])
-      setUsers((usersResponse as any).data || [])
+      setProjects(projectsResponse.projects || [])
+      setUsers(usersResponse.data || [])
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error)
       toast({
@@ -86,7 +86,7 @@ export default function NewTaskPage() {
 
     setLoadingStages(true)
     try {
-      const response = await api.getProjectStages(Number.parseInt(projectId))
+      const response = await api.getProjectStages(projectId)
       const stagesData = (response as any).data || []
       setStages(stagesData)
 
@@ -108,6 +108,15 @@ export default function NewTaskPage() {
     setFormData((prev) => ({ ...prev, project_id: projectId, stage_id: "" }))
     loadProjectStages(projectId)
   }
+
+  const handleAssigneeToggle = (userId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      assignee_ids: prev.assignee_ids.includes(userId)
+        ? prev.assignee_ids.filter((id) => id !== userId)
+        : [...prev.assignee_ids, userId],
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -141,9 +150,9 @@ export default function NewTaskPage() {
       }
 
       // Déterminer le stage_id à utiliser
-      let stageId: number
+      let stageId: string
       if (formData.stage_id && formData.stage_id !== "") {
-        stageId = Number.parseInt(formData.stage_id)
+        stageId = formData.stage_id
       } else {
         // Utiliser la première étape disponible
         stageId = stages[0].id
@@ -164,11 +173,11 @@ export default function NewTaskPage() {
       const payload: any = {
         title: formData.title,
         description: formData.description,
-        project_id: Number.parseInt(formData.project_id),
+        project_id: formData.project_id,
         stage_id: stageId, // Always send a valid stage_id
         priority: formData.priority,
         due_date: formData.due_date || null,
-        assigned_to: formData.assigned_to ? Number.parseInt(formData.assigned_to) : null,
+        assignee_ids: formData.assignee_ids,
         status: "a_faire",
       }
 
@@ -342,27 +351,24 @@ export default function NewTaskPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="assigned_to">Assigner à</Label>
-                <Select
-                  value={formData.assigned_to}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, assigned_to: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un utilisateur (optionnel)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users
-                      .filter((u) => u.role === "employe" || u.role === "manager")
-                      .map((user) => (
-                        <SelectItem key={user.id} value={user.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <User className="h-3 w-3" />
-                            {user.name} ({user.email})
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <Label>Assigner à</Label>
+                <div className="border rounded-md p-2 h-40 overflow-y-auto">
+                  {users
+                    .filter((u) => u.role === "employe" || u.role === "manager")
+                    .map((user) => (
+                      <div key={user.id} className="flex items-center space-x-2 p-1">
+                        <input
+                          type="checkbox"
+                          id={`assignee-${user.id}`}
+                          checked={formData.assignee_ids.includes(user.id)}
+                          onChange={() => handleAssigneeToggle(user.id)}
+                        />
+                        <Label htmlFor={`assignee-${user.id}`} className="font-normal">
+                          {user.name} ({user.email})
+                        </Label>
+                      </div>
+                    ))}
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { api } from "@/lib/api"
+import { api, tasksApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -107,14 +107,16 @@ export default function ProjectDetailPage() {
   const { user } = useAuth()
   const [project, setProject] = useState<Project | null>(null)
   const [stages, setStages] = useState<Stage[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async (id: string) => {
     setLoading(true);
     try {
-      const [projectResponse, stagesResponse] = await Promise.all([
+      const [projectResponse, stagesResponse, tasksResponse] = await Promise.all([
         api.getProject(id),
-        api.getProjectStages(id)
+        api.getProjectStages(id),
+        tasksApi.getAll({ project_id: id })
       ]);
 
       if (projectResponse?.data) {
@@ -129,6 +131,13 @@ export default function ProjectDetailPage() {
       } else {
         console.warn("Stages data not in expected format, setting to empty array.");
         setStages([]);
+      }
+
+      if (tasksResponse?.data) {
+        setTasks(tasksResponse.data);
+      } else {
+        console.warn("Tasks data not in expected format, setting to empty array.");
+        setTasks([]);
       }
 
     } catch (error) {
@@ -207,15 +216,149 @@ export default function ProjectDetailPage() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            {/* ... Overview content remains the same */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Description du Projet</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{project.description}</p>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Informations Clés</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Manager</span>
+                    <span>{project.manager?.name || "Non assigné"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Date de début</span>
+                    <span>{format(new Date(project.start_date), "dd MMM yyyy", { locale: fr })}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Date de fin</span>
+                    <span>{format(new Date(project.end_date), "dd MMM yyyy", { locale: fr })}</span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Progression</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Progression globale</span>
+                      <span className="text-foreground font-medium">{project.stats.progress_percentage}%</span>
+                    </div>
+                    <Progress value={project.stats.progress_percentage} />
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tâches totales</span>
+                    <span>{project.stats.total_tasks}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tâches terminées</span>
+                    <span>{project.stats.completed_tasks}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Étapes terminées</span>
+                    <span>{project.stats.completed_stages} / {project.stats.total_stages}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="stages" className="space-y-6">
-            {/* ... Stages content remains the same */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">Étapes du projet</h3>
+              {canEdit && (
+                <Link href={`/projects/${project.id}/stages/new`}>
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouvelle étape
+                  </Button>
+                </Link>
+              )}
+            </div>
+            <div className="space-y-4">
+              {stages.map((stage) => (
+                <Card key={stage.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>{stage.name}</CardTitle>
+                      <Badge>{stage.status}</Badge>
+                    </div>
+                    <CardDescription>{stage.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Progression des tâches</span>
+                        <span className="text-foreground font-medium">{getTaskProgress(stage).percentage}%</span>
+                      </div>
+                      <Progress value={getTaskProgress(stage).percentage} />
+                      <span className="text-xs text-muted-foreground">
+                        {getTaskProgress(stage).completed} / {getTaskProgress(stage).total} tâches terminées
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {stages.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Aucune étape définie pour ce projet.</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="tasks" className="space-y-6">
-            {/* ... Tasks content remains the same */}
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground">Tâches du projet</h3>
+              {canEdit && (
+                <Link href={`/projects/${project.id}/tasks/new`}>
+                  <Button variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouvelle tâche
+                  </Button>
+                </Link>
+              )}
+            </div>
+            <div className="space-y-4">
+              {tasks.map((task) => (
+                <Card key={task.id}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>{task.title}</CardTitle>
+                      <Badge className={priorityColors[task.priority as keyof typeof priorityColors] || priorityColors.medium}>
+                        {task.priority}
+                      </Badge>
+                    </div>
+                    <CardDescription>{task.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Assigné à: {task.assignedUser?.name || "Non assigné"}</p>
+                      <p className="text-sm text-muted-foreground">Statut: {taskStatusLabels[task.status as keyof typeof taskStatusLabels] || task.status}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Échéance: {task.due_date ? format(new Date(task.due_date), "dd MMM yyyy", { locale: fr }) : "N/A"}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {tasks.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Aucune tâche définie pour ce projet.</p>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="team" className="space-y-6">

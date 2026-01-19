@@ -35,10 +35,12 @@ export async function GET(request: NextRequest) {
 
     const baseQuery = `
       SELECT t.*, 
-             a.name as assigned_to_name, 
-             c.name as created_by_name 
+             c.name as created_by_name,
+             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email)) 
+              FROM task_assignees ta
+              JOIN users u ON ta.user_id = u.id
+              WHERE ta.task_id = t.id) as assignees
       FROM tasks t 
-      LEFT JOIN users a ON t.assigned_to_id = a.id 
       LEFT JOIN users c ON t.created_by_id = c.id
     `;
     const whereClauses: string[] = [];
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
 
       const accessibleProjectIds = [...new Set([...memberProjectIds, ...managedProjectIds])];
 
-      let accessControlClause = `t.assigned_to_id = $${paramIndex++}`;
+      let accessControlClause = `EXISTS (SELECT 1 FROM task_assignees ta WHERE ta.task_id = t.id AND ta.user_id = $${paramIndex++})`;
       queryParams.push(user.id);
 
       if (accessibleProjectIds.length > 0) {
@@ -108,12 +110,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const { title, description, status, priority, due_date, assignee_ids, project_id, stage_id } = body;
 
-    if (!body.title || !body.project_id) {
+    if (!title || !project_id) {
       return corsResponse({ error: 'Le titre et le project_id sont requis' }, request, { status: 400 });
     }
 
-    const { rows: projectRows } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [body.project_id]);
+    const { rows: projectRows } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [project_id]);
     if (projectRows.length === 0) {
       return corsResponse({ error: 'Projet introuvable' }, request, { status: 404 });
     }
@@ -124,86 +127,100 @@ export async function POST(request: NextRequest) {
     }
 
     const insertQuery = `
-      INSERT INTO tasks (title, description, status, priority, due_date, assigned_to_id, project_id, stage_id, created_by_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO tasks (title, description, status, priority, due_date, project_id, stage_id, created_by_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
     const { rows: taskRows } = await db.query(insertQuery, [
-      body.title,
-      body.description || null,
-      body.status || 'TODO',
-      body.priority || 'MEDIUM',
-      body.due_date || null,
-      body.assigned_to_id || null,
-      body.project_id,
-      body.stage_id || null,
+      title,
+      description || null,
+      status || 'TODO',
+      priority || 'MEDIUM',
+      due_date || null,
+      project_id,
+      stage_id || null,
       userId,
     ]);
     const task = taskRows[0];
 
-    // Get all details for notifications in one go
-    const { rows: detailsRows } = await db.query(`
-      SELECT 
-        p.name as project_name, 
-        p.title as project_title,
-        u.id as user_id, 
-        u.name as user_name, 
-        u.email as user_email, 
-        u.role as user_role
-      FROM projects p
-      LEFT JOIN users u ON u.id = $1
-      WHERE p.id = $2
-    `, [task.assigned_to_id, task.project_id]);
+    let assignedUsers: any[] = [];
+    if (assignee_ids && Array.isArray(assignee_ids) && assignee_ids.length > 0) {
+      const insertAssigneesQuery = `
+        INSERT INTO task_assignees (task_id, user_id)
+        SELECT $1, user_id FROM unnest($2::uuid[]) AS user_id
+      `;
+      await db.query(insertAssigneesQuery, [task.id, assignee_ids]);
 
-    const details = detailsRows[0] || {};
-    const assignedUser = task.assigned_to_id ? {
-      id: details.user_id,
-      name: details.user_name,
-      email: details.user_email,
-      role: details.user_role
-    } : null;
-
-    let confirmationToken: string | null = null;
-    if (task.assigned_to_id && assignedUser) {
-      confirmationToken = await createConfirmationToken({
-        type: 'TASK_ASSIGNMENT',
-        userId: task.assigned_to_id,
-        entityType: 'task',
-        entityId: task.id,
-        metadata: {
-          task_title: task.title,
-          project_name: details.project_title || details.project_name || 'Projet'
-        }
-      });
-
-      await db.query(`
-        INSERT INTO notifications (user_id, type, title, message, metadata)
-        VALUES ($1, 'TASK_ASSIGNED', 'Nouvelle tâche assignée', $2, $3)
-      `, [
-        task.assigned_to_id,
-        `Vous avez été assigné à la tâche: ${task.title}`,
-        JSON.stringify({ task_id: task.id, project_id: task.project_id, priority: task.priority })
-      ]);
+      const { rows: usersRows } = await db.query(
+        'SELECT id, name, email, role FROM users WHERE id = ANY($1::uuid[])',
+        [assignee_ids]
+      );
+      assignedUsers = usersRows;
     }
-    
-    await sendActionNotification({
-      actionType: task.assigned_to_id ? 'TASK_ASSIGNED' : 'TASK_CREATED',
-      performedBy: { id: user.id, name: user.name || 'Utilisateur', email: user.email, role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' },
-      entity: { type: 'task', id: task.id, data: task },
-      affectedUsers: assignedUser ? [assignedUser] : [],
-      projectId: task.project_id,
-      metadata: {
-        projectName: details.project_title || details.project_name || 'Projet',
-        assigneeName: assignedUser?.name || 'Utilisateur',
-        confirmationToken
+
+    // Get project details for notifications
+    const { rows: detailsRows } = await db.query(
+      'SELECT name as project_name, title as project_title FROM projects WHERE id = $1',
+      [task.project_id]
+    );
+    const details = detailsRows[0] || {};
+
+    if (assignedUsers.length > 0) {
+      for (const assignedUser of assignedUsers) {
+        const confirmationToken = await createConfirmationToken({
+          type: 'TASK_ASSIGNMENT',
+          userId: assignedUser.id,
+          entityType: 'task',
+          entityId: task.id,
+          metadata: {
+            task_title: task.title,
+            project_name: details.project_title || details.project_name || 'Projet',
+          },
+        });
+
+        await db.query(
+          `INSERT INTO notifications (user_id, type, title, message, metadata)
+           VALUES ($1, 'TASK_ASSIGNED', 'Nouvelle tâche assignée', $2, $3)`,
+          [
+            assignedUser.id,
+            `Vous avez été assigné à la tâche: ${task.title}`,
+            JSON.stringify({ task_id: task.id, project_id: task.project_id, priority: task.priority }),
+          ]
+        );
+
+        await sendActionNotification({
+          actionType: 'TASK_ASSIGNED',
+          performedBy: { id: user.id, name: user.name || 'Utilisateur', email: user.email, role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' },
+          entity: { type: 'task', id: task.id, data: task },
+          affectedUsers: [assignedUser],
+          projectId: task.project_id,
+          metadata: {
+            projectName: details.project_title || details.project_name || 'Projet',
+            assigneeName: assignedUser.name || 'Utilisateur',
+            confirmationToken,
+          },
+        });
       }
-    });
+    } else {
+        await sendActionNotification({
+            actionType: 'TASK_CREATED',
+            performedBy: { id: user.id, name: user.name || 'Utilisateur', email: user.email, role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' },
+            entity: { type: 'task', id: task.id, data: task },
+            projectId: task.project_id,
+            metadata: {
+              projectName: details.project_title || details.project_name || 'Projet',
+            }
+        });
+    }
 
     // Finally, get the full task with names for the response
     const { rows: finalTaskRows } = await db.query(`
-      SELECT t.*, a.name as assigned_to_name, c.name as created_by_name 
+      SELECT t.*, c.name as created_by_name,
+             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name)) 
+              FROM task_assignees ta
+              JOIN users u ON ta.user_id = u.id
+              WHERE ta.task_id = t.id) as assignees
       FROM tasks t 
-      LEFT JOIN users a ON t.assigned_to_id = a.id 
       LEFT JOIN users c ON t.created_by_id = c.id
       WHERE t.id = $1
     `, [task.id]);
