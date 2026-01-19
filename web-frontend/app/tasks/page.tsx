@@ -85,7 +85,7 @@ export default function TasksPage() {
   const fetchTasks = async () => {
     try {
       const response = await tasksApi.getAll();
-      setTasks(response.data as any || []);
+      setTasks((response.data as any || []).filter(Boolean));
       setError(null);
     } catch (error) {
       console.error("Erreur lors du chargement des tâches:", error)
@@ -98,7 +98,7 @@ export default function TasksPage() {
   const updateTaskStatus = useCallback(async (taskId: number, newStatus: string) => {
     try {
       await tasksApi.update(taskId.toString(), { status: newStatus });
-      setTasks(tasks.map((task) => (task.id === taskId ? { ...task, status: newStatus as any } : task)))
+      setTasks(tasks.filter(Boolean).map((task) => (task.id === taskId ? { ...task, status: newStatus as any } : task)))
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error)
     }
@@ -213,7 +213,7 @@ export default function TasksPage() {
           </div>
 
           <div className="grid gap-4">
-            {filteredTasks.map((task) => (
+            {Array.isArray(filteredTasks) && filteredTasks.filter(Boolean).map((task) => (
               <Card
                 key={task.id}
                 className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
