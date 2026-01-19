@@ -24,7 +24,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
     due_date: '',
     project_id: defaultProjectId || '',
     stage_id: '',
-    assigned_to_id: '',
+    assignee_ids: [] as string[],
   });
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);

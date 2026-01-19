@@ -216,7 +216,7 @@ export default function NewProjectPage() {
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="start_date">Date de début *</Label>
                   <Input
@@ -235,6 +235,15 @@ export default function NewProjectPage() {
                     value={formData.end_date}
                     onChange={(e) => setFormData((prev) => ({ ...prev, end_date: e.target.value }))}
                     required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="due_date">Date d'échéance</Label>
+                  <Input
+                    id="due_date"
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, due_date: e.target.value }))}
                   />
                 </div>
               </div>

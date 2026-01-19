@@ -31,6 +31,8 @@ const projectSchema = z.object({
   description: z.string().optional(),
   start_date: z.date({ required_error: "La date de début est requise." }),
   end_date: z.date({ required_error: "La date de fin est requise." }),
+  due_date: z.date().optional(),
+  status: z.string().optional(),
   manager_id: z.string().min(1, "Le manager est requis"),
   team_members: z.array(z.number()).optional(),
   stages: z.array(z.object({
@@ -71,6 +73,7 @@ export function ProjectCreateModal({ isOpen, onClose, onProjectCreated }: Projec
     defaultValues: {
       title: "",
       description: "",
+      status: "PLANNING",
       manager_id: "",
       team_members: [],
     },
@@ -99,6 +102,8 @@ export function ProjectCreateModal({ isOpen, onClose, onProjectCreated }: Projec
         ...values,
         start_date: values.start_date.toISOString().split('T')[0],
         end_date: values.end_date.toISOString().split('T')[0],
+        due_date: values.due_date ? values.due_date.toISOString().split('T')[0] : undefined,
+        status: values.status || 'PLANNING',
         team_members: values.team_members || [],
         stages: stages.length > 0 ? stages : undefined,
       }
@@ -264,6 +269,70 @@ export function ProjectCreateModal({ isOpen, onClose, onProjectCreated }: Projec
                         />
                       </PopoverContent>
                     </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="due_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Date d'échéance</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP", { locale: fr })
+                            ) : (
+                              <span>Choisissez une date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) => date < new Date("1900-01-01")}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Statut</FormLabel>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un statut" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="PLANNING">Planification</SelectItem>
+                        <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                        <SelectItem value="COMPLETED">Terminé</SelectItem>
+                        <SelectItem value="CANCELLED">Annulé</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

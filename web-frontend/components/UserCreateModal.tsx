@@ -20,6 +20,7 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
     email: '',
     password: '',
     role: 'EMPLOYEE',
+    is_active: true,
   });
   const [loading, setLoading] = useState(false);
 
@@ -35,18 +36,19 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
     const toastId = toast.loading("Création de l'utilisateur en cours...");
 
     try {
-      // Le backend attend 'manager', 'admin', 'user' mais stocke 'PROJECT_MANAGER', 'ADMIN', 'EMPLOYEE'
+      // Le backend attend 'manager', 'admin', 'employe' mais stocke 'PROJECT_MANAGER', 'ADMIN', 'EMPLOYEE'
       const roleMapping: Record<string, string> = {
         'ADMIN': 'admin',
         'MANAGER': 'manager',
-        'EMPLOYEE': 'user',
+        'EMPLOYEE': 'employe',
       };
 
       await usersApi.create({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: roleMapping[formData.role] || 'user',
+        role: roleMapping[formData.role] || 'employe',
+        is_active: formData.is_active,
       });
 
       toast.success('Utilisateur créé avec succès !', { id: toastId });
@@ -55,6 +57,7 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
         email: '',
         password: '',
         role: 'EMPLOYEE',
+        is_active: true,
       });
       onSuccess();
       onClose();
@@ -159,6 +162,23 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
               <p>• <strong>Employé</strong> : Accès de base, peut gérer ses tâches</p>
               <p>• <strong>Manager</strong> : Peut gérer des projets et des équipes</p>
               <p>• <strong>Administrateur</strong> : Accès complet à toutes les fonctionnalités</p>
+            </div>
+          </div>
+
+          {/* Actif */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Shield size={18} />
+              Actif
+            </label>
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500"
+              />
+              <label className="ml-2 text-sm text-gray-700">Utilisateur actif</label>
             </div>
           </div>
 

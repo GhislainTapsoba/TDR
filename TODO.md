@@ -1,8 +1,11 @@
-# Fix React Error #300 in Tasks Page
+# TODO: Ajuster les modals et pages selon la base de données
 
-## Steps to Complete
-- [x] Import useCallback and useMemo from React in web-frontend/app/tasks/page.tsx
-- [x] Move isOverdue function outside the component
-- [x] Memoize updateTaskStatus with useCallback
-- [x] Memoize filteredTasks with useMemo
-- [x] Test the changes in dev mode
+## Tâches à accomplir
+- [x] Modifier UserCreateModal.tsx : Ajouter champ `is_active`, corriger mapping rôles
+- [x] Modifier ProjectCreateModal.tsx : Ajouter champs `due_date` et `status`
+- [x] Modifier projects/new/page.tsx : Ajouter champ `due_date` dans l'UI
+- [ ] Tester les modifications
+- [ ] Vérifier cohérence avec APIs backend
+
+## Progression
+- Tous les modals et pages ajustés selon la base de données
