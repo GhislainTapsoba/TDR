@@ -29,9 +29,18 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status');
 
     let queryText = `
-      SELECT DISTINCT p.id, p.title, p.description, p.status, p.start_date, p.due_date,
-             p.manager_id, p.created_by_id, p.created_at, p.updated_at,
-             u.name as manager_name, cu.name as created_by_name
+      SELECT DISTINCT p.id, p.title, p.description,
+             CASE
+               WHEN p.status = 'PLANNING' THEN 'planifie'
+               WHEN p.status = 'IN_PROGRESS' THEN 'en_cours'
+               WHEN p.status = 'ON_HOLD' THEN 'en_pause'
+               WHEN p.status = 'COMPLETED' THEN 'termine'
+               WHEN p.status = 'CANCELLED' THEN 'annule'
+               ELSE 'planifie'
+             END as status,
+             p.start_date, p.end_date, p.due_date,
+             p.manager_id as chef_projet_id, p.created_by_id, p.created_at, p.updated_at,
+             u.name as manager_name, u.email as manager_email, cu.name as created_by_name
       FROM projects p
       LEFT JOIN users u ON p.manager_id = u.id
       LEFT JOIN users cu ON p.created_by_id = cu.id
@@ -116,7 +125,23 @@ export async function GET(request: NextRequest) {
 
     const { rows } = await db.query(queryText, queryParams);
 
-    return corsResponse(rows, request);
+    // Transform data to match frontend expectations
+    const transformedRows = rows.map(row => ({
+      id: parseInt(row.id),
+      title: row.title,
+      description: row.description,
+      start_date: row.start_date,
+      end_date: row.end_date,
+      status: row.status,
+      chef_projet_id: parseInt(row.chef_projet_id),
+      chef_projet: row.manager_name ? {
+        id: parseInt(row.chef_projet_id),
+        name: row.manager_name,
+        email: row.manager_email
+      } : null
+    }));
+
+    return corsResponse(transformedRows, request);
   } catch (error) {
     console.error('GET /api/projects error:', error);
     return corsResponse(
@@ -143,12 +168,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, status, start_date, due_date, manager_id } = body;
+    const { title, description, start_date, end_date, due_date, manager_id, status = 'PLANNING' } = body;
 
     // Validation
-    if (!title || !status) {
+    if (!title) {
       return corsResponse(
-        { error: 'Le titre et le statut sont requis' },
+        { error: 'Le titre est requis' },
         request,
         { status: 400 }
       );
@@ -169,15 +194,16 @@ export async function POST(request: NextRequest) {
     }
 
     const insertQuery = `
-      INSERT INTO projects (title, description, status, start_date, due_date, manager_id, created_by_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, title, description, status, start_date, due_date, manager_id, created_by_id, created_at, updated_at
+      INSERT INTO projects (title, description, status, start_date, end_date, due_date, manager_id, created_by_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING id, title, description, status, start_date, end_date, due_date, manager_id, created_by_id, created_at, updated_at
     `;
     const { rows } = await db.query(insertQuery, [
       title,
       description || null,
       status,
       start_date || null,
+      end_date || null,
       due_date || null,
       finalManagerId || null,
       user.id
