@@ -9,7 +9,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Calendar, User, CheckCircle, Clock, Circle } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Search, Calendar, User, CheckCircle, Clock, Circle, MoreVertical, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 
 interface Stage {
@@ -142,8 +143,7 @@ export default function StagesPage() {
           <div className="grid gap-4">
             {Array.isArray(filteredStages) &&
               filteredStages.filter(Boolean).map((stage) => (
-              <Link key={stage.id} href={`/stages/${stage.id}/view`}>
-                <Card
+                <Card key={stage.id}
                   className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
                 >
                 <CardContent className="p-6">
@@ -186,7 +186,7 @@ export default function StagesPage() {
                         <Badge className={statusColors[stage.status]}>{statusLabels[stage.status]}</Badge>
                       </div>
 
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-2">
                         {stage.status === "COMPLETED" ? (
                           <CheckCircle className="h-6 w-6 text-emerald-400" />
                         ) : stage.status === "IN_PROGRESS" ? (
@@ -194,13 +194,32 @@ export default function StagesPage() {
                         ) : (
                           <Circle className="h-6 w-6 text-slate-400" />
                         )}
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" onClick={(e) => e.preventDefault()}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/stages/${stage.id}/view`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Voir/Modifier
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>
                 </CardContent>
                 </Card>
-              </Link>
-            ))}
+              ))}
           </div>
 
           {filteredStages.length === 0 && (

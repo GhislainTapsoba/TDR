@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { ArrowLeft, Edit, Users, Calendar, BarChart3, CheckCircle, Clock, AlertTriangle, Plus } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ArrowLeft, Edit, Users, Calendar, BarChart3, CheckCircle, Clock, AlertTriangle, Plus, MoreVertical, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -66,11 +67,11 @@ interface Task {
   priority: string
   due_date: string | null
   assigned_to: string | null
-  assignedUser: {
+  assignees: {
     id: string
     name: string
     email: string
-  } | null
+  }[]
 }
 
 const statusLabels = {
@@ -302,7 +303,38 @@ export default function ProjectDetailPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>{stage.name}</CardTitle>
-                      <Badge>{stage.status}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge>{stage.status}</Badge>
+                        {canEdit && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link href={`/projects/${project.id}/stages/${stage.id}/edit`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Modifier
+                                </Link>
+                              </DropdownMenuItem>
+                              {stage.status !== 'COMPLETED' && (
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/projects/${project.id}/stages/${stage.id}/complete`}>
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Marquer comme terminée
+                                  </Link>
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
                     <CardDescription>{stage.description}</CardDescription>
                   </CardHeader>
@@ -355,7 +387,7 @@ export default function ProjectDetailPage() {
                   </CardHeader>
                   <CardContent className="flex justify-between items-center">
                     <div>
-                      <p className="text-sm text-muted-foreground">Assigné à: {task.assignedUser?.name || "Non assigné"}</p>
+                    <p className="text-sm text-muted-foreground">Assigné à: {task.assignees && task.assignees.length > 0 ? task.assignees.map(a => a.name).join(', ') : "Non assigné"}</p>
                       <p className="text-sm text-muted-foreground">Statut: {taskStatusLabels[task.status as keyof typeof taskStatusLabels] || task.status}</p>
                     </div>
                     <div>

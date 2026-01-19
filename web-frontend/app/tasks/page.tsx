@@ -9,7 +9,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Calendar, User, AlertTriangle, CheckCircle, Clock } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Search, Calendar, User, AlertTriangle, CheckCircle, Clock, MoreVertical, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -167,8 +168,7 @@ export default function TasksPage() {
               <h1 className="text-3xl font-bold text-foreground">Tâches</h1>
               <p className="text-muted-foreground">Gérez et suivez toutes vos tâches</p>
             </div>
-            {/* @ts-ignore */}
-            {(user?.role === "admin" || user?.role === "manager") && (
+            {hasPermission(authUser?.permissions || [], 'tasks.create') && (
               <Link href="/tasks/new">
                 <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
@@ -279,7 +279,7 @@ export default function TasksPage() {
                         </Select>
                       </div>
 
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-2">
                         {task.status === "termine" ? (
                           <CheckCircle className="h-6 w-6 text-emerald-400" />
                         ) : task.status === "en_cours" ? (
@@ -287,6 +287,30 @@ export default function TasksPage() {
                         ) : (
                           <div className="h-6 w-6 rounded-full border-2 border-muted-foreground" />
                         )}
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {hasPermission(authUser?.permissions || [], 'tasks.update') && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/tasks/${task.id}/edit`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Modifier
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {hasPermission(authUser?.permissions || [], 'tasks.delete') && (
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>

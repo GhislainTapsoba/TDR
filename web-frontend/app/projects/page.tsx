@@ -3,13 +3,16 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { api } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context" // Import useAuth
+import { hasPermission } from "@/lib/permissions" // Import hasPermission
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Search, Calendar, Users, BarChart3, AlertTriangle } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, Search, Calendar, Users, BarChart3, AlertTriangle, MoreVertical, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -54,6 +57,7 @@ const statusColors = {
 export default function ProjectsPage() {
   const { data: session } = useSession();
   const user = session?.user;
+  const { user: authUser } = useAuth(); // Use useAuth for permissions
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -95,8 +99,7 @@ export default function ProjectsPage() {
               <h1 className="text-3xl font-bold text-foreground">Projets</h1>
               <p className="text-muted-foreground">Gérez et suivez tous vos projets</p>
             </div>
-            {/* @ts-ignore */}
-            {(user?.role === "admin" || user?.role === "manager") && (
+            {hasPermission(authUser?.permissions || [], 'projects.create') && (
               <Link href="/projects/new">
                 <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
@@ -134,17 +137,41 @@ export default function ProjectsPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Array.isArray(filteredProjects) &&
               filteredProjects.filter(Boolean).map((project) => (
-              <Link key={project.id} href={`/projects/${project.id}`}>
-                <Card className="h-full hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm">
+                <Card key={project.id} className="h-full hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1 flex-1">
                         <CardTitle className="text-lg text-foreground line-clamp-1">{project.title}</CardTitle>
                         <CardDescription className="line-clamp-2">{project.description}</CardDescription>
                       </div>
-                      {project.stats?.is_overdue && (
-                        <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 ml-2" />
-                      )}
+                      <div className="flex items-center gap-2">
+                        {project.stats?.is_overdue && (
+                          <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" onClick={(e) => e.preventDefault()}>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {hasPermission(authUser?.permissions || [], 'projects.update') && (
+                              <DropdownMenuItem asChild>
+                                <Link href={`/projects/${project.id}`}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Voir/Modifier
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {hasPermission(authUser?.permissions || [], 'projects.delete') && (
+                              <DropdownMenuItem className="text-red-600">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                     <Badge className={statusColors[project.status]}>{statusLabels[project.status]}</Badge>
                   </CardHeader>
@@ -183,8 +210,7 @@ export default function ProjectsPage() {
                     )}
                   </CardContent>
                 </Card>
-              </Link>
-            ))}
+              ))}
           </div>
 
           {filteredProjects.length === 0 && (
@@ -198,8 +224,7 @@ export default function ProjectsPage() {
                   ? "Aucun projet ne correspond à vos critères de recherche."
                   : "Commencez par créer votre premier projet."}
               </p>
-              {/* @ts-ignore */}
-              {(user?.role === "admin" || user?.role === "manager") && !searchTerm && statusFilter === "all" && (
+              {hasPermission(authUser?.permissions || [], 'projects.create') && !searchTerm && statusFilter === "all" && (
                 <Link href="/projects/new">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
