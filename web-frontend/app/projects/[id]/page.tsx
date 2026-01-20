@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
@@ -12,6 +13,7 @@ import { Progress } from "@/components/ui/progress"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ArrowLeft, Edit, Users, Calendar, BarChart3, CheckCircle, Clock, AlertTriangle, Plus, MoreVertical, Trash2 } from "lucide-react"
 import Link from "next/link"
+import DocumentsList from "@/components/DocumentsList"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { MainLayout } from "@/components/layout/main-layout"
@@ -207,6 +209,8 @@ export default function ProjectDetailPage() {
   // Corrected permission checks for Project Edit/Delete
   const canUpdateProject = hasPermission(authUser?.permissions || [], 'projects.update');
   const canDeleteProject = hasPermission(authUser?.permissions || [], 'projects.delete');
+  const canReadDocuments = hasPermission(authUser?.permissions || [], 'documents.read');
+  const canCreateDocuments = hasPermission(authUser?.permissions || [], 'documents.create');
   const canCreateStage = hasPermission(authUser?.permissions || [], 'stages.create');
   const canUpdateStage = hasPermission(authUser?.permissions || [], 'stages.update');
   const canDeleteStage = hasPermission(authUser?.permissions || [], 'stages.delete');
