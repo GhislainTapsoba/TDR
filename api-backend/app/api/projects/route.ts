@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         p.id IN (
           SELECT DISTINCT t.project_id
           FROM tasks t
-          WHERE t.assigned_to = $${paramIndex++}
+          WHERE t.assigned_to_id = $${paramIndex++}
         )
       `);
       queryParams.push(userId);
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         p.id IN (
           SELECT DISTINCT t.project_id
           FROM tasks t
-          WHERE t.assigned_to = $${paramIndex++}
+          WHERE t.assigned_to_id = $${paramIndex++}
         )
       `);
       queryParams.push(userId);

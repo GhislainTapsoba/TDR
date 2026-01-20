@@ -293,7 +293,7 @@ export async function initializePermissions(): Promise<void> {
       { name: 'users.delete', description: 'Supprimer les utilisateurs', resource: 'users', action: 'delete' },
 
       // Activity logs
-      { name: 'activity-logs.read', description: 'Lire les logs d\'activité', resource: 'activity-logs', action: 'read' },
+      { name: 'activity_logs.read', description: 'Lire les logs d\'activité', resource: 'activity_logs', action: 'read' },
 
       // Dashboard
       { name: 'dashboard.read', description: 'Lire le tableau de bord', resource: 'dashboard', action: 'read' },
@@ -346,7 +346,7 @@ export async function initializePermissions(): Promise<void> {
       await db.query('DELETE FROM role_permissions WHERE role_id = $1', [managerRole.id]);
       // Assign specific permissions to manager
       const managerAssignments = permissions.filter(p =>
-        ['projects', 'tasks', 'stages', 'documents', 'activity-logs', 'dashboard'].includes(p.resource) ||
+        ['projects', 'tasks', 'stages', 'documents', 'activity_logs', 'dashboard'].includes(p.resource) ||
         p.name === 'users.read'
       );
       for (const perm of managerAssignments) {
@@ -366,7 +366,7 @@ export async function initializePermissions(): Promise<void> {
       const employeAssignments = permissions.filter(p =>
         (['tasks', 'stages', 'documents'].includes(p.resource) && ['create', 'read', 'update'].includes(p.action)) ||
         (p.resource === 'projects' && p.action === 'read') ||
-        p.resource === 'activity-logs' ||
+        p.resource === 'activity_logs' ||
         p.resource === 'dashboard'
       );
       for (const perm of employeAssignments) {
