@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from 'react';
 import { stagesApi, projectsApi, Stage, Project } from '@/lib/api';
 import toast from 'react-hot-toast';

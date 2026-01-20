@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect, useMemo } from "react"
 import { tasksApi, Task as ApiTask, api } from "@/lib/api" // Import api, ApiTask (aliased to avoid conflict)
 import { useSession } from "next-auth/react"

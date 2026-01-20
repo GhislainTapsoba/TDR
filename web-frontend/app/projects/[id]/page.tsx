@@ -1,3 +1,5 @@
+"use client"
+
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
