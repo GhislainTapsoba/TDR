@@ -35,6 +35,12 @@ export async function GET(request: NextRequest) {
 
     const baseQuery = `
       SELECT t.*,
+             CASE
+               WHEN t.status = 'TODO' THEN 'a_faire'
+               WHEN t.status = 'IN_PROGRESS' THEN 'en_cours'
+               WHEN t.status = 'COMPLETED' THEN 'termine'
+               ELSE t.status
+             END as status,
              c.name as created_by_name,
              (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email))
               FROM task_assignees ta
@@ -235,12 +241,19 @@ export async function POST(request: NextRequest) {
 
     // Finally, get the full task with names for the response
     const { rows: finalTaskRows } = await db.query(`
-      SELECT t.*, c.name as created_by_name,
-             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name)) 
+      SELECT t.*,
+             CASE
+               WHEN t.status = 'TODO' THEN 'a_faire'
+               WHEN t.status = 'IN_PROGRESS' THEN 'en_cours'
+               WHEN t.status = 'COMPLETED' THEN 'termine'
+               ELSE t.status
+             END as status,
+             c.name as created_by_name,
+             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name))
               FROM task_assignees ta
               JOIN users u ON ta.user_id = u.id
               WHERE ta.task_id = t.id) as assignees
-      FROM tasks t 
+      FROM tasks t
       LEFT JOIN users c ON t.created_by_id = c.id
       WHERE t.id = $1
     `, [task.id]);

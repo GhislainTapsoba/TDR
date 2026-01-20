@@ -210,6 +210,15 @@ export default function MyTasksPage() {
     }
   }
   
+  const mapFrontendToDbStatus = (frontendStatus: string) => {
+    switch (frontendStatus) {
+      case 'a_faire': return 'TODO';
+      case 'en_cours': return 'IN_PROGRESS';
+      case 'termine': return 'COMPLETED';
+      default: return frontendStatus;
+    }
+  };
+
   const updateTaskStatus = async (taskId: number, newStatus: string) => {
     // Optimistic update
     const oldTasks = tasks;
@@ -217,7 +226,8 @@ export default function MyTasksPage() {
       task.id === taskId ? { ...task, status: newStatus as any } : task
     ));
     try {
-      await tasksApi.update(taskId.toString(), { status: newStatus });
+      const dbStatus = mapFrontendToDbStatus(newStatus);
+      await tasksApi.update(taskId.toString(), { status: dbStatus });
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error)
       setTasks(oldTasks); // Rollback on error
