@@ -98,6 +98,22 @@ async function getRolePermissionsFromDB(roleName: string): Promise<Permission[]>
 }
 
 /**
+ * Map UserRole back to database role name
+ */
+function mapUserRoleToDbRole(userRole: UserRole): string {
+  switch (userRole) {
+    case 'admin':
+      return 'admin';
+    case 'manager':
+      return 'manager';
+    case 'user':
+      return 'employe';
+    default:
+      return 'employe';
+  }
+}
+
+/**
  * Check if a user has permission to perform an action on a resource
  */
 export async function hasPermission(
@@ -105,7 +121,9 @@ export async function hasPermission(
   resource: string,
   action: Permission['action']
 ): Promise<boolean> {
-  const permissions = await getRolePermissionsFromDB(userRole);
+  // Convert userRole back to database role name for permission lookup
+  const dbRoleName = mapUserRoleToDbRole(userRole);
+  const permissions = await getRolePermissionsFromDB(dbRoleName);
 
 
 
@@ -192,7 +210,8 @@ export function canEditTask(
  * Get all permissions for a role
  */
 export async function getRolePermissions(userRole: UserRole): Promise<Permission[]> {
-  return await getRolePermissionsFromDB(userRole);
+  const dbRoleName = mapUserRoleToDbRole(userRole);
+  return await getRolePermissionsFromDB(dbRoleName);
 }
 
 /**
