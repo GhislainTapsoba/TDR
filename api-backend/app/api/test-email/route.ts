@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       to,
       subject,
       html,
-      userId: user?.id || null,
+      userId: user?.id,
       metadata: { test: true }
     });
 
