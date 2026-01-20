@@ -6,6 +6,8 @@ import { createConfirmationToken } from '@/lib/emailConfirmation';
 import { mapDbRoleToUserRole, requirePermission, canEditTask, canManageProject } from '@/lib/permissions';
 import { sendActionNotification } from '@/lib/notificationService';
 
+type UserInfo = { id: string; name: string; email: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' };
+
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
