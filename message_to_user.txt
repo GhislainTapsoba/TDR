@@ -1,9 +1,0 @@
-I have addressed the build error you reported for the `web-frontend`. The errors were caused by using React Hooks (like `useState`, `useEffect`, `useParams`, `useRouter`) in files that were not marked as Client Components in Next.js.
-
-I have added the `"use client"` directive at the very top of the following files:
-*   `web-frontend/app/my-tasks/page.tsx`
-*   `web-frontend/app/projects/[id]/page.tsx`
-*   `web-frontend/components/StageEditModal.tsx`
-*   `web-frontend/components/TaskEditModal.tsx`
-
-This change instructs Next.js to render these components on the client-side, enabling the use of React Hooks. Please try rebuilding your `web-frontend` project now.

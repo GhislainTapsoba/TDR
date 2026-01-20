@@ -16,26 +16,28 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
+import TaskEditModal from "@/components/TaskEditModal" // Import TaskEditModal
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Import DeleteConfirmationModal
 
 interface Task {
-  id: number
+  id: string // Changed from number to string
   title: string
   description: string
   status: "a_faire" | "en_cours" | "termine"
   priority: "low" | "medium" | "high"
   due_date: string | null
-  assigned_to: number | null
+  assigned_to: string | null // Changed from number to string
   assignees: {
     id: string
     name: string
     email: string
   }[]
   project: {
-    id: number
+    id: string // Changed from number to string
     title: string
   }
   stage: {
-    id: number
+    id: string // Changed from number to string
     name: string
   } | null
 }
@@ -79,6 +81,11 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
 
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [showDeleteTaskModal, setShowDeleteTaskModal] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+
   useEffect(() => {
     fetchTasks()
   }, [])
@@ -86,7 +93,7 @@ export default function TasksPage() {
   const fetchTasks = async () => {
     try {
       const response = await tasksApi.getAll();
-      setTasks((response.data as any || []).filter(Boolean));
+      setTasks(response.data || []); // Removed .filter(Boolean) as API should return valid data
       setError(null);
     } catch (error) {
       console.error("Erreur lors du chargement des tâches:", error)
@@ -96,19 +103,48 @@ export default function TasksPage() {
     }
   }
 
-  const updateTaskStatus = useCallback(async (taskId: number, newStatus: string) => {
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: string) => { // Changed taskId type to string
     try {
-      await tasksApi.update(taskId.toString(), { status: newStatus });
-      setTasks(tasks.filter(Boolean).map((task) => (task.id === taskId ? { ...task, status: newStatus as any } : task)))
+      await tasksApi.update(taskId, { status: newStatus });
+      fetchTasks(); // Refresh all tasks after update
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error)
     }
-  }, [tasks])
+  }, [])
+
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task);
+    setShowEditTaskModal(true);
+  };
+
+  const onTaskSave = () => {
+    setShowEditTaskModal(false);
+    setTaskToEdit(null);
+    fetchTasks(); // Refresh tasks after edit
+  };
+
+  const handleDeleteTaskConfirm = (task: Task) => {
+    setTaskToDelete(task);
+    setShowDeleteTaskModal(true);
+  };
+
+  const onTaskDeleteConfirm = async () => {
+    if (taskToDelete) {
+      try {
+        await tasksApi.delete(taskToDelete.id);
+        fetchTasks();
+        setShowDeleteTaskModal(false);
+        setTaskToDelete(null);
+      } catch (error) {
+        console.error("Erreur lors de la suppression de la tâche:", error);
+      }
+    }
+  };
+
 
   const filteredTasks = useMemo(() => {
     return tasks
-      .filter(Boolean) // Ensure task is not null or undefined
-      .filter((task) => {
+      .filter((task) => { // Removed .filter(Boolean)
       const matchesSearch =
         (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -295,16 +331,14 @@ export default function TasksPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {hasPermission(authUser?.permissions || [], 'tasks.update') && (
-                              <DropdownMenuItem asChild>
-                                <Link href={`/tasks/${task.id}/edit`}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Modifier
-                                </Link>
+                            {canUpdateTasks && (
+                              <DropdownMenuItem onClick={() => handleEditTask(task)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Modifier
                               </DropdownMenuItem>
                             )}
-                            {hasPermission(authUser?.permissions || [], 'tasks.delete') && (
-                              <DropdownMenuItem className="text-red-600">
+                            {canDeleteTasks && (
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTaskConfirm(task)}>
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Supprimer
                               </DropdownMenuItem>
@@ -330,8 +364,7 @@ export default function TasksPage() {
                     ? "Aucune tâche ne correspond à vos critères de recherche."
                     : "Aucune tâche n'est encore créée."}
                 </p>
-                {/* @ts-ignore */}
-                {(user?.role === "admin" || user?.role === "manager") &&
+                {canCreateTasks &&
                 !searchTerm &&
                 statusFilter === "all" &&
                 priorityFilter === "all" && (
@@ -345,6 +378,25 @@ export default function TasksPage() {
             </div>
           )}
         </div>
+
+        {taskToEdit && (
+          <TaskEditModal
+            isOpen={showEditTaskModal}
+            onClose={() => setShowEditTaskModal(false)}
+            task={taskToEdit}
+            onSave={onTaskSave}
+          />
+        )}
+
+        {taskToDelete && (
+          <DeleteConfirmationModal
+            isOpen={showDeleteTaskModal}
+            onClose={() => setShowDeleteTaskModal(false)}
+            onConfirm={onTaskDeleteConfirm}
+            itemName={taskToDelete.title}
+            itemType="tâche"
+          />
+        )}
     </MainLayout>
   )
 }
