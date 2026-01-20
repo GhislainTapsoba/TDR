@@ -37,7 +37,13 @@ export async function POST(
     }
     const task = taskRows[0];
 
-    if (task.assigned_to_id !== user.id) {
+    // Check if user is assigned to this task
+    const { rows: assigneeRows } = await db.query(
+      'SELECT user_id FROM task_assignees WHERE task_id = $1 AND user_id = $2',
+      [taskId, user.id]
+    );
+
+    if (assigneeRows.length === 0) {
       return corsResponse({ error: 'Vous ne pouvez refuser que les tâches qui vous sont assignées' }, request, { status: 403 });
     }
 

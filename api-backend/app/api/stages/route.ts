@@ -52,7 +52,10 @@ export async function GET(request: NextRequest) {
       const { rows: projectMembers } = await db.query('SELECT project_id FROM project_members WHERE user_id = $1', [userId]);
       const memberProjectIds = projectMembers.map(pm => pm.project_id);
 
-      const { rows: assignedTasks } = await db.query('SELECT DISTINCT project_id FROM tasks WHERE assigned_to_id = $1', [userId]);
+      const { rows: assignedTasks } = await db.query(
+        'SELECT DISTINCT t.project_id FROM tasks t JOIN task_assignees ta ON t.id = ta.task_id WHERE ta.user_id = $1',
+        [userId]
+      );
       const taskProjectIds = assignedTasks.map(t => t.project_id);
 
       const allAccessibleProjectIds = [...new Set([...memberProjectIds, ...taskProjectIds])];

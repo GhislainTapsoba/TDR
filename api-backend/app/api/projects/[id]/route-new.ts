@@ -54,7 +54,9 @@ export async function GET(
 
         if (memberCount === 0) {
           const { rowCount: taskCount } = await db.query(
-            'SELECT id FROM tasks WHERE project_id = $1 AND assigned_to_id = $2 LIMIT 1',
+            `SELECT 1 FROM tasks t 
+             JOIN task_assignees ta ON t.id = ta.task_id 
+             WHERE t.project_id = $1 AND ta.user_id = $2 LIMIT 1`,
             [id, user.id]
           );
 

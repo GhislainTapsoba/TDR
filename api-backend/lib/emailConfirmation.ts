@@ -128,16 +128,24 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
 
         const { rows: taskDetailsRows } = await db.query(
           `SELECT 
-            t.id, t.title, t.description, t.assigned_to_id, 
-            p.id as project_id, p.title as project_title,
-            u.id as assignee_id, u.name as assignee_name, u.email as assignee_email
+            t.id, t.title, t.description,
+            p.id as project_id, p.title as project_title
            FROM tasks t 
            LEFT JOIN projects p ON t.project_id = p.id 
-           LEFT JOIN users u ON t.assigned_to_id = u.id 
            WHERE t.id = $1`,
           [confirmationData.entityId]
         );
         const taskDetails = taskDetailsRows[0];
+        
+        // Get assignees for this task
+        const { rows: assigneesRows } = await db.query(
+          `SELECT u.id as assignee_id, u.name as assignee_name, u.email as assignee_email
+           FROM task_assignees ta
+           JOIN users u ON ta.user_id = u.id
+           WHERE ta.task_id = $1`,
+          [confirmationData.entityId]
+        );
+        const firstAssignee = assigneesRows[0] || { assignee_name: 'Un employé', assignee_email: '', assignee_id: '' };
         
         await db.query(
           `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
@@ -150,7 +158,7 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
             taskDetails.project_id,
             `✅ Tâche démarrée: ${taskDetails.title}`,
             employeeTaskConfirmationTemplate({
-              employeeName: taskDetails.assignee_name || 'Un employé',
+              employeeName: firstAssignee.assignee_name || 'Un employé',
               taskTitle: taskDetails.title,
               projectName: taskDetails.project_title,
               taskId: taskDetails.id.toString(),
@@ -169,11 +177,9 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
         const { rows: taskStatusDetailsRows, rowCount: taskStatusDetailsCount } = await db.query(
           `SELECT 
             t.*, 
-            p.id as project_id, p.title as project_title,
-            u.id as assignee_id, u.name as assignee_name, u.email as assignee_email
+            p.id as project_id, p.title as project_title
            FROM tasks t 
            LEFT JOIN projects p ON t.project_id = p.id 
-           LEFT JOIN users u ON t.assigned_to_id = u.id 
            WHERE t.id = $1`,
           [confirmationData.entityId]
         );

@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
         p.id IN (
           SELECT DISTINCT t.project_id
           FROM tasks t
-          WHERE t.assigned_to_id = $${paramIndex++}
+          JOIN task_assignees ta ON t.id = ta.task_id
+          WHERE ta.user_id = $${paramIndex++}
         )
       `);
       queryParams.push(userId);
@@ -103,7 +104,8 @@ export async function GET(request: NextRequest) {
         p.id IN (
           SELECT DISTINCT t.project_id
           FROM tasks t
-          WHERE t.assigned_to_id = $${paramIndex++}
+          JOIN task_assignees ta ON t.id = ta.task_id
+          WHERE ta.user_id = $${paramIndex++}
         )
       `);
       queryParams.push(userId);
