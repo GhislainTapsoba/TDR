@@ -87,10 +87,12 @@ async function loadRolePermissionsFromDB(): Promise<Map<string, Permission[]>> {
  * Get permissions for a role, using cache or loading from DB
  */
 async function getRolePermissionsFromDB(roleName: string): Promise<Permission[]> {
-  // TEMPORARILY bypass cache for validation
-  permissionsCache = await loadPermissionsFromDB();
-  rolePermissionsCache = await loadRolePermissionsFromDB();
-  lastCacheUpdate = Date.now(); // Update timestamp to prevent immediate re-load if cache is used again
+  // Check if cache is valid
+  if (Date.now() - lastCacheUpdate > CACHE_DURATION || permissionsCache.length === 0) {
+    permissionsCache = await loadPermissionsFromDB();
+    rolePermissionsCache = await loadRolePermissionsFromDB();
+    lastCacheUpdate = Date.now();
+  }
 
   return rolePermissionsCache.get(roleName) || [];
 }
