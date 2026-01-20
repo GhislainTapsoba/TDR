@@ -6,6 +6,16 @@ import { createConfirmationToken } from '@/lib/emailConfirmation';
 import { mapDbRoleToUserRole, requirePermission, canEditTask, canManageProject } from '@/lib/permissions';
 import { sendActionNotification } from '@/lib/notificationService';
 
+// Mapping for task status from frontend to DB
+const mapFrontendStatusToDb = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'a_faire': 'TODO',
+    'en_cours': 'IN_PROGRESS',
+    'termine': 'COMPLETED',
+  };
+  return statusMap[status] || status;
+};
+
 type UserInfo = { id: string; name: string; email: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' };
 
 // Gérer les requêtes OPTIONS (preflight CORS)
@@ -121,10 +131,14 @@ export async function PATCH(
     fields.forEach(field => {
         if (body[field] !== undefined) {
             updateFields.push(`${field} = $${paramIndex++}`);
-            queryParams.push(body[field]);
+            let value = body[field];
+            if (field === 'status') {
+                value = mapFrontendStatusToDb(value);
+            }
+            queryParams.push(value);
         }
     });
-    if (body.status === 'COMPLETED' && !body.completed_at) {
+    if (mapFrontendStatusToDb(body.status) === 'COMPLETED' && !body.completed_at) {
         updateFields.push(`completed_at = $${paramIndex++}`);
         queryParams.push(new Date().toISOString());
     }
@@ -146,8 +160,9 @@ export async function PATCH(
     if (hasReassignment && !userPermissions.includes('tasks.assign')) {
       return corsResponse({ error: 'Vous n\'avez pas la permission d\'assigner des tâches' }, request, { status: 403 });
     }
-    const hasStatusChange = !!(body.status && oldTask?.status !== body.status);
-    const isCompletedNow = body.status === 'COMPLETED' && oldTask?.status !== 'COMPLETED';
+    const mappedStatus = body.status ? mapFrontendStatusToDb(body.status) : null;
+    const hasStatusChange = !!(body.status && oldTask?.status !== mappedStatus);
+    const isCompletedNow = mappedStatus === 'COMPLETED' && oldTask?.status !== 'COMPLETED';
 
     const { rows: detailRows } = await db.query(
         `SELECT p.name as project_name, p.title as project_title, u.id as user_id, u.name as user_name, u.email as user_email, u.role as user_role

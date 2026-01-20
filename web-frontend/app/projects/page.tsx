@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { api } from "@/lib/api"
+import { api, projectsApi } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
 import { MainLayout } from "@/components/layout/main-layout"
