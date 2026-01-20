@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     }
 
     queryText += (whereClauses.length > 0 ? ` WHERE ${whereClauses.join(' AND ')}` : '');
-    queryText += ' ORDER BY s.order ASC';
+    queryText += ' ORDER BY s.position ASC';
 
     const { rows: stages } = await db.query(queryText, queryParams);
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, order, duration, project_id } = body;
+    const { name, description, position, duration, project_id } = body;
 
     // Validation
     if (!name || !project_id) {
@@ -137,14 +137,14 @@ export async function POST(request: NextRequest) {
     }
 
     const insertQuery = `
-      INSERT INTO stages (name, description, "order", duration, project_id, status, created_by_id)
+      INSERT INTO stages (name, description, "position", duration, project_id, status, created_by_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
     const { rows } = await db.query(insertQuery, [
       name,
       description || null,
-      order || 0,
+      position || 0,
       duration || null,
       project_id,
       'PENDING',

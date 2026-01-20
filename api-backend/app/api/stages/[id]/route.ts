@@ -132,7 +132,7 @@ export async function PATCH(
     const queryParams: any[] = [];
     let paramIndex = 1;
 
-    const fields = ['name', 'description', 'order', 'duration', 'status'];
+    const fields = ['name', 'description', 'position', 'duration', 'status'];
     fields.forEach(field => {
         if (body[field] !== undefined) {
             updateFields.push(`${field} = $${paramIndex++}`);

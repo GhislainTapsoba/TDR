@@ -25,7 +25,7 @@ export default function NewStagePage() {
     description: "",
     project_id: "",
     duration: "",
-    order: ""
+    position: ""
   })
 
   // Load projects on mount
@@ -57,7 +57,7 @@ export default function NewStagePage() {
         description: formData.description.trim() || null,
         project_id: formData.project_id,
         duration: formData.duration ? parseInt(formData.duration) : null,
-        order: formData.order ? parseInt(formData.order) : 1,
+        position: formData.position ? parseInt(formData.position) : 1,
         status: "PENDING"
       })
 
@@ -166,12 +166,12 @@ export default function NewStagePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="order">Ordre</Label>
+                  <Label htmlFor="position">Position</Label>
                   <Input
-                    id="order"
+                    id="position"
                     type="number"
-                    value={formData.order}
-                    onChange={(e) => handleInputChange("order", e.target.value)}
+                    value={formData.position}
+                    onChange={(e) => handleInputChange("position", e.target.value)}
                     placeholder="1"
                     min="1"
                   />

@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
     let paramIndex = 1;
 
     const baseQuery = `
-      SELECT t.*, 
+      SELECT t.*,
              c.name as created_by_name,
-             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email)) 
+             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email))
               FROM task_assignees ta
               JOIN users u ON ta.user_id = u.id
               WHERE ta.task_id = t.id) as assignees
-      FROM tasks t 
+      FROM tasks t
       LEFT JOIN users c ON t.created_by_id = c.id
     `;
     const whereClauses: string[] = [];

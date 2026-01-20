@@ -170,7 +170,7 @@ export function canManageProject(
 export function canEditTask(
   userRole: UserRole,
   userId: string,
-  taskAssigneeId: string | null,
+  taskAssignees: string[],
   projectManagerId: string | null
 ): boolean {
   if (userRole === 'admin') {
@@ -181,7 +181,7 @@ export function canEditTask(
     return true;
   }
 
-  if (taskAssigneeId === userId) {
+  if (taskAssignees.includes(userId)) {
     return true;
   }
 

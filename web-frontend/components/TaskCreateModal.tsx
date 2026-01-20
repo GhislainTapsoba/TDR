@@ -5,7 +5,7 @@ import { tasksApi, projectsApi, usersApi, stagesApi, Project, User, Stage } from
 import toast from 'react-hot-toast';
 import { X, FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { canCreateTask, mapRole, hasPermission } from '@/lib/permissions';
+import { canCreateTask, hasPermission } from '@/lib/permissions';
 
 interface TaskCreateModalProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
     due_date: '',
     project_id: defaultProjectId || '',
     stage_id: '',
-    assignee_ids: [] as string[],
+    assignees: [] as string[],
   });
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -34,7 +34,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
   useEffect(() => {
     if (isOpen) {
       loadProjects();
-      if (user && hasPermission(mapRole(user.role), 'users', 'read')) {
+      if (user && hasPermission(user.permissions || [], 'users.read')) {
         loadUsers();
       }
     }
@@ -88,7 +88,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !canCreateTask(mapRole(user.role))) {
+    if (!user || !canCreateTask(user.permissions || [])) {
       toast.error("Vous n'avez pas la permission de créer une tâche.");
       return;
     }
@@ -110,8 +110,8 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
         due_date: formData.due_date || null,
         project_id: formData.project_id,
         stage_id: formData.stage_id || null,
-        assigned_to_id: formData.assigned_to_id || null,
-      });
+        assignee_ids: formData.assignees,
+      } as any);
 
       toast.success('Tâche créée avec succès !', { id: toastId });
       setFormData({
@@ -122,7 +122,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
         due_date: '',
         project_id: defaultProjectId || '',
         stage_id: '',
-        assigned_to_id: '',
+        assignees: [],
       });
       onSuccess();
       onClose();
@@ -281,25 +281,31 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
             />
           </div>
 
-          {/* Assigné à */}
-          {user && hasPermission(mapRole(user.role), 'users', 'read') && (
+          {/* Assigner à */}
+          {user && hasPermission(user.permissions || [], 'users.read') && (
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <UserIcon size={18} />
                 Assigner à
               </label>
               <select
-                value={formData.assigned_to_id}
-                onChange={(e) => setFormData({ ...formData, assigned_to_id: e.target.value })}
+                multiple
+                value={formData.assignees}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData({ ...formData, assignees: selected });
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
-                <option value="">Non assignée</option>
                 {Array.isArray(users) && users.filter(Boolean).map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.name} ({user.email}) - {user.role}
                   </option>
                 ))}
               </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs utilisateurs
+              </p>
             </div>
           )}
 

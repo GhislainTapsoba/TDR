@@ -80,10 +80,8 @@ export interface Task {
   priority: string;
   project_id: string;
   stage_id: string | null;
-  assigned_to_id?: string | null;
-  assigned_to_name?: string | null;
+  assignees: string[];
   created_by_name?: string | null;
-  assigned_to?: User;
   due_date: string | null;
   created_at: string;
   updated_at: string;
@@ -93,7 +91,7 @@ export interface Stage {
   id: string;
   name: string;
   description: string | null;
-  order: number;
+  position: number;
   status: string;
   project_id: string;
   project_title?: string;

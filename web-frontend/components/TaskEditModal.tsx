@@ -74,7 +74,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
     }
 
     // Un utilisateur ne peut modifier que ses propres tâches
-    if (authUser?.role === 'EMPLOYEE' && task.assigned_to_id !== authUser?.id) { // Use authUser
+    if (authUser?.role === 'employe' && !task.assignees?.includes(authUser?.id)) {
       toast.error("Vous ne pouvez modifier que les tâches qui vous sont assignées.");
       return;
     }

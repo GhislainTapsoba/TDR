@@ -16,7 +16,7 @@ const mapFrontendStatusToDb = (status: string): string => {
   return statusMap[status] || status;
 };
 
-type UserInfo = { id: string; name: string; email: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' };
+type UserInfo = { id: string; name: string | null; email: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' };
 
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
@@ -43,9 +43,9 @@ export async function GET(
     const { id } = await params;
 
     const { rows, rowCount } = await db.query(
-      `SELECT t.*, a.name as assigned_to_name, c.name as created_by_name 
-       FROM tasks t 
-       LEFT JOIN users a ON t.assigned_to_id = a.id
+      `SELECT t.*, c.name as created_by_name,
+              (SELECT json_agg(ta.user_id) FROM task_assignees ta WHERE ta.task_id = t.id) as assignees
+       FROM tasks t
        LEFT JOIN users c ON t.created_by_id = c.id
        WHERE t.id = $1`,
       [id]
@@ -58,7 +58,9 @@ export async function GET(
 
     // Si non-ADMIN, vérifier l'accès à la tâche
     if (userRole !== 'admin') {
-      if (task.assigned_to_id !== user.id) {
+      const { rows: assigneeRows } = await db.query('SELECT user_id FROM task_assignees WHERE task_id = $1', [id]);
+      const assignees = assigneeRows.map(row => row.user_id);
+      if (!assignees.includes(user.id)) {
         const { rows: projectRows } = await db.query(
           'SELECT created_by_id, manager_id FROM projects WHERE id = $1',
           [task.project_id]
@@ -119,15 +121,18 @@ export async function PATCH(
     }
     const project = projectRows[0];
 
-    if (!canEditTask(userRole, userId, oldTask.assigned_to_id, project.manager_id)) {
+    // Check if user can edit task
+    const { rows: oldAssigneeRows } = await db.query('SELECT user_id FROM task_assignees WHERE task_id = $1', [taskId]);
+    const oldAssignees = oldAssigneeRows.map(row => row.user_id);
+    if (!canEditTask(userRole, userId, oldAssignees, project.manager_id)) {
       return corsResponse({ error: 'Vous ne pouvez modifier que vos tâches ou celles de vos projets' }, request, { status: 403 });
     }
-    
+
     const updateFields: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
 
-    const fields = ['title', 'description', 'status', 'priority', 'due_date', 'assigned_to_id', 'project_id', 'stage_id'];
+    const fields = ['title', 'description', 'status', 'priority', 'due_date', 'project_id', 'stage_id'];
     fields.forEach(field => {
         if (body[field] !== undefined) {
             updateFields.push(`${field} = $${paramIndex++}`);
@@ -143,74 +148,177 @@ export async function PATCH(
         queryParams.push(new Date().toISOString());
     }
 
-    if (updateFields.length === 0) {
+    if (updateFields.length === 0 && !body.assignees) {
         return corsResponse({ error: 'Aucun champ à mettre à jour'}, request, {status: 400})
     }
 
-    queryParams.push(taskId);
-    const updateQuery = `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const { rows: updatedTaskRows } = await db.query(updateQuery, queryParams);
-    const task = updatedTaskRows[0];
+    // Handle assignees update
+    if (body.assignees !== undefined) {
+      if (!Array.isArray(body.assignees)) {
+        return corsResponse({ error: 'Les assignees doivent être un tableau' }, request, { status: 400 });
+      }
+      // Validate assignee_ids if provided
+      if (body.assignees.length > 0) {
+        const { rows: userRows } = await db.query('SELECT id FROM users WHERE id = ANY($1::uuid[])', [body.assignees]);
+        if (userRows.length !== body.assignees.length) {
+          return corsResponse({ error: 'Un ou plusieurs utilisateurs assignés n\'existent pas' }, request, { status: 400 });
+        }
+      }
+      // Check permission for assignment
+      if (!userPermissions.includes('tasks.assign')) {
+        return corsResponse({ error: 'Vous n\'avez pas la permission d\'assigner des tâches' }, request, { status: 403 });
+      }
+    }
+
+    // Start transaction
+    await db.query('BEGIN');
+
+    if (updateFields.length > 0) {
+      queryParams.push(taskId);
+      const updateQuery = `UPDATE tasks SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
+      const { rows: updatedTaskRows } = await db.query(updateQuery, queryParams);
+    }
+
+    // Update assignees if provided
+    if (body.assignees !== undefined) {
+      await db.query('DELETE FROM task_assignees WHERE task_id = $1', [taskId]);
+      if (body.assignees.length > 0) {
+        const insertAssigneesQuery = `
+          INSERT INTO task_assignees (task_id, user_id)
+          SELECT $1, user_id FROM unnest($2::uuid[]) AS user_id
+        `;
+        await db.query(insertAssigneesQuery, [taskId, body.assignees]);
+      }
+    }
+
+    await db.query('COMMIT');
+
+    // Get updated task
+    const { rows: finalTaskRows } = await db.query(`
+      SELECT t.*, c.name as created_by_name,
+             (SELECT json_agg(ta.user_id) FROM task_assignees ta WHERE ta.task_id = t.id) as assignees
+      FROM tasks t
+      LEFT JOIN users c ON t.created_by_id = c.id
+      WHERE t.id = $1
+    `, [taskId]);
+    const task = finalTaskRows[0];
 
     // Notification Logic
     const changes: string[] = [];
     if (body.title && oldTask?.title !== body.title) changes.push(`Titre modifié`);
     if (body.status && oldTask?.status !== body.status) changes.push(`Statut changé: ${oldTask?.status} → ${body.status}`);
-    const hasReassignment = !!(body.assigned_to_id && oldTask?.assigned_to_id !== body.assigned_to_id);
-    if (hasReassignment && !userPermissions.includes('tasks.assign')) {
-      return corsResponse({ error: 'Vous n\'avez pas la permission d\'assigner des tâches' }, request, { status: 403 });
-    }
+    const hasReassignment = body.assignees !== undefined && JSON.stringify(oldAssignees.sort()) !== JSON.stringify(body.assignees.sort());
     const mappedStatus = body.status ? mapFrontendStatusToDb(body.status) : null;
     const hasStatusChange = !!(body.status && oldTask?.status !== mappedStatus);
     const isCompletedNow = mappedStatus === 'COMPLETED' && oldTask?.status !== 'COMPLETED';
 
-    const { rows: detailRows } = await db.query(
-        `SELECT p.title as project_title,
-                u.id as user_id, u.name as user_name, u.email as user_email, u.role as user_role
-         FROM projects p
-         LEFT JOIN users u ON u.id = $1
-         WHERE p.id = $2`,
-        [task.assigned_to_id, task.project_id]
-    );
-    const details = detailRows[0] || {};
-    let assignedUserInfo: UserInfo | null = null;
-    if (task.assigned_to_id && details.user_id && details.user_name && details.user_email && details.user_role) {
-      assignedUserInfo = {
-        id: details.user_id,
-        name: details.user_name,
-        email: details.user_email,
-        role: details.user_role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
-      };
+    if (hasReassignment && body.assignees.length > 0) {
+      const { rows: assignedUsersRows } = await db.query(
+        'SELECT id, name, email, role FROM users WHERE id = ANY($1::uuid[])',
+        [body.assignees]
+      );
+      const assignedUsers = assignedUsersRows.map(row => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        role: row.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
+      }));
+
+      const { rows: detailRows } = await db.query(
+        'SELECT title as project_title FROM projects WHERE id = $1',
+        [task.project_id]
+      );
+      const details = detailRows[0] || {};
+
+      for (const assignedUser of assignedUsers) {
+        const token = await createConfirmationToken({
+          type: 'TASK_ASSIGNMENT',
+          userId: assignedUser.id,
+          entityType: 'task',
+          entityId: task.id,
+          metadata: { task_title: task.title, project_name: details.project_title }
+        });
+        await sendActionNotification({
+          actionType: 'TASK_ASSIGNED',
+          performedBy: { ...user, name: user.name || 'Utilisateur', role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' },
+          entity: { type: 'task', id: task.id, data: task },
+          affectedUsers: [assignedUser],
+          projectId: task.project_id,
+          metadata: { projectName: details.project_title, assigneeName: assignedUser.name, confirmationToken: token }
+        });
+      }
     }
 
-    if (hasReassignment && assignedUserInfo) {
-        const token = await createConfirmationToken({ type: 'TASK_ASSIGNMENT', userId: task.assigned_to_id!, entityType: 'task', entityId: task.id, metadata: { task_title: task.title, project_name: details.project_title } });
-        // @ts-ignore
-        await sendActionNotification({ actionType: 'TASK_ASSIGNED', performedBy: user, entity: { type: 'task', id: task.id, data: task }, affectedUsers: [assignedUserInfo], projectId: task.project_id, metadata: { projectName: details.project_title, assigneeName: assignedUserInfo.name, confirmationToken: token } });
-    }
     if (hasStatusChange) {
-        let token: string | null = null;
-        if (userRole !== 'user' && assignedUserInfo) {
-          token = await createConfirmationToken({ type: 'TASK_STATUS_CHANGE', userId: assignedUserInfo.id, entityType: 'task', entityId: task.id, metadata: { old_status: oldTask?.status, new_status: body.status, project_name: details.project_title } });
-        }
-        // @ts-ignore
-        await sendActionNotification({ actionType: isCompletedNow ? 'TASK_COMPLETED' : 'TASK_STATUS_CHANGED', performedBy: user, entity: { type: 'task', id: task.id, data: task }, affectedUsers: assignedUserInfo ? [assignedUserInfo] : [], projectId: task.project_id, metadata: { projectName: details.project_title, oldStatus: oldTask?.status, newStatus: body.status, confirmationToken: token } });
+      const { rows: assignedUsersRows } = await db.query(
+        'SELECT id, name, email, role FROM users WHERE id = ANY(SELECT user_id FROM task_assignees WHERE task_id = $1)',
+        [taskId]
+      );
+      const assignedUsers = assignedUsersRows.map(row => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        role: row.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
+      }));
+
+      const { rows: detailRows } = await db.query(
+        'SELECT title as project_title FROM projects WHERE id = $1',
+        [task.project_id]
+      );
+      const details = detailRows[0] || {};
+
+      let token: string | null = null;
+      if (userRole !== 'user' && assignedUsers.length > 0) {
+        // Create token for first assignee (or could create for all)
+        token = await createConfirmationToken({
+          type: 'TASK_STATUS_CHANGE',
+          userId: assignedUsers[0].id,
+          entityType: 'task',
+          entityId: task.id,
+          metadata: { old_status: oldTask?.status, new_status: body.status, project_name: details.project_title }
+        });
+      }
+      await sendActionNotification({
+        actionType: isCompletedNow ? 'TASK_COMPLETED' : 'TASK_STATUS_CHANGED',
+        performedBy: { ...user, name: user.name || 'Utilisateur', role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' },
+        entity: { type: 'task', id: task.id, data: task },
+        affectedUsers: assignedUsers,
+        projectId: task.project_id,
+        metadata: { projectName: details.project_title, oldStatus: oldTask?.status, newStatus: body.status, confirmationToken: token }
+      });
     }
+
     if (!hasStatusChange && !hasReassignment && changes.length > 0) {
-        // @ts-ignore
-        await sendActionNotification({ actionType: 'TASK_UPDATED', performedBy: user, entity: { type: 'task', id: task.id, data: task }, affectedUsers: assignedUserInfo ? [assignedUserInfo] : [], projectId: task.project_id, metadata: { projectName: details.project_title, changes: changes.join(', ') } });
+      const { rows: assignedUsersRows } = await db.query(
+        'SELECT id, name, email, role FROM users WHERE id = ANY(SELECT user_id FROM task_assignees WHERE task_id = $1)',
+        [taskId]
+      );
+      const assignedUsers = assignedUsersRows.map(row => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        role: row.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
+      }));
+
+      const { rows: detailRows } = await db.query(
+        'SELECT title as project_title FROM projects WHERE id = $1',
+        [task.project_id]
+      );
+      const details = detailRows[0] || {};
+
+      await sendActionNotification({
+        actionType: 'TASK_UPDATED',
+        performedBy: { ...user, name: user.name || 'Utilisateur', role: user.role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE' },
+        entity: { type: 'task', id: task.id, data: task },
+        affectedUsers: assignedUsers,
+        projectId: task.project_id,
+        metadata: { projectName: details.project_title, changes: changes.join(', ') }
+      });
     }
 
-    const { rows: finalTaskRows } = await db.query(`
-      SELECT t.*, a.name as assigned_to_name, c.name as created_by_name 
-      FROM tasks t 
-      LEFT JOIN users a ON t.assigned_to_id = a.id 
-      LEFT JOIN users c ON t.created_by_id = c.id
-      WHERE t.id = $1
-    `, [task.id]);
-
-    return corsResponse(finalTaskRows[0], request);
+    return corsResponse(task, request);
   } catch (error) {
+    await db.query('ROLLBACK');
     console.error('PATCH /api/tasks/[id] error:', error);
     return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
   }
@@ -260,16 +368,23 @@ export async function DELETE(
       return corsResponse({ error: 'Vous ne pouvez supprimer que les tâches de vos projets' }, request, { status: 403 });
     }
 
+    // Start transaction
+    await db.query('BEGIN');
+
+    await db.query('DELETE FROM task_assignees WHERE task_id = $1', [taskId]);
     await db.query('DELETE FROM tasks WHERE id = $1', [taskId]);
 
     await db.query(
-        `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+        `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details)
          VALUES ($1, 'delete', 'task', $2, $3)`,
         [user.id, taskId, `Deleted task: ${task.title}`]
       );
 
+    await db.query('COMMIT');
+
     return corsResponse({ success: true, message: 'Tâche supprimée avec succès' }, request);
   } catch (error) {
+    await db.query('ROLLBACK');
     console.error('DELETE /api/tasks/[id] error:', error);
     return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
   }
