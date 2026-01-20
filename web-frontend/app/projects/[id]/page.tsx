@@ -1,9 +1,7 @@
-"use client"
-
-import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/auth-context"
-import { api, tasksApi } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context" // Import useAuth
+import { hasPermission } from "@/lib/permissions" // Import hasPermission
+import { api, tasksApi, stagesApi } from "@/lib/api" // Import stagesApi for delete
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +13,10 @@ import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { MainLayout } from "@/components/layout/main-layout"
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Import DeleteConfirmationModal
+import ProjectEditModal from "@/components/ProjectEditModal" // Import ProjectEditModal
+import StageEditModal from "@/components/StageEditModal" // Import StageEditModal for inline editing
+import TaskEditModal from "@/components/TaskEditModal" // Import TaskEditModal
 
 // Interfaces remain largely the same, but we expect teamMembers to be populated
 interface TeamMember {
@@ -105,35 +107,46 @@ const priorityColors = {
 export default function ProjectDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { user } = useAuth()
+  const { user: authUser } = useAuth() // Use authUser for permissions
   const [project, setProject] = useState<Project | null>(null)
   const [stages, setStages] = useState<Stage[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
-          const fetchData = useCallback(async (id: string) => {
-            setLoading(true);
-            try {
-              const [projectResponse, stagesResponse, tasksResponse, usersResponse] = await Promise.all([
-                api.getProject(id),
-                api.getProjectStages(id),
-                tasksApi.getAll({ project_id: id }),
-                api.getUsers() // Fetch all users
-              ]);      
+  // State for project modals
+  const [showEditProjectModal, setShowEditProjectModal] = useState(false);
+  // State for stage modals
+  const [showDeleteStageModal, setShowDeleteStageModal] = useState(false);
+  const [stageToDelete, setStageToDelete] = useState<Stage | null>(null);
+  const [showEditStageModal, setShowEditStageModal] = useState(false);
+  const [stageToEdit, setStageToEdit] = useState<Stage | null>(null);
+  // State for task modals
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
 
-              if (projectResponse?.data) {
-                const projectData = projectResponse.data;
-                const allUsers = (usersResponse as any).data || []; // Assuming usersResponse has data property
-                
-                // Map team_members (IDs) to teamMembers (objects)
-                projectData.teamMembers = (projectData.team_members || []).map((memberId: string) => {
-                  return allUsers.find((u: TeamMember) => u.id === memberId);
-                }).filter(Boolean); // Filter out any undefined members if ID not found
+  const fetchData = useCallback(async (id: string) => {
+    setLoading(true);
+    try {
+      const [projectResponse, stagesResponse, tasksResponse, usersResponse] = await Promise.all([
+        api.getProject(id),
+        api.getProjectStages(id),
+        tasksApi.getAll({ project_id: id }),
+        api.getUsers() // Fetch all users
+      ]);      
 
-                setProject(projectData);
-              } else {
-                throw new Error('Project data is not in the expected format.');
-              }
+      if (projectResponse?.data) {
+        const projectData = projectResponse.data;
+        const allUsers = (usersResponse as any).data || []; // Assuming usersResponse has data property
+        
+        // Map team_members (IDs) to teamMembers (objects)
+        projectData.teamMembers = (projectData.team_members || []).map((memberId: string) => {
+          return allUsers.find((u: TeamMember) => u.id === memberId);
+        }).filter(Boolean); // Filter out any undefined members if ID not found
+
+        setProject(projectData);
+      } else {
+        throw new Error('Project data is not in the expected format.');
+      }
 
       if (stagesResponse?.data) {
         // TODO: The stages API should also populate tasks for each stage
@@ -189,7 +202,16 @@ export default function ProjectDetailPage() {
     )
   }
 
-  const canEdit = user?.role === "admin" || user?.id === project.manager_id
+  // Corrected permission checks for Project Edit/Delete
+  const canUpdateProject = hasPermission(authUser?.permissions || [], 'projects.update');
+  const canDeleteProject = hasPermission(authUser?.permissions || [], 'projects.delete');
+  const canCreateStage = hasPermission(authUser?.permissions || [], 'stages.create');
+  const canUpdateStage = hasPermission(authUser?.permissions || [], 'stages.update');
+  const canDeleteStage = hasPermission(authUser?.permissions || [], 'stages.delete');
+  const canCreateTask = hasPermission(authUser?.permissions || [], 'tasks.create');
+  const canUpdateTask = hasPermission(authUser?.permissions || [], 'tasks.update');
+  const canDeleteTask = hasPermission(authUser?.permissions || [], 'tasks.delete');
+
 
   const getTaskProgress = (stage: any) => {
     if (!stage.tasks || !Array.isArray(stage.tasks)) {
@@ -202,19 +224,112 @@ export default function ProjectDetailPage() {
     
     return { completed, total, percentage };
   };
+
+  const handleDeleteStage = async () => {
+    if (stageToDelete) {
+      try {
+        await stagesApi.delete(stageToDelete.id);
+        fetchData(project.id); // Refresh project data
+        setShowDeleteStageModal(false);
+        setStageToDelete(null);
+      } catch (error) {
+        console.error("Erreur lors de la suppression de l'étape:", error);
+      }
+    }
+  };
+
+  const handleEditStage = (stage: Stage) => {
+    setStageToEdit(stage);
+    setShowEditStageModal(true);
+  };
+
+  const onStageUpdated = () => {
+    setShowEditStageModal(false);
+    setStageToEdit(null);
+    fetchData(project.id); // Refresh project data
+  };
+
+  const handleEditTask = (task: Task) => {
+    setTaskToEdit(task);
+    setShowEditTaskModal(true);
+  };
+
+  const onTaskSave = () => {
+    setShowEditTaskModal(false);
+    setTaskToEdit(null);
+    fetchData(project.id); // Refresh project data
+  };
   
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* Header remains the same */}
         <div className="flex items-center justify-between">
-            {/* ... same header code */}
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold text-foreground">{project.title}</h1>
+                <Badge className={statusColors[project.status]}>{statusLabels[project.status]}</Badge>
+              </div>
+              <p className="text-muted-foreground">Détails et suivi du projet</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {canUpdateProject && (
+                <Button onClick={() => setShowEditProjectModal(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Modifier Projet
+                </Button>
+            )}
+            {canDeleteProject && (
+                <Button variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Supprimer Projet
+                </Button>
+            )}
+          </div>
         </div>
 
         {/* Stat cards need to be updated to use project.stats if available, or be removed if not */}
         <div className="grid gap-6 md:grid-cols-4">
-          {/* ... stat cards ... this data might not exist on the project object anymore */}
-          {/* I will leave them for now, but they will likely show empty */}
+          <Card>
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Tâches</p>
+                <p className="text-2xl font-bold text-foreground">{project.stats.total_tasks}</p>
+              </div>
+              <BarChart3 className="h-8 w-8 text-muted-foreground" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Tâches Terminées</p>
+                <p className="text-2xl font-bold text-foreground">{project.stats.completed_tasks}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-muted-foreground" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Tâches En Cours</p>
+                <p className="text-2xl font-bold text-foreground">{project.stats.in_progress_tasks}</p>
+              </div>
+              <Clock className="h-8 w-8 text-muted-foreground" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Tâches En Retard</p>
+                <p className="text-2xl font-bold text-foreground">{project.stats.overdue_tasks}</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-400" />
+            </CardContent>
+          </Card>
         </div>
         
         <Tabs defaultValue="overview" className="space-y-6">
@@ -287,7 +402,7 @@ export default function ProjectDetailPage() {
           <TabsContent value="stages" className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Étapes du projet</h3>
-              {canEdit && (
+              {canCreateStage && (
                 <Link href={`/projects/${project.id}/stages/new`}>
                   <Button variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
@@ -305,7 +420,7 @@ export default function ProjectDetailPage() {
                       <CardTitle>{stage.name}</CardTitle>
                       <div className="flex items-center gap-2">
                         <Badge>{stage.status}</Badge>
-                        {canEdit && (
+                        {(canUpdateStage || canDeleteStage) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
@@ -313,12 +428,12 @@ export default function ProjectDetailPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
-                                <Link href={`/projects/${project.id}/stages/${stage.id}/edit`}>
+                              {canUpdateStage && (
+                                <DropdownMenuItem onClick={() => handleEditStage(stage)}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Modifier
-                                </Link>
-                              </DropdownMenuItem>
+                                </DropdownMenuItem>
+                              )}
                               {stage.status !== 'COMPLETED' && (
                                 <DropdownMenuItem asChild>
                                   <Link href={`/projects/${project.id}/stages/${stage.id}/complete`}>
@@ -327,10 +442,15 @@ export default function ProjectDetailPage() {
                                   </Link>
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem className="text-red-600">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
+                              {canDeleteStage && (
+                                <DropdownMenuItem className="text-red-600" onClick={() => {
+                                  setStageToDelete(stage);
+                                  setShowDeleteStageModal(true);
+                                }}>
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Supprimer
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}
@@ -363,7 +483,7 @@ export default function ProjectDetailPage() {
           <TabsContent value="tasks" className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Tâches du projet</h3>
-              {canEdit && (
+              {canCreateTask && (
                 <Link href={`/projects/${project.id}/tasks/new`}>
                   <Button variant="outline">
                     <Plus className="h-4 w-4 mr-2" />
@@ -379,20 +499,45 @@ export default function ProjectDetailPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>{task.title}</CardTitle>
-                      <Badge className={priorityColors[task.priority as keyof typeof priorityColors] || priorityColors.medium}>
-                        {task.priority}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={priorityColors[task.priority as keyof typeof priorityColors] || priorityColors.medium}>
+                          {task.priority}
+                        </Badge>
+                        {(canUpdateTask || canDeleteTask) && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {canUpdateTask && (
+                                <DropdownMenuItem onClick={() => handleEditTask(task)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Modifier
+                                </DropdownMenuItem>
+                              )}
+                              {/* Delete is handled inside TaskEditModal */}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
                     <CardDescription>{task.description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="flex justify-between items-center">
-                    <div>
-                    <p className="text-sm text-muted-foreground">Assigné à: {task.assignees && task.assignees.length > 0 ? task.assignees.map(a => a.name).join(', ') : "Non assigné"}</p>
-                      <p className="text-sm text-muted-foreground">Statut: {taskStatusLabels[task.status as keyof typeof taskStatusLabels] || task.status}</p>
+                  <CardContent className="flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                        <div>
+                        <p className="text-sm text-muted-foreground">Assigné à: {task.assignees && task.assignees.length > 0 ? task.assignees.map(a => a.name).join(', ') : "Non assigné"}</p>
+                        <p className="text-sm text-muted-foreground">Statut: {taskStatusLabels[task.status as keyof typeof taskStatusLabels] || task.status}</p>
+                        </div>
+                        <div>
+                        <p className="text-sm text-muted-foreground">Échéance: {task.due_date ? format(new Date(task.due_date), "dd MMM yyyy", { locale: fr }) : "N/A"}</p>
+                        </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Échéance: {task.due_date ? format(new Date(task.due_date), "dd MMM yyyy", { locale: fr }) : "N/A"}</p>
-                    </div>
+                    {canReadDocuments && (
+                      <DocumentsList taskId={task.id} canUpload={canCreateDocuments} />
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -465,7 +610,7 @@ export default function ProjectDetailPage() {
                     <Users className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <p className="text-muted-foreground">Aucun membre supplémentaire dans l'équipe.</p>
-                  {canEdit && (
+                  {canUpdateProject && (
                     <p className="text-sm text-muted-foreground mt-2">
                       Modifiez le projet pour ajouter des membres à l'équipe.
                     </p>
@@ -476,6 +621,46 @@ export default function ProjectDetailPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {project && (
+        <ProjectEditModal
+            isOpen={showEditProjectModal}
+            onClose={() => setShowEditProjectModal(false)}
+            project={project}
+            onProjectUpdated={() => {
+                setShowEditProjectModal(false);
+                fetchData(project.id); // Refresh project details after update
+            }}
+        />
+      )}
+
+      {stageToDelete && (
+        <DeleteConfirmationModal
+          isOpen={showDeleteStageModal}
+          onClose={() => setShowDeleteStageModal(false)}
+          onConfirm={handleDeleteStage}
+          itemName={stageToDelete.name}
+          itemType="étape"
+        />
+      )}
+
+      {stageToEdit && (
+        <StageEditModal
+          isOpen={showEditStageModal}
+          onClose={() => setShowEditStageModal(false)}
+          stage={stageToEdit}
+          onSuccess={onStageUpdated}
+        />
+      )}
+
+      {taskToEdit && (
+        <TaskEditModal
+          isOpen={showEditTaskModal}
+          onClose={() => setShowEditTaskModal(false)}
+          task={taskToEdit}
+          onSave={onTaskSave}
+        />
+      )}
     </MainLayout>
   )
 }

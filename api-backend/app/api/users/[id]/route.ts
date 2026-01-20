@@ -90,7 +90,7 @@ export async function PATCH(
     if (body.role !== undefined) {
       let dbRole = body.role.toUpperCase();
       if (dbRole === 'ADMIN') dbRole = 'ADMIN';
-      else if (dbRole === 'MANAGER') dbRole = 'PROJECT_MANAGER';
+      else if (dbRole === 'MANAGER') dbRole = 'MANAGER';
       else if (dbRole === 'USER') dbRole = 'EMPLOYEE';
       updateFields.push(`role = $${paramIndex++}`);
       queryParams.push(dbRole);

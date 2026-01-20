@@ -37,7 +37,7 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || !canManageUsers(currentUser.permissions || [])) {
       toast.error("Vous n'avez pas la permission de modifier un utilisateur.");
       return;
     }

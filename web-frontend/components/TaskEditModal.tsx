@@ -1,21 +1,19 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { Task, tasksApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, Calendar, Flag, User, FileText } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context'; // Updated import path for useAuth
+import { hasPermission } from '@/lib/permissions'; // Explicitly import hasPermission from lib
 
 interface TaskEditModalProps {
   task: Task;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedTask: Task) => void;
+  onSave: () => void; // Changed (updatedTask: Task) => void to () => void
 }
 
 export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEditModalProps) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth(); // Use authUser to avoid conflict with imported User type
   const [formData, setFormData] = useState({
     title: task.title,
     description: task.description || '',
@@ -25,7 +23,8 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
   });
   const [loading, setLoading] = useState(false);
 
-  const canDelete = hasPermission(user ? mapRole(user.role) : undefined, 'tasks', 'delete');
+  // Corrected permission check
+  const canDelete = hasPermission(authUser?.permissions || [], 'tasks.delete');
 
   useEffect(() => {
     // Mettre à jour le formulaire quand la tâche change
@@ -50,7 +49,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
       try {
         await tasksApi.delete(task.id);
         toast.success('Tâche supprimée avec succès !', { id: toastId });
-        onSave(task); // To trigger a refresh
+        onSave(); // To trigger a refresh
         onClose();
       } catch (error: any) {
         const message = error.response?.data?.error || 'Erreur lors de la suppression de la tâche';
@@ -64,16 +63,16 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const userRole = user ? mapRole(user.role) : undefined;
-    const canUpdate = hasPermission(userRole, 'tasks', 'update');
+    // Corrected permission check
+    const canUpdate = hasPermission(authUser?.permissions || [], 'tasks.update');
     
-    if (!user || !canUpdate) {
+    if (!authUser || !canUpdate) {
       toast.error("Vous n'avez pas la permission de modifier une tâche.");
       return;
     }
 
     // Un utilisateur ne peut modifier que ses propres tâches
-    if (userRole === 'user' && task.assigned_to_id !== user.id) {
+    if (authUser?.role === 'EMPLOYEE' && task.assigned_to_id !== authUser?.id) { // Use authUser
       toast.error("Vous ne pouvez modifier que les tâches qui vous sont assignées.");
       return;
     }
@@ -82,7 +81,8 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
     const toastId = toast.loading('Mise à jour de la tâche en cours...');
 
     try {
-      const { data } = await tasksApi.update(task.id, {
+      // task.id is type number, but tasksApi.update expects string. Assuming API expects string.
+      await tasksApi.update(task.id.toString(), {
         title: formData.title,
         description: formData.description,
         status: formData.status,
@@ -91,7 +91,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
       });
 
       toast.success('Tâche mise à jour avec succès !', { id: toastId });
-      onSave(data);
+      onSave();
       onClose();
     } catch (error: any) {
       console.error('Error updating task:', error);

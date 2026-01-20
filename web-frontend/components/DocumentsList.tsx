@@ -6,8 +6,8 @@ import { documentsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { formatDate, formatFileSize } from '@/lib/utils';
 import DocumentEditModal from './DocumentEditModal';
-import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context'; // Ensure correct import path
+import { hasPermission } from '@/lib/permissions'; // Ensure correct import path
 
 interface Document {
   id: string;
@@ -27,7 +27,7 @@ interface DocumentsListProps {
 }
 
 export default function DocumentsList({ projectId, taskId, canUpload = false }: DocumentsListProps) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth(); // Use authUser for consistency
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -38,8 +38,9 @@ export default function DocumentsList({ projectId, taskId, canUpload = false }: 
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
-  const canDelete = hasPermission(user ? mapRole(user.role) : undefined, 'documents', 'delete');
-  const canUpdate = hasPermission(user ? mapRole(user.role) : undefined, 'documents', 'update');
+  // Corrected permission checks
+  const canDelete = hasPermission(authUser?.permissions || [], 'documents.delete');
+  const canUpdate = hasPermission(authUser?.permissions || [], 'documents.update');
 
 
   // Charger les documents

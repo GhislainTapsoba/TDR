@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { stagesApi, projectsApi, Stage, Project } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, Layers, FileText, Hash, Clock } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context'; // Updated import path for useAuth
+import { hasPermission } from '@/lib/permissions'; // Explicitly import hasPermission from lib
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -15,7 +15,7 @@ interface StageEditModalProps {
 }
 
 export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: StageEditModalProps) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth(); // Use authUser for consistency
   const [formData, setFormData] = useState({
     name: stage.name,
     description: stage.description || '',
@@ -27,7 +27,8 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
 
-  const canDelete = hasPermission(user ? mapRole(user.role) : undefined, 'stages', 'delete');
+  // Corrected permission check
+  const canDelete = hasPermission(authUser?.permissions || [], 'stages.delete');
 
   useEffect(() => {
     // Mettre à jour le formulaire quand l'étape change
@@ -82,7 +83,8 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !hasPermission(mapRole(user.role), 'stages', 'update')) {
+    // Corrected permission check
+    if (!authUser || !hasPermission(authUser.permissions || [], 'stages.update')) {
       toast.error("Vous n'avez pas la permission de modifier cette étape.");
       return;
     }

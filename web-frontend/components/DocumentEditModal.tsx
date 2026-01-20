@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { documentsApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, FileText } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context'; // Updated import path for useAuth
+import { hasPermission } from '@/lib/permissions'; // Explicitly import hasPermission from lib
 
 interface Document {
   id: string;
@@ -26,7 +26,7 @@ interface DocumentEditModalProps {
 }
 
 export default function DocumentEditModal({ document, isOpen, onClose, onSuccess }: DocumentEditModalProps) {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth(); // Use authUser for consistency
   const [formData, setFormData] = useState({
     name: document.name,
     description: document.description || '',
@@ -44,7 +44,8 @@ export default function DocumentEditModal({ document, isOpen, onClose, onSuccess
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !hasPermission(mapRole(user.role), 'documents', 'update')) {
+    // Corrected permission check
+    if (!authUser || !hasPermission(authUser.permissions || [], 'documents.update')) {
       toast.error("Vous n'avez pas la permission de modifier ce document.");
       return;
     }

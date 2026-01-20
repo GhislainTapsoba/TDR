@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import { stagesApi } from "@/lib/api"
+import { stagesApi, Stage as ApiStage } from "@/lib/api" // Import ApiStage
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -12,8 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Plus, Search, Calendar, User, CheckCircle, Clock, Circle, MoreVertical, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context" // Import useAuth
+import { hasPermission } from "@/lib/permissions" // Import hasPermission
+import StageEditModal from "@/components/StageEditModal" // Import StageEditModal
 
-interface Stage {
+interface Stage extends ApiStage { // Extend ApiStage
   id: string
   name: string
   description: string | null
@@ -42,11 +45,15 @@ const statusColors = {
 export default function StagesPage() {
   const { data: session, status: sessionStatus } = useSession()
   const user = session?.user;
+  const { user: authUser } = useAuth(); // Use authUser for permissions
   const [stages, setStages] = useState<Stage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+
+  const [showEditStageModal, setShowEditStageModal] = useState(false); // State for edit modal
+  const [stageToEdit, setStageToEdit] = useState<Stage | null>(null); // State for stage to edit
 
   useEffect(() => {
     fetchStages()
@@ -65,6 +72,17 @@ export default function StagesPage() {
     }
   }
 
+  const handleStageEdit = (stage: Stage) => {
+    setStageToEdit(stage);
+    setShowEditStageModal(true);
+  };
+
+  const onStageSave = () => {
+    setShowEditStageModal(false);
+    setStageToEdit(null);
+    fetchStages(); // Refresh stages after edit/delete
+  };
+
   const filteredStages = stages.filter((stage) => {
     const matchesSearch =
       (stage.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -73,6 +91,10 @@ export default function StagesPage() {
     const matchesStatus = statusFilter === "all" || stage.status === statusFilter
     return matchesSearch && matchesStatus
   })
+
+  const canCreateStages = hasPermission(authUser?.permissions || [], 'stages.create');
+  const canUpdateStages = hasPermission(authUser?.permissions || [], 'stages.update');
+  const canDeleteStages = hasPermission(authUser?.permissions || [], 'stages.delete');
 
   if (loading || sessionStatus === 'loading') {
       return (
@@ -106,8 +128,7 @@ export default function StagesPage() {
               <h1 className="text-3xl font-bold text-foreground">Étapes</h1>
               <p className="text-muted-foreground">Gérez et suivez toutes vos étapes de projet</p>
             </div>
-            {/* @ts-ignore */}
-            {(user?.role === "admin" || user?.role === "manager") && (
+            {canCreateStages && (
               <Link href="/stages/new">
                 <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
@@ -202,16 +223,18 @@ export default function StagesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/stages/${stage.id}/view`}>
+                            {canUpdateStages && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleStageEdit(stage);
+                                }}
+                              >
                                 <Edit className="h-4 w-4 mr-2" />
-                                Voir/Modifier
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Supprimer
-                            </DropdownMenuItem>
+                                Modifier
+                              </DropdownMenuItem>
+                            )}
+                            {/* Delete is handled inside StageEditModal */}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -233,10 +256,7 @@ export default function StagesPage() {
                     ? "Aucune étape ne correspond à vos critères de recherche."
                     : "Aucune étape n'est encore créée."}
                 </p>
-                {/* @ts-ignore */}
-                {(user?.role === "admin" || user?.role === "manager") &&
-                !searchTerm &&
-                statusFilter === "all" && (
+                {canCreateStages && !searchTerm && statusFilter === "all" && (
                     <Link href="/stages/new">
                     <Button>
                         <Plus className="h-4 w-4 mr-2" />
@@ -247,6 +267,16 @@ export default function StagesPage() {
             </div>
           )}
         </div>
+
+        {/* Stage Edit Modal */}
+        {stageToEdit && (
+          <StageEditModal
+            isOpen={showEditStageModal}
+            onClose={() => setShowEditStageModal(false)}
+            stage={stageToEdit}
+            onSuccess={onStageSave}
+          />
+        )}
     </MainLayout>
   )
 }

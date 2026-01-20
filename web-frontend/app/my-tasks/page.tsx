@@ -1,14 +1,12 @@
-"use client"
-
 import { useState, useEffect, useMemo } from "react"
-import { tasksApi } from "@/lib/api"
+import { tasksApi, Task as ApiTask, api } from "@/lib/api" // Import api, ApiTask (aliased to avoid conflict)
 import { useSession } from "next-auth/react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, AlertTriangle, CheckCircle, Clock, BarChart3 } from "lucide-react"
+import { Calendar, AlertTriangle, CheckCircle, Clock, BarChart3, MoreVertical, Edit, Trash2 } from "lucide-react" // Add MoreVertical, Edit, Trash2
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -27,10 +25,18 @@ import {
   verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Import DropdownMenu components
 import { CSS } from '@dnd-kit/utilities';
+import { useAuth } from "@/contexts/auth-context" // Import useAuth
+import { hasPermission } from "@/lib/permissions" // Import hasPermission
+import TaskEditModal from "@/components/TaskEditModal" // Import TaskEditModal
 
-// ... (interfaces and constants remain the same)
-interface Task {
+interface Task extends ApiTask { // Extend the ApiTask interface
   id: number
   title: string
   description: string
@@ -60,7 +66,8 @@ const priorityColors = {
 }
 // ---
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, onEditClick }: { task: Task, onEditClick: (task: Task) => void }) {
+  const { authUser } = useAuth(); // Use authUser for permissions
   const {
     attributes,
     listeners,
@@ -78,6 +85,9 @@ function TaskCard({ task }: { task: Task }) {
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "termine"
 
+  const canUpdateTasks = hasPermission(authUser?.permissions || [], 'tasks.update');
+  const canDeleteTasks = hasPermission(authUser?.permissions || [], 'tasks.delete');
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm mb-3">
@@ -85,7 +95,38 @@ function TaskCard({ task }: { task: Task }) {
           <div className="space-y-3">
             <div className="flex items-start justify-between">
               <h3 className="font-medium text-foreground line-clamp-2">{task.title}</h3>
-              {isOverdue && <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 ml-2" />}
+              <div className="flex items-center gap-2">
+                {isOverdue && <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />}
+                {(canUpdateTasks || canDeleteTasks) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" onClick={(e) => e.preventDefault()}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {canUpdateTasks && (
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onEditClick(task);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Modifier
+                        </DropdownMenuItem>
+                      )}
+                      {/* Delete is handled inside TaskEditModal */}
+                      {/* {canDeleteTasks && (
+                        <DropdownMenuItem className="text-red-600">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      )} */}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Badge className={priorityColors[task.priority]}>{priorityLabels[task.priority]}</Badge>
@@ -107,7 +148,7 @@ function TaskCard({ task }: { task: Task }) {
   );
 }
 
-function TaskColumn({ title, status, tasks, taskIds }: { title: string; status: "a_faire" | "en_cours" | "termine"; tasks: Task[]; taskIds: number[] }) {
+function TaskColumn({ title, status, tasks, taskIds, onEditClick }: { title: string; status: "a_faire" | "en_cours" | "termine"; tasks: Task[]; taskIds: number[], onEditClick: (task: Task) => void }) {
   const { setNodeRef } = useSortable({ id: status });
 
   return (
@@ -118,7 +159,7 @@ function TaskColumn({ title, status, tasks, taskIds }: { title: string; status: 
       </div>
       <SortableContext id={status} items={taskIds} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="space-y-3 min-h-[200px] bg-muted/20 p-2 rounded-lg">
-          {Array.isArray(tasks) && tasks.filter(Boolean).map(task => <TaskCard key={task.id} task={task} />)}
+          {Array.isArray(tasks) && tasks.filter(Boolean).map(task => <TaskCard key={task.id} task={task} onEditClick={onEditClick} />)}
           {tasks.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
@@ -139,10 +180,14 @@ function TaskColumn({ title, status, tasks, taskIds }: { title: string; status: 
 export default function MyTasksPage() {
   const { data: session } = useSession()
   const user = session?.user
+  const { user: authUser } = useAuth(); // Use authUser for permissions
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
+
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false); // State for edit modal
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null); // State for task to edit
 
   useEffect(() => {
     if (user?.id) {
@@ -152,7 +197,9 @@ export default function MyTasksPage() {
 
   const fetchMyTasks = async () => {
     try {
-      const response = await tasksApi.getAll({ assigned_to: user?.id });
+      // Assuming tasksApi.getAll can take assigned_to as a param directly
+      // Adjust if tasksApi.getAll expects different params or if assigned_to needs to be part of an object
+      const response = await api.get('/tasks', { params: { assigned_to: user?.id } }); // Use general api.get for tasks
       setTasks(response.data as any || []);
     } catch (error) {
       console.error("Erreur lors du chargement de mes tâches:", error)
@@ -175,6 +222,17 @@ export default function MyTasksPage() {
       setTasks(oldTasks); // Rollback on error
     }
   }
+
+  const handleTaskEdit = (task: Task) => {
+    setTaskToEdit(task);
+    setShowEditTaskModal(true);
+  };
+
+  const onTaskSave = () => {
+    setShowEditTaskModal(false);
+    setTaskToEdit(null);
+    fetchMyTasks(); // Refresh tasks after edit/delete
+  };
 
   const filteredTasks = tasks.filter((task) => {
     const matchesStatus = statusFilter === "all" || task.status === statusFilter
@@ -200,9 +258,19 @@ export default function MyTasksPage() {
 
     if (over && active.id !== over.id) {
         const activeTask = tasks.find(t => t.id === active.id);
-        const overContainerStatus = over.id as keyof typeof tasksByStatus;
-        
-        if (activeTask && activeTask.status !== overContainerStatus) {
+        // over.id can be a column status (string) or a task id (number)
+        const overId = over.id;
+        let overContainerStatus: string | undefined;
+
+        // Determine if over.id is a column or a task, then get the status
+        if (typeof overId === 'string' && (overId === 'a_faire' || overId === 'en_cours' || overId === 'termine')) {
+          overContainerStatus = overId;
+        } else if (typeof overId === 'number') {
+          const overTask = tasks.find(t => t.id === overId);
+          overContainerStatus = overTask?.status;
+        }
+
+        if (activeTask && overContainerStatus && activeTask.status !== overContainerStatus) {
             updateTaskStatus(activeTask.id, overContainerStatus);
         }
     }
@@ -253,9 +321,9 @@ export default function MyTasksPage() {
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 <div className="grid gap-6 lg:grid-cols-3">
-                    <TaskColumn title="À faire" status="a_faire" tasks={tasksByStatus.a_faire} taskIds={taskIdsByStatus.a_faire} />
-                    <TaskColumn title="En cours" status="en_cours" tasks={tasksByStatus.en_cours} taskIds={taskIdsByStatus.en_cours} />
-                    <TaskColumn title="Terminé" status="termine" tasks={tasksByStatus.termine} taskIds={taskIdsByStatus.termine} />
+                    <TaskColumn title="À faire" status="a_faire" tasks={tasksByStatus.a_faire} taskIds={taskIdsByStatus.a_faire} onEditClick={handleTaskEdit} />
+                    <TaskColumn title="En cours" status="en_cours" tasks={tasksByStatus.en_cours} taskIds={taskIdsByStatus.en_cours} onEditClick={handleTaskEdit} />
+                    <TaskColumn title="Terminé" status="termine" tasks={tasksByStatus.termine} taskIds={taskIdsByStatus.termine} onEditClick={handleTaskEdit} />
                 </div>
             </DndContext>
 
@@ -267,6 +335,16 @@ export default function MyTasksPage() {
                 </div>
             )}
         </div>
+      )}
+
+      {/* Task Edit Modal */}
+      {taskToEdit && (
+        <TaskEditModal
+          isOpen={showEditTaskModal}
+          onClose={() => setShowEditTaskModal(false)}
+          task={taskToEdit}
+          onSave={onTaskSave}
+        />
       )}
     </MainLayout>
   )

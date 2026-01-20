@@ -155,10 +155,15 @@ export async function PATCH(
         [task.assigned_to_id, task.project_id]
     );
     const details = detailRows[0] || {};
-    const userName: string = details.user_name || 'Unknown';
-    const assignedUserRole = details.user_role as 'ADMIN' | 'PROJECT_MANAGER' | 'EMPLOYEE';
-    type UserInfo = { id: string; name: string; email: string; role: 'ADMIN' | 'PROJECT_MANAGER' | 'EMPLOYEE' };
-    const assignedUserInfo: UserInfo | null = task.assigned_to_id ? { id: details.user_id as string, name: userName, email: details.user_email as string, role: assignedUserRole } : null;
+    let assignedUserInfo: UserInfo | null = null;
+    if (task.assigned_to_id && details.user_id && details.user_name && details.user_email && details.user_role) {
+      assignedUserInfo = {
+        id: details.user_id,
+        name: details.user_name,
+        email: details.user_email,
+        role: details.user_role as 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
+      };
+    }
 
     if (hasReassignment && assignedUserInfo) {
         const token = await createConfirmationToken({ type: 'TASK_ASSIGNMENT', userId: task.assigned_to_id!, entityType: 'task', entityId: task.id, metadata: { task_title: task.title, project_name: details.project_title } });

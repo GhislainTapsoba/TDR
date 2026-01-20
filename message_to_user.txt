@@ -1,0 +1,9 @@
+I have added the functionality to insert documents on the "Tasks" page within the Project Detail View (`/projects/[id]`).
+
+Specifically, for each task listed in the "Tasks" tab, you will now see:
+*   A section displaying documents already associated with that task, powered by `DocumentsList.tsx`.
+*   An option to upload new documents directly to that specific task, if you have the necessary `documents.create` permission.
+
+This enhancement allows for seamless document management directly within the context of each task.
+
+Please test this new functionality.

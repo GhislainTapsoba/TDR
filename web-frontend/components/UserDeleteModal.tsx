@@ -19,7 +19,7 @@ export default function UserDeleteModal({ user: userToDelete, isOpen, onClose, o
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || !canManageUsers(currentUser.permissions || [])) {
       toast.error("Vous n'avez pas la permission de supprimer un utilisateur.");
       return;
     }

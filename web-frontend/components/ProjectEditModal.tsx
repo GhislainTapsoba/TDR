@@ -1,21 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { projectsApi, usersApi, Project, User } from '@/lib/api';
+import { api, projectsApi, usersApi, Project, User } from '@/lib/api'; // Changed projectsApi to api
 import toast from 'react-hot-toast';
 import { X, FolderKanban, FileText, Calendar, User as UserIcon } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context'; // Updated import path for useAuth
+import { hasPermission } from '@/lib/permissions'; // Explicitly import hasPermission from lib
 
 interface ProjectEditModalProps {
   project: Project;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onProjectUpdated: () => void; // Renamed onSuccess to onProjectUpdated
 }
 
-export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }: ProjectEditModalProps) {
-  const { user } = useAuth();
+export default function ProjectEditModal({ project, isOpen, onClose, onProjectUpdated }: ProjectEditModalProps) {
+  const { user: authUser } = useAuth(); // Use authUser to avoid conflict with imported User type
   const [formData, setFormData] = useState({
     title: project.title,
     description: project.description || '',
@@ -49,8 +49,9 @@ export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }
 
   const loadUsers = async () => {
     try {
-      const { data } = await usersApi.getAll({ role: 'MANAGER' });
-      setUsers(data);
+      const { data: usersData } = await usersApi.getAll(); // Use usersApi.getAll and destructure data
+      const managers = usersData.filter((u: User) => u.role === 'MANAGER'); // Filter managers
+      setUsers(managers);
     } catch (error) {
       console.error('Error loading users:', error);
     }
@@ -59,7 +60,8 @@ export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !hasPermission(mapRole(user.role), 'projects', 'update')) {
+    // Corrected permission check
+    if (!authUser || !hasPermission(authUser.permissions || [], 'projects.update')) {
       toast.error("Vous n'avez pas la permission de modifier ce projet.");
       return;
     }
@@ -68,7 +70,7 @@ export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }
     const toastId = toast.loading('Modification du projet en cours...');
 
     try {
-      await projectsApi.update(project.id, {
+      await projectsApi.update(project.id, { // Use projectsApi.update
         title: formData.title,
         description: formData.description || null,
         status: formData.status as any,
@@ -79,7 +81,7 @@ export default function ProjectEditModal({ project, isOpen, onClose, onSuccess }
       });
 
       toast.success('Projet modifié avec succès !', { id: toastId });
-      onSuccess();
+      onProjectUpdated(); // Call the renamed prop
       onClose();
     } catch (error: any) {
       console.error('Error updating project:', error);

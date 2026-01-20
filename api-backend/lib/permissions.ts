@@ -194,7 +194,7 @@ export async function getRolePermissions(userRole: UserRole): Promise<Permission
 }
 
 /**
- * Mapper le rôle stocké en base (ADMIN / PROJECT_MANAGER / EMPLOYEE)
+ * Mapper le rôle stocké en base (ADMIN / MANAGER / EMPLOYE)
  * vers le rôle applicatif du système de permissions
  */
 export function mapDbRoleToUserRole(dbRole: string | null): UserRole {

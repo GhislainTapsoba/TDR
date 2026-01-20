@@ -16,6 +16,8 @@ import { Plus, Search, Calendar, Users, BarChart3, AlertTriangle, MoreVertical, 
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Import DeleteConfirmationModal
+import ProjectEditModal from "@/components/ProjectEditModal" // Import ProjectEditModal - will use later
 
 interface Project {
   id: string
@@ -62,6 +64,10 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [showDeleteModal, setShowDeleteModal] = useState(false) // State for delete modal
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null) // State for project to delete
+  const [showEditModal, setShowEditModal] = useState(false); // State for edit modal
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null); // State for project to edit
 
   useEffect(() => {
     fetchProjects()
@@ -77,6 +83,27 @@ export default function ProjectsPage() {
       setLoading(false)
     }
   }
+
+  const handleDeleteProject = async () => {
+    if (projectToDelete) {
+      try {
+        await api.deleteProject(projectToDelete.id);
+        fetchProjects(); // Refresh the list
+        setShowDeleteModal(false);
+        setProjectToDelete(null);
+      } catch (error) {
+        console.error("Erreur lors de la suppression du projet:", error);
+      }
+    }
+  };
+
+  const handleEditProject = async () => {
+    // This will be implemented in the next step
+    // For now, just close the modal
+    setShowEditModal(false);
+    setProjectToEdit(null);
+    fetchProjects(); // Refresh the list after editing
+  };
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
@@ -156,15 +183,26 @@ export default function ProjectsPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {hasPermission(authUser?.permissions || [], 'projects.update') && (
-                              <DropdownMenuItem asChild>
-                                <Link href={`/projects/${project.id}`}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Voir/Modifier
-                                </Link>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setProjectToEdit(project);
+                                  setShowEditModal(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Modifier
                               </DropdownMenuItem>
                             )}
                             {hasPermission(authUser?.permissions || [], 'projects.delete') && (
-                              <DropdownMenuItem className="text-red-600">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setProjectToDelete(project);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="text-red-600"
+                              >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Supprimer
                               </DropdownMenuItem>
@@ -236,6 +274,28 @@ export default function ProjectsPage() {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {projectToDelete && (
+        <DeleteConfirmationModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteProject}
+          itemName={projectToDelete.title}
+          itemType="projet"
+        />
+      )}
+
+      {/* Project Edit Modal */}
+      {projectToEdit && (
+        <ProjectEditModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          project={projectToEdit}
+          onProjectUpdated={handleEditProject}
+        />
+      )}
     </MainLayout>
   )
 }
+
