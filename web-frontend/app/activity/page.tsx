@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/contexts/auth-context"
 import { activityLogsApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Card, CardContent } from "@/components/ui/card"
@@ -12,57 +11,47 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
 interface ActivityLog {
-  id: number
+  id: string
+  user_id: string
   action: string
-  description: string
+  entity_type: string
+  entity_id: string
+  details: string
+  metadata: any
   created_at: string
-  user: {
-    id: number
-    name: string
-    email: string
-  } | null
-  model_type: string
-  model_id: number
+  user_name?: string | null
 }
 
 const actionIcons = {
-  created: Plus,
-  updated: Edit,
-  deleted: Trash2,
-  completed: CheckCircle,
-  assigned: Users,
-  status_changed: Activity,
-  auto_completed: CheckCircle,
-  auto_started: Activity,
+  create: Plus,
+  update: Edit,
+  delete: Trash2,
+  complete: CheckCircle,
+  assign: Users,
 }
 
 const actionColors = {
-  created: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  updated: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  deleted: "bg-red-500/10 text-red-400 border-red-500/20",
-  completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  assigned: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  status_changed: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  auto_completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  auto_started: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  create: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  update: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  delete: "bg-red-500/10 text-red-400 border-red-500/20",
+  complete: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  assign: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 }
 
 const actionLabels = {
-  created: "Créé",
-  updated: "Modifié",
-  deleted: "Supprimé",
-  completed: "Terminé",
-  assigned: "Assigné",
-  status_changed: "Statut changé",
-  auto_completed: "Auto-terminé",
-  auto_started: "Auto-démarré",
+  create: "Créé",
+  update: "Modifié",
+  delete: "Supprimé",
+  complete: "Terminé",
+  assign: "Assigné",
 }
 
-const modelTypeLabels = {
-  "App\\Models\\Project": "Projet",
-  "App\\Models\\Task": "Tâche",
-  "App\\Models\\Stage": "Étape",
-  "App\\Models\\User": "Utilisateur",
+const entityTypeLabels: Record<string, string> = {
+  project: "Projet",
+  task: "Tâche",
+  stage: "Étape",
+  document: "Document",
+  user_profile: "Profil",
 }
 
 export default function ActivityPage() {
@@ -112,7 +101,7 @@ export default function ActivityPage() {
               const actionColor =
                 actionColors[activity.action as keyof typeof actionColors] || "bg-muted text-muted-foreground"
               const actionLabel = actionLabels[activity.action as keyof typeof actionLabels] || activity.action
-              const modelLabel = modelTypeLabels[activity.model_type as keyof typeof modelTypeLabels] || "Élément"
+              const entityLabel = entityTypeLabels[activity.entity_type] || activity.entity_type || "Élément"
 
               return (
                 <Card key={activity.id} className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -130,7 +119,7 @@ export default function ActivityPage() {
                             {actionLabel}
                           </Badge>
                           <Badge variant="outline">
-                            {modelLabel}
+                            {entityLabel}
                           </Badge>
                           <span className="text-sm text-muted-foreground">
                             {format(new Date(activity.created_at), "dd MMM yyyy à HH:mm", { locale: fr })}
@@ -138,15 +127,15 @@ export default function ActivityPage() {
                         </div>
 
                         <p className="text-foreground">
-                          {activity.description || `${actionLabel} ${modelLabel.toLowerCase()}`}
+                          {activity.details || `${actionLabel} ${entityLabel.toLowerCase()}`}
                         </p>
 
-                        {activity.user && (
+                        {activity.user_name && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-xs">{getInitials(activity.user.name)}</AvatarFallback>
+                              <AvatarFallback className="text-xs">{getInitials(activity.user_name)}</AvatarFallback>
                             </Avatar>
-                            <span>par {activity.user.name}</span>
+                            <span>par {activity.user_name}</span>
                           </div>
                         )}
                       </div>

@@ -164,90 +164,93 @@ export default function ProjectsPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Array.isArray(filteredProjects) &&
               filteredProjects.filter(Boolean).map((project) => (
-                <Card key={project.id} className="h-full hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1 flex-1">
-                        <CardTitle className="text-lg text-foreground line-clamp-1">{project.title}</CardTitle>
-                        <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+                <Link key={project.id} href={`/projects/${project.id}`} className="block">
+                  <Card className="h-full hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm cursor-pointer">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1 flex-1">
+                          <CardTitle className="text-lg text-foreground line-clamp-1">{project.title}</CardTitle>
+                          <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {project.stats?.is_overdue && (
+                            <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              {/* Prevent navigation when interacting with the menu */}
+                              <Button variant="ghost" size="sm" onClick={(e) => e.preventDefault()}>
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {hasPermission(authUser?.permissions || [], 'projects.update') && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setProjectToEdit(project);
+                                    setShowEditModal(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Modifier
+                                </DropdownMenuItem>
+                              )}
+                              {hasPermission(authUser?.permissions || [], 'projects.delete') && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setProjectToDelete(project);
+                                    setShowDeleteModal(true);
+                                  }}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Supprimer
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {project.stats?.is_overdue && (
-                          <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0" />
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => e.preventDefault()}>
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {hasPermission(authUser?.permissions || [], 'projects.update') && (
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setProjectToEdit(project);
-                                  setShowEditModal(true);
-                                }}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Modifier
-                              </DropdownMenuItem>
-                            )}
-                            {hasPermission(authUser?.permissions || [], 'projects.delete') && (
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setProjectToDelete(project);
-                                  setShowDeleteModal(true);
-                                }}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <Badge className={statusColors[project.status]}>{statusLabels[project.status]}</Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {format(new Date(project.start_date), "dd MMM", { locale: fr })} -{" "}
+                          {format(new Date(project.end_date), "dd MMM yyyy", { locale: fr })}
+                        </span>
                       </div>
-                    </div>
-                    <Badge className={statusColors[project.status]}>{statusLabels[project.status]}</Badge>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        {format(new Date(project.start_date), "dd MMM", { locale: fr })} -{" "}
-                        {format(new Date(project.end_date), "dd MMM yyyy", { locale: fr })}
-                      </span>
-                    </div>
 
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Users className="h-4 w-4" />
-                      <span>Manager: {project.manager?.name || "Non assigné"}</span>
-                    </div>
-
-                    {project.stats && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Progression</span>
-                          <span className="text-foreground font-medium">{project.stats.progress_percentage}%</span>
-                        </div>
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${project.stats.progress_percentage}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>
-                            {project.stats.completed_tasks}/{project.stats.total_tasks} tâches
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        <span>Manager: {project.manager?.name || "Non assigné"}</span>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
+
+                      {project.stats && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Progression</span>
+                            <span className="text-foreground font-medium">{project.stats.progress_percentage}%</span>
+                          </div>
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="bg-primary h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${project.stats.progress_percentage}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>
+                              {project.stats.completed_tasks}/{project.stats.total_tasks} tâches
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
           </div>
 

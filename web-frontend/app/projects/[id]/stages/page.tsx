@@ -1,11 +1,9 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { api } from "@/lib/api"
+import { projectsApi, stagesApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -31,21 +29,20 @@ import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
 
 interface Project {
-  id: number
+  id: string
   title: string
   description: string
   status: string
 }
 
 interface Stage {
-  id: number
+  id: string
   name: string
   description: string
-  order_index: number
-  estimated_duration: number
-  status: "en_attente" | "en_cours" | "termine"
-  depends_on: number | null
-  project_id: number
+  order: number
+  duration: number | null
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "BLOCKED"
+  project_id: string
   started_at: string | null
   completed_at: string | null
   created_at: string
@@ -64,7 +61,7 @@ export default function ProjectStagesPage() {
     open: false,
     stage: null
   })
-  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   const projectId = params.id as string
 
@@ -74,12 +71,12 @@ export default function ProjectStagesPage() {
     }
   }, [projectId])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     try {
       const [projectResponse, stagesResponse] = await Promise.all([
-        api.getProject(Number.parseInt(projectId)),
-        api.getProjectStages(Number.parseInt(projectId))
+        projectsApi.getById(projectId),
+        stagesApi.getAll({ project_id: projectId })
       ])
 
       setProject((projectResponse as any).data || null)
@@ -94,13 +91,13 @@ export default function ProjectStagesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [projectId, toast])
 
   const handleDeleteStage = async () => {
     if (!deleteDialog.stage) return
 
     try {
-      await api.deleteStage(deleteDialog.stage.id)
+      await stagesApi.delete(deleteDialog.stage.id)
       
       toast({
         title: "Étape supprimée",
@@ -118,10 +115,10 @@ export default function ProjectStagesPage() {
     }
   }
 
-  const handleUpdateStatus = async (stageId: number, newStatus: Stage['status']) => {
+  const handleUpdateStatus = async (stageId: string, newStatus: Stage['status']) => {
     setUpdatingStatus(stageId)
     try {
-      await api.put(`/stages/${stageId}/status`, { status: newStatus })
+      await stagesApi.update(stageId, { status: newStatus } as any)
       
       toast({
         title: "Statut mis à jour",
@@ -142,12 +139,14 @@ export default function ProjectStagesPage() {
 
   const getStatusIcon = (status: Stage['status']) => {
     switch (status) {
-      case "en_attente":
+      case "PENDING":
         return <Clock className="h-4 w-4" />
-      case "en_cours":
+      case "IN_PROGRESS":
         return <Play className="h-4 w-4" />
-      case "termine":
+      case "COMPLETED":
         return <CheckCircle className="h-4 w-4" />
+      case "BLOCKED":
+        return <AlertCircle className="h-4 w-4" />
       default:
         return <Clock className="h-4 w-4" />
     }
@@ -155,12 +154,14 @@ export default function ProjectStagesPage() {
 
   const getStatusColor = (status: Stage['status']) => {
     switch (status) {
-      case "en_attente":
+      case "PENDING":
         return "bg-gray-100 text-gray-800 border-gray-200"
-      case "en_cours":
+      case "IN_PROGRESS":
         return "bg-blue-100 text-blue-800 border-blue-200"
-      case "termine":
+      case "COMPLETED":
         return "bg-green-100 text-green-800 border-green-200"
+      case "BLOCKED":
+        return "bg-orange-100 text-orange-800 border-orange-200"
       default:
         return "bg-gray-100 text-gray-800 border-gray-200"
     }
@@ -168,67 +169,17 @@ export default function ProjectStagesPage() {
 
   const getStatusLabel = (status: Stage['status']) => {
     switch (status) {
-      case "en_attente":
+      case "PENDING":
         return "En attente"
-      case "en_cours":
+      case "IN_PROGRESS":
         return "En cours"
-      case "termine":
-        return "Terminé"
+      case "COMPLETED":
+        return "Terminée"
+      case "BLOCKED":
+        return "Bloquée"
       default:
         return "Inconnu"
     }
-  }
-
-  const getDependencyStage = (dependsOn: number | null) => {
-    if (!dependsOn) return null
-    return stages.find(stage => stage.id === dependsOn)
-  }
-
-  const canStartStage = (stage: Stage) => {
-    if (stage.status !== "en_attente") return false
-    if (!stage.depends_on) return true
-    
-    const dependency = getDependencyStage(stage.depends_on)
-    return dependency?.status === "termine"
-  }
-
-  const getNextPossibleActions = (stage: Stage) => {
-    const actions = []
-    
-    if (stage.status === "en_attente" && canStartStage(stage)) {
-      actions.push({
-        label: "Commencer",
-        action: () => handleUpdateStatus(stage.id, "en_cours"),
-        icon: <Play className="h-3 w-3" />,
-        color: "text-blue-600"
-      })
-    }
-    
-    if (stage.status === "en_cours") {
-      actions.push({
-        label: "Marquer comme terminé",
-        action: () => handleUpdateStatus(stage.id, "termine"),
-        icon: <CheckCircle className="h-3 w-3" />,
-        color: "text-green-600"
-      })
-      actions.push({
-        label: "Mettre en pause",
-        action: () => handleUpdateStatus(stage.id, "en_attente"),
-        icon: <Pause className="h-3 w-3" />,
-        color: "text-gray-600"
-      })
-    }
-
-    if (stage.status === "termine") {
-      actions.push({
-        label: "Reprendre",
-        action: () => handleUpdateStatus(stage.id, "en_cours"),
-        icon: <Play className="h-3 w-3" />,
-        color: "text-blue-600"
-      })
-    }
-
-    return actions
   }
 
   const formatDate = (dateString: string | null) => {
@@ -238,11 +189,11 @@ export default function ProjectStagesPage() {
 
   const calculateProgress = () => {
     if (stages.length === 0) return 0
-    const completedStages = stages.filter(stage => stage.status === "termine").length
+    const completedStages = stages.filter(stage => stage.status === "COMPLETED").length
     return Math.round((completedStages / stages.length) * 100)
   }
 
-  const sortedStages = [...stages].sort((a, b) => a.order_index - b.order_index)
+  const sortedStages = useMemo(() => [...stages].sort((a, b) => a.order - b.order), [stages])
 
   if (loading) {
     return (
@@ -360,19 +311,15 @@ export default function ProjectStagesPage() {
         ) : (
           <div className="space-y-4">
             {sortedStages.map((stage, index) => {
-              const dependency = getDependencyStage(stage.depends_on)
-              const nextActions = getNextPossibleActions(stage)
-              const isBlocked = !canStartStage(stage) && stage.status === "en_attente"
-
               return (
-                <Card key={stage.id} className={`${isBlocked ? 'opacity-75' : ''}`}>
+                <Card key={stage.id} className={`${stage.status === "BLOCKED" ? 'opacity-75' : ''}`}>
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4 flex-1">
                         {/* Order Badge */}
                         <div className="flex-shrink-0">
                           <Badge variant="outline" className="font-mono text-lg px-3 py-1">
-                            {stage.order_index}
+                            {stage.order}
                           </Badge>
                         </div>
 
@@ -395,7 +342,7 @@ export default function ProjectStagesPage() {
                           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              Durée estimée: {stage.estimated_duration} jour{stage.estimated_duration > 1 ? 's' : ''}
+                              Durée estimée: {stage.duration ?? 0} jour{(stage.duration ?? 0) > 1 ? 's' : ''}
                             </div>
                             
                             {stage.started_at && (
@@ -412,54 +359,11 @@ export default function ProjectStagesPage() {
                               </div>
                             )}
                           </div>
-
-                          {/* Dependencies */}
-                          {dependency && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <LinkIcon className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-muted-foreground">Dépend de:</span>
-                              <Badge variant="outline" className="text-xs">
-                                {dependency.order_index}. {dependency.name}
-                              </Badge>
-                              {dependency.status !== "termine" && (
-                                <Badge variant="outline" className="text-xs text-orange-600">
-                                  En attente de fin
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Blocked indicator */}
-                          {isBlocked && (
-                            <div className="flex items-center gap-2 text-sm text-orange-600">
-                              <AlertCircle className="h-3 w-3" />
-                              Cette étape est bloquée en attente de la fin de ses dépendances
-                            </div>
-                          )}
                         </div>
                       </div>
 
                       {/* Actions */}
                       <div className="flex items-center gap-2 ml-4">
-                        {/* Quick Actions */}
-                        {nextActions.length > 0 && (
-                          <div className="flex gap-1">
-                            {nextActions.slice(0, 1).map((action, idx) => (
-                              <Button
-                                key={idx}
-                                size="sm"
-                                variant="outline"
-                                onClick={action.action}
-                                disabled={updatingStatus === stage.id}
-                                className={action.color}
-                              >
-                                {action.icon}
-                                <span className="ml-1 hidden sm:inline">{action.label}</span>
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-
                         {/* More Actions */}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -475,16 +379,33 @@ export default function ProjectStagesPage() {
                               Modifier
                             </DropdownMenuItem>
                             
-                            {nextActions.slice(1).map((action, idx) => (
+                            {stage.status !== "IN_PROGRESS" && (
                               <DropdownMenuItem
-                                key={idx}
-                                onClick={action.action}
+                                onClick={() => handleUpdateStatus(stage.id, "IN_PROGRESS")}
                                 disabled={updatingStatus === stage.id}
                               >
-                                {action.icon}
-                                <span className="ml-2">{action.label}</span>
+                                <Play className="h-3 w-3 mr-2" />
+                                Démarrer
                               </DropdownMenuItem>
-                            ))}
+                            )}
+                            {stage.status !== "COMPLETED" && (
+                              <DropdownMenuItem
+                                onClick={() => handleUpdateStatus(stage.id, "COMPLETED")}
+                                disabled={updatingStatus === stage.id}
+                              >
+                                <CheckCircle className="h-3 w-3 mr-2" />
+                                Marquer terminée
+                              </DropdownMenuItem>
+                            )}
+                            {stage.status !== "PENDING" && stage.status !== "COMPLETED" && (
+                              <DropdownMenuItem
+                                onClick={() => handleUpdateStatus(stage.id, "PENDING")}
+                                disabled={updatingStatus === stage.id}
+                              >
+                                <Pause className="h-3 w-3 mr-2" />
+                                Mettre en attente
+                              </DropdownMenuItem>
+                            )}
                             
                             <DropdownMenuItem
                               onClick={() => setDeleteDialog({ open: true, stage })}
