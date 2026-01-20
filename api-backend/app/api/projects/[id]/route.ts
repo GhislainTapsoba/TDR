@@ -5,6 +5,18 @@ import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { mapDbRoleToUserRole, requirePermission, canManageProject } from '@/lib/permissions';
 import { isValidUUID } from '@/lib/validation';
 
+// Helper function to map frontend status to DB status
+const mapFrontendStatusToDbStatus = (frontendStatus: string) => {
+  switch (frontendStatus) {
+    case 'planifie': return 'PLANNING';
+    case 'en_cours': return 'IN_PROGRESS';
+    case 'en_pause': return 'ON_HOLD';
+    case 'termine': return 'COMPLETED';
+    case 'annule': return 'CANCELLED';
+    default: return 'PLANNING'; // Default to a valid status
+  }
+};
+
 // Gérer les requêtes OPTIONS (preflight CORS)
 export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
@@ -181,13 +193,21 @@ export async function PATCH(
     const queryParams: any[] = [];
     let paramIndex = 1;
     
-    const fieldsToUpdate = ['title', 'description', 'start_date', 'end_date', 'status', 'manager_id'];
+    const fieldsToUpdate = ['title', 'description', 'start_date', 'end_date', 'manager_id']; // Removed 'status'
+
     fieldsToUpdate.forEach(field => {
         if (body[field] !== undefined) {
             updateFields.push(`${field} = $${paramIndex++}`);
             queryParams.push(body[field]);
         }
     });
+
+    // Handle status separately with mapping
+    if (body.status !== undefined) {
+      const dbStatus = mapFrontendStatusToDbStatus(body.status);
+      updateFields.push(`status = $${paramIndex++}`);
+      queryParams.push(dbStatus);
+    }
 
     if (updateFields.length === 0) {
       return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });

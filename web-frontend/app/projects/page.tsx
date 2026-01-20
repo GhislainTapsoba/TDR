@@ -87,7 +87,7 @@ export default function ProjectsPage() {
   const handleDeleteProject = async () => {
     if (projectToDelete) {
       try {
-        await api.deleteProject(projectToDelete.id);
+        await projectsApi.delete(projectToDelete.id);
         fetchProjects(); // Refresh the list
         setShowDeleteModal(false);
         setProjectToDelete(null);
