@@ -66,8 +66,9 @@ export async function GET(request: NextRequest) {
 
       managerSpecificWhere.push(`
         u.id IN (
-          SELECT DISTINCT t.assigned_to
-          FROM tasks t
+          SELECT DISTINCT ta.user_id
+          FROM task_assignees ta
+          JOIN tasks t ON ta.task_id = t.id
           JOIN projects p ON t.project_id = p.id
           WHERE p.manager_id = $${paramIndex++}
         )
