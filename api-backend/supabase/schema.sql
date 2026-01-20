@@ -257,3 +257,43 @@ CREATE TABLE public.notifications (
   CONSTRAINT notifications_user_id_fkey
     FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+
+-- =======================
+-- EMAIL LOGS
+-- =======================
+CREATE TABLE public.email_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  recipient_id uuid,
+  recipient character varying NOT NULL,
+  subject character varying NOT NULL,
+  body text NOT NULL,
+  status character varying DEFAULT 'PENDING'
+    CHECK (status IN ('PENDING','SENT','FAILED')),
+  sent_at timestamp with time zone,
+  error_message text,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT email_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT email_logs_recipient_id_fkey
+    FOREIGN KEY (recipient_id) REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+-- =======================
+-- EMAIL CONFIRMATIONS
+-- =======================
+CREATE TABLE public.email_confirmations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  token character varying NOT NULL UNIQUE,
+  type character varying NOT NULL,
+  user_id uuid NOT NULL,
+  entity_type character varying NOT NULL,
+  entity_id character varying NOT NULL,
+  metadata jsonb,
+  confirmed boolean DEFAULT false,
+  confirmed_at timestamp with time zone,
+  expires_at timestamp with time zone NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT email_confirmations_pkey PRIMARY KEY (id),
+  CONSTRAINT email_confirmations_user_id_fkey
+    FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
