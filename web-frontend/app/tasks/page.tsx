@@ -86,6 +86,15 @@ export default function TasksPage() {
   const [showDeleteTaskModal, setShowDeleteTaskModal] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
+  const permissions = useMemo(() => {
+    return {
+      canReadTasks: hasPermission(authUser?.permissions || [], 'tasks.read'),
+      canCreateTasks: hasPermission(authUser?.permissions || [], 'tasks.create'),
+      canUpdateTasks: hasPermission(authUser?.permissions || [], 'tasks.update'),
+      canDeleteTasks: hasPermission(authUser?.permissions || [], 'tasks.delete'),
+    };
+  }, [authUser?.permissions]);
+
   useEffect(() => {
     fetchTasks()
   }, [])
@@ -155,8 +164,8 @@ export default function TasksPage() {
     })
   }, [tasks, searchTerm, statusFilter, priorityFilter])
 
-  // Permission check for page access
-  if (sessionStatus === 'authenticated' && !hasPermission(authUser?.permissions || [], 'tasks.read')) {
+  // Permission checks
+  if (sessionStatus === 'authenticated' && !permissions.canReadTasks) {
     return (
       <MainLayout>
         <div className="text-center py-12">
@@ -204,7 +213,7 @@ export default function TasksPage() {
               <h1 className="text-3xl font-bold text-foreground">Tâches</h1>
               <p className="text-muted-foreground">Gérez et suivez toutes vos tâches</p>
             </div>
-            {hasPermission(authUser?.permissions || [], 'tasks.create') && (
+            {permissions.canCreateTasks && (
               <Link href="/tasks/new">
                 <Button className="bg-primary hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
@@ -331,13 +340,13 @@ export default function TasksPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {canUpdateTasks && (
+                            {permissions.canUpdateTasks && (
                               <DropdownMenuItem onClick={() => handleEditTask(task)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Modifier
                               </DropdownMenuItem>
                             )}
-                            {canDeleteTasks && (
+                            {permissions.canDeleteTasks && (
                               <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTaskConfirm(task)}>
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Supprimer
@@ -364,7 +373,7 @@ export default function TasksPage() {
                     ? "Aucune tâche ne correspond à vos critères de recherche."
                     : "Aucune tâche n'est encore créée."}
                 </p>
-                {canCreateTasks &&
+                {permissions.canCreateTasks &&
                 !searchTerm &&
                 statusFilter === "all" &&
                 priorityFilter === "all" && (
