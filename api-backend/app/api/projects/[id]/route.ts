@@ -92,27 +92,7 @@ export async function GET(
     const progress_percentage = stats.total_tasks > 0 ? Math.round((stats.completed_tasks / stats.total_tasks) * 100) : 0;
     const is_overdue = stats.overdue_tasks > 0;
 
-    // Si non-ADMIN, vérifier l'accès au projet
-    if (userRole !== 'admin') {
-      const hasAccess = project.created_by_id === user.id || project.manager_id === user.id;
-
-      if (!hasAccess) {
-        const { rowCount: memberCount } = await db.query(
-          'SELECT id FROM project_members WHERE project_id = $1 AND user_id = $2',
-          [id, user.id]
-        );
-
-        if (memberCount === 0) {
-          const { rowCount: taskCount } = await db.query(
-            'SELECT ta.user_id FROM task_assignees ta JOIN tasks t ON ta.task_id = t.id WHERE t.project_id = $1 AND ta.user_id = $2 LIMIT 1',
-            [id, user.id]
-          );
-          if (taskCount === 0) {
-            return corsResponse({ error: 'Vous n\'avez pas accès à ce projet' }, request, { status: 403 });
-          }
-        }
-      }
-    }
+    // Allow all authenticated users to read project details; permissions are checked in the frontend for actions
 
     // Transform data to match frontend expectations
     const transformedProject = {

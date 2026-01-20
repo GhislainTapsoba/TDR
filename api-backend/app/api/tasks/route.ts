@@ -42,12 +42,16 @@ export async function GET(request: NextRequest) {
                ELSE t.status
              END as status,
              c.name as created_by_name,
+             p.id as project_id, p.title as project_title,
+             s.id as stage_id, s.name as stage_name,
              (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email))
               FROM task_assignees ta
               JOIN users u ON ta.user_id = u.id
               WHERE ta.task_id = t.id) as assignees
       FROM tasks t
       LEFT JOIN users c ON t.created_by_id = c.id
+      LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN stages s ON t.stage_id = s.id
     `;
     const whereClauses: string[] = [];
 
@@ -93,7 +97,13 @@ export async function GET(request: NextRequest) {
 
     const { rows: tasks } = await db.query(queryText, queryParams);
 
-    return corsResponse(tasks || [], request);
+    const transformedTasks = tasks.map(task => ({
+      ...task,
+      project: task.project_id ? { id: task.project_id, title: task.project_title } : null,
+      stage: task.stage_id ? { id: task.stage_id, name: task.stage_name } : null,
+    }));
+
+    return corsResponse(transformedTasks || [], request);
   } catch (error) {
     console.error('GET /api/tasks error:', error);
     return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
@@ -249,16 +259,26 @@ export async function POST(request: NextRequest) {
                ELSE t.status
              END as status,
              c.name as created_by_name,
-             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name))
+             p.id as project_id, p.title as project_title,
+             s.id as stage_id, s.name as stage_name,
+             (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email))
               FROM task_assignees ta
               JOIN users u ON ta.user_id = u.id
               WHERE ta.task_id = t.id) as assignees
       FROM tasks t
       LEFT JOIN users c ON t.created_by_id = c.id
+      LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN stages s ON t.stage_id = s.id
       WHERE t.id = $1
     `, [task.id]);
 
-    return corsResponse(finalTaskRows[0], request, { status: 201 });
+    const transformedTask = {
+      ...finalTaskRows[0],
+      project: finalTaskRows[0].project_id ? { id: finalTaskRows[0].project_id, title: finalTaskRows[0].project_title } : null,
+      stage: finalTaskRows[0].stage_id ? { id: finalTaskRows[0].stage_id, name: finalTaskRows[0].stage_name } : null,
+    };
+
+    return corsResponse(transformedTask, request, { status: 201 });
   } catch (error) {
     console.error('POST /api/tasks error:', error);
     return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
