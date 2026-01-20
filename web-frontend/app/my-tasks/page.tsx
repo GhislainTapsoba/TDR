@@ -199,9 +199,8 @@ export default function MyTasksPage() {
 
   const fetchMyTasks = async () => {
     try {
-      // Assuming tasksApi.getAll can take assigned_to as a param directly
-      // Adjust if tasksApi.getAll expects different params or if assigned_to needs to be part of an object
-      const response = await api.get('/tasks', { params: { assigned_to: user?.id } }); // Use general api.get for tasks
+      // Backend filters tasks by current user's ID from auth token, no query params needed
+      const response = await api.get('/tasks');
       setTasks(response.data as any || []);
     } catch (error) {
       console.error("Erreur lors du chargement de mes tâches:", error)

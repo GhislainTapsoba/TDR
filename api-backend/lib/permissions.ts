@@ -366,6 +366,7 @@ export async function initializePermissions(): Promise<void> {
       const employeAssignments = permissions.filter(p =>
         (['tasks', 'stages', 'documents'].includes(p.resource) && ['create', 'read', 'update'].includes(p.action)) ||
         (p.resource === 'projects' && p.action === 'read') ||
+        (p.resource === 'users' && p.action === 'read') ||
         p.resource === 'activity_logs' ||
         p.resource === 'dashboard'
       );
