@@ -1,7 +1,0 @@
-I have addressed the build error you reported. The `Cannot find name 'UserInfo'` type error was due to a missing type definition in `api-backend/app/api/tasks/[id]/route.ts`.
-
-I have added the following type definition to the file:
-```typescript
-type UserInfo = { id: string; name: string; email: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE' };
-```
-This should resolve the compilation issue. Please try rebuilding your project.
