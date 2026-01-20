@@ -96,7 +96,14 @@ const statusColors = {
   annule: "bg-red-500/10 text-red-400 border-red-500/20",
 }
 
-const taskStatusLabels = {
+const taskStatusLabels: Record<string, string> = {
+  // DB statuses
+  TODO: "À faire",
+  IN_PROGRESS: "En cours",
+  IN_REVIEW: "En revue",
+  COMPLETED: "Terminé",
+  CANCELLED: "Annulé",
+  // legacy (older frontend)
   a_faire: "À faire",
   en_cours: "En cours",
   termine: "Terminé",
@@ -106,6 +113,27 @@ const priorityColors = {
   low: "bg-green-500/10 text-green-400 border-green-500/20",
   medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
   high: "bg-red-500/10 text-red-400 border-red-500/20",
+}
+
+const stageStatusLabels: Record<string, string> = {
+  PENDING: "En attente",
+  IN_PROGRESS: "En cours",
+  COMPLETED: "Terminée",
+  BLOCKED: "Bloquée",
+}
+
+const stageStatusColors: Record<string, string> = {
+  PENDING: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  IN_PROGRESS: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  COMPLETED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  BLOCKED: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+}
+
+const dbPriorityLabels: Record<string, string> = {
+  LOW: "Faible",
+  MEDIUM: "Moyenne",
+  HIGH: "Élevée",
+  URGENT: "Urgente",
 }
 
 export default function ProjectDetailPage() {
@@ -225,7 +253,7 @@ export default function ProjectDetailPage() {
     }
     
     const total = stage.tasks.length;
-    const completed = stage.tasks.filter((t: any) => t.status === "termine").length;
+    const completed = stage.tasks.filter((t: any) => t.status === "COMPLETED" || t.status === "termine").length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     
     return { completed, total, percentage };
@@ -425,7 +453,9 @@ export default function ProjectDetailPage() {
                     <div className="flex items-center justify-between">
                       <CardTitle>{stage.name}</CardTitle>
                       <div className="flex items-center gap-2">
-                        <Badge>{stage.status}</Badge>
+                        <Badge className={stageStatusColors[stage.status] || ""}>
+                          {stageStatusLabels[stage.status] || stage.status}
+                        </Badge>
                         {(canUpdateStage || canDeleteStage) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -506,8 +536,8 @@ export default function ProjectDetailPage() {
                     <div className="flex items-center justify-between">
                       <CardTitle>{task.title}</CardTitle>
                       <div className="flex items-center gap-2">
-                        <Badge className={priorityColors[task.priority as keyof typeof priorityColors] || priorityColors.medium}>
-                          {task.priority}
+                        <Badge className={priorityColors[(task.priority || "medium") as keyof typeof priorityColors] || priorityColors.medium}>
+                          {dbPriorityLabels[task.priority] || task.priority}
                         </Badge>
                         {(canUpdateTask || canDeleteTask) && (
                           <DropdownMenu>

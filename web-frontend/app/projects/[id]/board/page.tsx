@@ -40,6 +40,15 @@ function TaskCard({ task }: { task: Task }) {
     medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
     high: "bg-red-500/10 text-red-400 border-red-500/20",
   }
+  const priorityLabels: Record<string, string> = {
+    LOW: "Faible",
+    MEDIUM: "Moyenne",
+    HIGH: "Élevée",
+    URGENT: "Urgente",
+    low: "Faible",
+    medium: "Moyenne",
+    high: "Élevée",
+  }
   return (
     <div ref={setNodeRef} style={style} className="mb-3">
       <Card className="border-border/50 bg-card/80 backdrop-blur-sm">
@@ -50,7 +59,7 @@ function TaskCard({ task }: { task: Task }) {
                 <GripVertical className="h-4 w-4" />
             </div>
           </div>
-          <Badge className={`mt-2 ${priorityColors[task.priority]}`}>{task.priority}</Badge>
+          <Badge className={`mt-2 ${priorityColors[task.priority]}`}>{priorityLabels[task.priority] || task.priority}</Badge>
         </CardContent>
       </Card>
     </div>

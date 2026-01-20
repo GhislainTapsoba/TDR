@@ -271,19 +271,19 @@ export default function ProjectStagesPage() {
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
                     <div className="text-2xl font-bold text-gray-600">
-                      {stages.filter(s => s.status === "en_attente").length}
+                      {stages.filter(s => s.status === "PENDING").length}
                     </div>
                     <div className="text-sm text-muted-foreground">En attente</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-blue-600">
-                      {stages.filter(s => s.status === "en_cours").length}
+                      {stages.filter(s => s.status === "IN_PROGRESS").length}
                     </div>
                     <div className="text-sm text-muted-foreground">En cours</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-600">
-                      {stages.filter(s => s.status === "termine").length}
+                      {stages.filter(s => s.status === "COMPLETED").length}
                     </div>
                     <div className="text-sm text-muted-foreground">Terminées</div>
                   </div>

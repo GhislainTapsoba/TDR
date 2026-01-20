@@ -5,34 +5,32 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { api } from "@/lib/api"
+import { projectsApi, stagesApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Calendar, Clock, Link as LinkIcon } from "lucide-react"
+import { ArrowLeft, Clock } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
 
 interface Project {
-  id: number
+  id: string
   title: string
   description: string
   status: string
 }
 
 interface Stage {
-  id: number
+  id: string
   name: string
   description: string
-  order_index: number
-  estimated_duration: number
-  status: "en_attente" | "en_cours" | "termine"
-  depends_on: number | null
-  project_id: number
+  order: number
+  duration: number | null
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "BLOCKED"
+  project_id: string
 }
 
 export default function NewStagePage() {
@@ -50,10 +48,8 @@ export default function NewStagePage() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    order_index: "",
-    estimated_duration: "",
-    status: "en_attente" as "en_attente" | "en_cours" | "termine",
-    depends_on: "",
+    order: "",
+    duration: "",
   })
 
   useEffect(() => {
@@ -66,26 +62,20 @@ export default function NewStagePage() {
     setLoadingProject(true)
     try {
       const [projectResponse, stagesResponse] = await Promise.all([
-        api.getProject(projectId),
-        api.getProjectStages(projectId)
+        projectsApi.getById(projectId),
+        stagesApi.getAll({ project_id: projectId })
       ])
 
-      console.log("[NewStage] Project response:", projectResponse)
-      console.log("[NewStage] Stages response:", stagesResponse)
-
-      // Handle both wrapped and unwrapped responses
-      const projectData = (projectResponse as any).data || projectResponse
-      const stagesData = (stagesResponse as any).data || stagesResponse
-      
-      setProject(projectData || null)
+      setProject((projectResponse as any).data || null)
+      const stagesData = (stagesResponse as any).data || []
       setExistingStages(Array.isArray(stagesData) ? stagesData : [])
 
       // Auto-set next order index
       const stages = Array.isArray(stagesData) ? stagesData : []
-      const maxOrderIndex = stages.length > 0 
-        ? Math.max(...stages.filter(Boolean).map((stage: Stage) => stage.order_index))
-        : 0
-      setFormData(prev => ({ ...prev, order_index: (maxOrderIndex + 1).toString() }))
+      const maxOrder = stages.length > 0
+        ? Math.max(...stages.filter(Boolean).map((stage: Stage) => stage.order))
+        : -1
+      setFormData(prev => ({ ...prev, order: (maxOrder + 1).toString() }))
 
     } catch (error) {
       console.error("[NewStage] Erreur lors du chargement des données du projet:", error)
@@ -115,33 +105,33 @@ export default function NewStagePage() {
         return
       }
 
-      if (!formData.order_index || Number.parseInt(formData.order_index) < 1) {
+      if (!formData.order || Number.parseInt(formData.order) < 0) {
         toast({
           title: "Erreur",
-          description: "L'ordre doit être un nombre positif.",
+          description: "L'ordre doit être un nombre >= 0.",
           variant: "destructive",
         })
         setLoading(false)
         return
       }
 
-      if (!formData.estimated_duration || Number.parseInt(formData.estimated_duration) < 1) {
+      if (formData.duration && Number.parseInt(formData.duration) < 0) {
         toast({
           title: "Erreur",
-          description: "La durée estimée doit être un nombre positif.",
+          description: "La durée doit être un nombre >= 0.",
           variant: "destructive",
         })
         setLoading(false)
         return
       }
 
-      // Check for duplicate order index
-      const orderIndex = Number.parseInt(formData.order_index)
-      const duplicateOrder = existingStages.find(stage => stage.order_index === orderIndex)
+      // Check for duplicate order
+      const order = Number.parseInt(formData.order)
+      const duplicateOrder = existingStages.find(stage => stage.order === order)
       if (duplicateOrder) {
         toast({
           title: "Erreur",
-          description: `L'ordre ${orderIndex} est déjà utilisé par l'étape "${duplicateOrder.name}".`,
+          description: `L'ordre ${order} est déjà utilisé par l'étape "${duplicateOrder.name}".`,
           variant: "destructive",
         })
         setLoading(false)
@@ -152,14 +142,11 @@ export default function NewStagePage() {
         project_id: projectId,
         name: formData.name.trim(),
         description: formData.description.trim() || null,
-        order_index: orderIndex,
-        estimated_duration: Number.parseInt(formData.estimated_duration),
-        status: formData.status,
-        depends_on: formData.depends_on ? Number.parseInt(formData.depends_on) : null,
+        order,
+        duration: formData.duration ? Number.parseInt(formData.duration) : null,
       }
 
-      console.log("[NewStage] Stage payload:", payload)
-      const response = await api.post("/stages", payload)
+      await stagesApi.create(payload)
 
       toast({
         title: "Étape créée",
@@ -181,18 +168,6 @@ export default function NewStagePage() {
 
   const handleGoBack = () => {
     router.push(`/projects/${projectId}/stages`)
-  }
-
-  const statusLabels = {
-    en_attente: "En attente",
-    en_cours: "En cours",
-    termine: "Terminé",
-  }
-
-  const statusColors = {
-    en_attente: "text-gray-600",
-    en_cours: "text-blue-600",
-    termine: "text-green-600",
   }
 
   if (loadingProject) {
@@ -223,11 +198,6 @@ export default function NewStagePage() {
       </MainLayout>
     )
   }
-
-  // Available stages for dependency (excluding stages with higher order_index)
-  const availableDependencies = existingStages.filter(stage => 
-    stage.order_index < Number.parseInt(formData.order_index || "999")
-  )
 
   return (
     <MainLayout>
@@ -276,14 +246,14 @@ export default function NewStagePage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label htmlFor="order_index">Ordre *</Label>
+                  <Label htmlFor="order">Ordre *</Label>
                   <Input
-                    id="order_index"
+                    id="order"
                     type="number"
-                    min="1"
-                    value={formData.order_index}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, order_index: e.target.value }))}
-                    placeholder="1"
+                    min="0"
+                    value={formData.order}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, order: e.target.value }))}
+                    placeholder="0"
                     required
                   />
                   <p className="text-xs text-muted-foreground">
@@ -292,72 +262,20 @@ export default function NewStagePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="estimated_duration">Durée estimée (jours) *</Label>
+                  <Label htmlFor="duration">Durée (jours)</Label>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="estimated_duration"
+                      id="duration"
                       type="number"
-                      min="1"
-                      value={formData.estimated_duration}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, estimated_duration: e.target.value }))}
+                      min="0"
+                      value={formData.duration}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, duration: e.target.value }))}
                       placeholder="5"
                       className="pl-10"
-                      required
                     />
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="status">Statut *</Label>
-                  <Select
-                    value={formData.status}
-                    onValueChange={(value: "en_attente" | "en_cours" | "termine") =>
-                      setFormData((prev) => ({ ...prev, status: value }))
-                    }
-                    required
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(statusLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          <div className="flex items-center gap-2">
-                            <div className={`h-2 w-2 rounded-full bg-current ${statusColors[value as keyof typeof statusColors]}`} />
-                            {label}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="depends_on">Dépend de l'étape</Label>
-                <Select
-                  value={formData.depends_on || "none"}
-                  onValueChange={(value) => setFormData((prev) => ({ ...prev, depends_on: value === "none" ? "" : value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Aucune dépendance (optionnel)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                                        <SelectItem value="none">Aucune dépendance</SelectItem>
-                                          {Array.isArray(availableDependencies) &&
-                                            availableDependencies.filter(Boolean).map((stage) => (                      <SelectItem key={stage.id} value={stage.id.toString()}>
-                        <div className="flex items-center gap-2">
-                          <LinkIcon className="h-3 w-3" />
-                          {stage.order_index}. {stage.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Cette étape ne peut commencer qu'après la fin de l'étape sélectionnée
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -371,19 +289,18 @@ export default function NewStagePage() {
               <CardContent>
                 <div className="space-y-2">
                   {existingStages.filter(Boolean)
-                    .sort((a, b) => a.order_index - b.order_index)
+                    .sort((a, b) => a.order - b.order)
                     .map((stage) => (
                       <div key={stage.id} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center gap-3">
                           <span className="font-mono text-sm bg-background px-2 py-1 rounded">
-                            {stage.order_index}
+                            {stage.order}
                           </span>
                           <span className="font-medium">{stage.name}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Clock className="h-3 w-3" />
-                          {stage.estimated_duration}j
-                          <div className={`h-2 w-2 rounded-full bg-current ml-2 ${statusColors[stage.status]}`} />
+                          {stage.duration ?? 0}j
                         </div>
                       </div>
                     ))}

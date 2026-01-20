@@ -23,8 +23,8 @@ interface Task {
   id: string // Changed from number to string
   title: string
   description: string
-  status: "a_faire" | "en_cours" | "termine"
-  priority: "low" | "medium" | "high"
+  status: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "COMPLETED" | "CANCELLED"
+  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
   due_date: string | null
   assigned_to: string | null // Changed from number to string
   assignees: {
@@ -43,31 +43,37 @@ interface Task {
 }
 
 const statusLabels = {
-  a_faire: "À faire",
-  en_cours: "En cours",
-  termine: "Terminé",
+  TODO: "À faire",
+  IN_PROGRESS: "En cours",
+  IN_REVIEW: "En revue",
+  COMPLETED: "Terminé",
+  CANCELLED: "Annulé",
 }
 
 const statusColors = {
-  a_faire: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  en_cours: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  termine: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  TODO: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+  IN_PROGRESS: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  IN_REVIEW: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  COMPLETED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  CANCELLED: "bg-red-500/10 text-red-400 border-red-500/20",
 }
 
 const priorityLabels = {
-  low: "Faible",
-  medium: "Moyenne",
-  high: "Élevée",
+  LOW: "Faible",
+  MEDIUM: "Moyenne",
+  HIGH: "Élevée",
+  URGENT: "Urgente",
 }
 
 const priorityColors = {
-  low: "bg-green-500/10 text-green-400 border-green-500/20",
-  medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  high: "bg-red-500/10 text-red-400 border-red-500/20",
+  LOW: "bg-green-500/10 text-green-400 border-green-500/20",
+  MEDIUM: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  HIGH: "bg-red-500/10 text-red-400 border-red-500/20",
+  URGENT: "bg-red-500/10 text-red-400 border-red-500/20",
 }
 
 const isOverdue = (task: Task) => {
-  return task.due_date && new Date(task.due_date) < new Date() && task.status !== "termine"
+  return task.due_date && new Date(task.due_date) < new Date() && task.status !== "COMPLETED"
 }
 
 export default function TasksPage() {
@@ -112,7 +118,7 @@ export default function TasksPage() {
     }
   }
 
-  const updateTaskStatus = useCallback(async (taskId: string, newStatus: string) => { // Changed taskId type to string
+  const updateTaskStatus = useCallback(async (taskId: string, newStatus: Task["status"]) => {
     try {
       await tasksApi.update(taskId, { status: newStatus });
       fetchTasks(); // Refresh all tasks after update
@@ -239,9 +245,11 @@ export default function TasksPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="a_faire">À faire</SelectItem>
-                <SelectItem value="en_cours">En cours</SelectItem>
-                <SelectItem value="termine">Terminé</SelectItem>
+                <SelectItem value="TODO">À faire</SelectItem>
+                <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                <SelectItem value="IN_REVIEW">En revue</SelectItem>
+                <SelectItem value="COMPLETED">Terminé</SelectItem>
+                <SelectItem value="CANCELLED">Annulé</SelectItem>
               </SelectContent>
             </Select>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
@@ -250,9 +258,10 @@ export default function TasksPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les priorités</SelectItem>
-                <SelectItem value="high">Élevée</SelectItem>
-                <SelectItem value="medium">Moyenne</SelectItem>
-                <SelectItem value="low">Faible</SelectItem>
+                <SelectItem value="URGENT">Urgente</SelectItem>
+                <SelectItem value="HIGH">Élevée</SelectItem>
+                <SelectItem value="MEDIUM">Moyenne</SelectItem>
+                <SelectItem value="LOW">Faible</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -311,23 +320,27 @@ export default function TasksPage() {
 
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col gap-2">
-                        <Badge className={priorityColors[task.priority]}>{priorityLabels[task.priority]}</Badge>
+                        <Badge className={priorityColors[task.priority] || priorityColors.MEDIUM}>
+                          {priorityLabels[task.priority] || task.priority}
+                        </Badge>
                         <Select value={task.status} onValueChange={(value) => updateTaskStatus(task.id, value)}>
                           <SelectTrigger className="w-32">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="a_faire">À faire</SelectItem>
-                            <SelectItem value="en_cours">En cours</SelectItem>
-                            <SelectItem value="termine">Terminé</SelectItem>
+                            <SelectItem value="TODO">À faire</SelectItem>
+                            <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                            <SelectItem value="IN_REVIEW">En revue</SelectItem>
+                            <SelectItem value="COMPLETED">Terminé</SelectItem>
+                            <SelectItem value="CANCELLED">Annulé</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {task.status === "termine" ? (
+                        {task.status === "COMPLETED" ? (
                           <CheckCircle className="h-6 w-6 text-emerald-400" />
-                        ) : task.status === "en_cours" ? (
+                        ) : task.status === "IN_PROGRESS" ? (
                           <Clock className="h-6 w-6 text-amber-400" />
                         ) : (
                           <div className="h-6 w-6 rounded-full border-2 border-muted-foreground" />

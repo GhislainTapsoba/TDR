@@ -165,7 +165,8 @@ export async function PATCH(
     const isCompletedNow = mappedStatus === 'COMPLETED' && oldTask?.status !== 'COMPLETED';
 
     const { rows: detailRows } = await db.query(
-        `SELECT p.name as project_name, p.title as project_title, u.id as user_id, u.name as user_name, u.email as user_email, u.role as user_role
+        `SELECT p.title as project_title,
+                u.id as user_id, u.name as user_name, u.email as user_email, u.role as user_role
          FROM projects p
          LEFT JOIN users u ON u.id = $1
          WHERE p.id = $2`,
