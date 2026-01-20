@@ -10,5 +10,5 @@
 ## Followup Steps
 
 - [ ] Test the application by running it and navigating to my-tasks and project pages to ensure no TypeError on undefined 'id'.
-- [ ] Verify that employees can now view project details without 403 errors.
+- [x] Verify that employees can now view project details without 403 errors.
 - [ ] Check for any other potential undefined property accesses in the codebase.

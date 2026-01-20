@@ -159,22 +159,14 @@ export default function ProjectDetailPage() {
   const fetchData = useCallback(async (id: string) => {
     setLoading(true);
     try {
-      const [projectResponse, stagesResponse, tasksResponse, usersResponse] = await Promise.all([
+      const [projectResponse, stagesResponse, tasksResponse] = await Promise.all([
         api.getProject(id),
         api.getProjectStages(id),
-        tasksApi.getAll({ project_id: id }),
-        api.getUsers() // Fetch all users
-      ]);      
+        tasksApi.getAll({ project_id: id })
+      ]);
 
       if (projectResponse?.data) {
         const projectData = projectResponse.data;
-        const allUsers = (usersResponse as any).data || []; // Assuming usersResponse has data property
-        
-        // Map team_members (IDs) to teamMembers (objects)
-        projectData.teamMembers = (projectData.team_members || []).map((memberId: string) => {
-          return allUsers.find((u: TeamMember) => u.id === memberId);
-        }).filter(Boolean); // Filter out any undefined members if ID not found
-
         setProject(projectData);
       } else {
         throw new Error('Project data is not in the expected format.');
