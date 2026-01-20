@@ -367,6 +367,7 @@ export async function initializePermissions(): Promise<void> {
         (['tasks', 'stages', 'documents'].includes(p.resource) && ['create', 'read', 'update'].includes(p.action)) ||
         (p.resource === 'projects' && p.action === 'read') ||
         (p.resource === 'users' && p.action === 'read') ||
+        (p.resource === 'user_settings' && ['read', 'update'].includes(p.action)) ||
         p.resource === 'activity_logs' ||
         p.resource === 'dashboard'
       );
