@@ -14,7 +14,7 @@ export async function OPTIONS(request: NextRequest) {
 // POST /api/tasks/[id]/reject - Refuser une tâche assignée
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await verifyAuth(request);
