@@ -22,7 +22,7 @@ export async function POST(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id: taskId } = context.params;
+    const { id: taskId } = await context.params;
     const body = await request.json();
     const { rejectionReason } = body;
 
