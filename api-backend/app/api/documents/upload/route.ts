@@ -3,8 +3,6 @@ import { verifyAuth } from '@/lib/verifyAuth';
 import { s3Client } from '@/lib/storage';
 import { db } from '@/lib/db';
 import { Upload } from "@aws-sdk/lib-storage";
-import formidable, { File } from 'formidable';
-import fs from 'fs';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
 // Use Node.js runtime to handle file streams
@@ -23,19 +21,10 @@ export async function POST(request: NextRequest) {
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const data = await new Promise<{ fields: formidable.Fields; files: formidable.Files }>((resolve, reject) => {
-      const form = formidable({});
-      form.parse(request.body as any, (err, fields, files) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve({ fields, files });
-      });
-    });
-
-    const file = data.files.file?.[0] as File;
-    const { task_id, project_id } = data.fields;
+    const data = await request.formData();
+    const file = data.get('file') as File | null;
+    const taskId = data.get('task_id') as string | null;
+    const projectId = data.get('project_id') as string | null;
 
     if (!file) {
       return corsResponse({ error: 'No file provided' }, request, { status: 400 });
@@ -46,10 +35,9 @@ export async function POST(request: NextRequest) {
       return corsResponse({ error: 'File is too large (max 10MB)' }, request, { status: 400 });
     }
 
-    const fileStream = fs.createReadStream(file.filepath);
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExtension = file.originalFilename?.split('.').pop();
+    const fileExtension = file.name.split('.').pop();
     const storage_path = `documents/${timestamp}_${randomString}.${fileExtension}`;
 
     const upload = new Upload({
@@ -57,8 +45,8 @@ export async function POST(request: NextRequest) {
       params: {
         Bucket: process.env.MINIO_BUCKET!,
         Key: storage_path,
-        Body: fileStream,
-        ContentType: file.mimetype!,
+        Body: file.stream(),
+        ContentType: file.type,
       },
     });
 
@@ -74,12 +62,12 @@ export async function POST(request: NextRequest) {
       RETURNING *;
     `;
     const { rows } = await db.query(insertQuery, [
-      task_id?.[0] || null,
-      project_id?.[0] || null,
+      taskId || null,
+      projectId || null,
       user.id,
-      file.originalFilename,
+      file.name,
       file_url,
-      file.mimetype,
+      file.type,
       file.size,
       storage_path,
     ]);
