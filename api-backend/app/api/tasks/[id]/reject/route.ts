@@ -14,7 +14,7 @@ export async function OPTIONS(request: NextRequest) {
 // POST /api/tasks/[id]/reject - Refuser une tâche assignée
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: { id: string } }
 ) {
   try {
     const user = await verifyAuth(request);
@@ -22,8 +22,7 @@ export async function POST(
       return corsResponse({ error: 'Unauthorized' }, request, { status: 401 });
     }
 
-    const { id: taskId } = await context.params;
-    const taskIdNum = parseInt(taskId);
+    const { id: taskId } = context.params;
     const body = await request.json();
     const { rejectionReason } = body;
 
@@ -31,7 +30,7 @@ export async function POST(
       return corsResponse({ error: 'La raison du refus est obligatoire' }, request, { status: 400 });
     }
 
-    const { rows: taskRows } = await db.query('SELECT * FROM tasks WHERE id = $1', [taskIdNum]);
+    const { rows: taskRows } = await db.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
     if (taskRows.length === 0) {
       return corsResponse({ error: 'Tâche non trouvée' }, request, { status: 404 });
     }
@@ -48,9 +47,10 @@ export async function POST(
     }
 
     const { rows: projectRows } = await db.query(
-      `SELECT p.id, p.title, p.created_by_id, p.manager_id, u.id as creator_id, u.email as creator_email, u.name as creator_name, u.role as creator_role
+      `SELECT p.id, p.title, p.manager_id, 
+              m.id as manager_id_user, m.email as manager_email, m.name as manager_name
        FROM projects p 
-       LEFT JOIN users u ON p.created_by_id = u.id 
+       LEFT JOIN users m ON p.manager_id = m.id 
        WHERE p.id = $1`,
       [task.project_id]
     );
@@ -60,22 +60,27 @@ export async function POST(
     }
     const project = projectRows[0];
     
-    const { rows: admins } = await db.query("SELECT * FROM users WHERE role = 'ADMIN'");
+    // Find admins
+    const { rows: admins } = await db.query("SELECT id, email, name FROM users WHERE UPPER(role) = 'ADMIN'");
 
-    const recipients: Array<{ id: number; email: string; name: string }> = [];
-    if (project.creator_email) {
-      recipients.push({ id: project.creator_id, email: project.creator_email, name: project.creator_name || 'Manager' });
+    // Build recipient list (manager + admins)
+    const recipients = new Map<string, { id: string; email: string; name: string }>();
+
+    if (project.manager_email) {
+      recipients.set(project.manager_email, { id: project.manager_id_user, email: project.manager_email, name: project.manager_name || 'Manager' });
     }
-    if (admins && admins.length > 0) {
-      const admin = admins[0];
-      if (!recipients.find(r => r.email === admin.email)) {
-        recipients.push({ id: admin.id, email: admin.email, name: admin.name || 'Responsable général' });
+    if (admins) {
+      for (const admin of admins) {
+        if (!recipients.has(admin.email)) {
+          recipients.set(admin.email, { id: admin.id, email: admin.email, name: admin.name || 'Responsable général' });
+        }
       }
     }
 
-    for (const recipient of recipients) {
+    // Send email to all recipients
+    for (const recipient of recipients.values()) {
       const emailHtml = taskRejectedByEmployeeTemplate({
-        employeeName: user.name || user.email || 'Employé',
+        employeeName: user.name || user.email,
         taskTitle: task.title,
         projectName: project.title || 'Projet',
         taskId: task.id,
@@ -83,18 +88,32 @@ export async function POST(
         managerName: recipient.name
       });
 
-      await sendEmail({ to: recipient.email, subject: `❌ Tâche refusée: ${task.title}`, html: emailHtml, userId: recipient.id.toString(), metadata: { task_id: task.id.toString(), project_id: project.id.toString(), action: 'TASK_REJECTED', rejected_by: user.id.toString(), rejection_reason: rejectionReason } });
+      await sendEmail({ 
+        to: recipient.email, 
+        subject: `❌ Tâche refusée: ${task.title}`, 
+        html: emailHtml, 
+        userId: recipient.id, 
+        metadata: { 
+          task_id: task.id, 
+          project_id: project.id, 
+          action: 'TASK_REJECTED', 
+          rejected_by: user.id, 
+          rejection_reason: rejectionReason 
+        } 
+      });
     }
 
+    // Log the activity
     await db.query(
       `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details)
-       VALUES ($1, 'reject', 'task', $2, $3)`,
-      [user.id.toString(), taskId, `Tâche refusée: ${task.title}${rejectionReason ? ` - Raison: ${rejectionReason}` : ''}`]
+       VALUES ($1, 'reject_task', 'task', $2, $3)`,
+      [user.id, taskId, `Raison: ${rejectionReason}`]
     );
 
-    return corsResponse({ success: true, message: 'Tâche refusée avec succès. Les responsables ont été notifiés.', task: { id: task.id.toString(), title: task.title, status: task.status } }, request);
+    return corsResponse({ success: true, message: 'Tâche refusée avec succès. Les responsables ont été notifiés.' }, request);
   } catch (error) {
     console.error('POST /api/tasks/[id]/reject error:', error);
     return corsResponse({ error: 'Erreur serveur' }, request, { status: 500 });
   }
 }
+

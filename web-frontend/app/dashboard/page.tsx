@@ -46,10 +46,14 @@ const projectStatusLabels: Record<string, string> = {
 const taskStatusLabels: Record<string, string> = {
   a_faire: "À faire",
   en_cours: "En cours",
+  en_revision: "En révision",
   termine: "Terminé",
+  annule: "Annulée",
   todo: "À faire",
   in_progress: "En cours",
+  in_review: "En révision",
   completed: "Terminé",
+  cancelled: "Annulée",
 }
 
 export default function DashboardPage() {
@@ -244,7 +248,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
-                Progression générale
+                Progression globale
               </CardTitle>
               <CardDescription>Avancement des tâches et projets</CardDescription>
             </CardHeader>
@@ -263,7 +267,7 @@ export default function DashboardPage() {
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(stats.projectsByStatus).map(([status, count]) => (
                       <Badge key={status} variant="secondary" className="capitalize">
-                        {projectStatusLabels[status.toLowerCase()] || status.replace("_", " ")}: {count}
+                        {projectStatusLabels[status.toLowerCase()] || status.toLowerCase().replace(/_/g, " ")}: {count}
                       </Badge>
                     ))}
                   </div>
@@ -277,10 +281,10 @@ export default function DashboardPage() {
                     {Object.entries(stats.tasksByStatus).map(([status, count]) => (
                       <Badge
                         key={status}
-                        variant={status === "TODO" ? "secondary" : status === "IN_PROGRESS" ? "default" : "outline"}
+                        variant={status.toLowerCase() === "todo" ? "secondary" : status.toLowerCase() === "in_progress" ? "default" : "outline"}
                         className="capitalize"
                       >
-                        {taskStatusLabels[status.toLowerCase()] || status.replace("_", " ").toLowerCase()}: {count}
+                        {taskStatusLabels[status.toLowerCase()] || status.toLowerCase().replace(/_/g, " ")}: {count}
                       </Badge>
                     ))}
                   </div>

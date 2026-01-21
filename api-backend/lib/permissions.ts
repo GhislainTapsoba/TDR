@@ -378,6 +378,7 @@ export async function initializePermissions(): Promise<void> {
         );
       }
       console.log('Employe role permissions re-assigned.');
+      console.log('Permissions assigned to Employe:', employeAssignments.map(p => p.name));
     }
 
     console.log('Permissions initialized successfully!');
