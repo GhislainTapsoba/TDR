@@ -41,8 +41,11 @@ export interface NotificationContext {
  * Détermine les destinataires des notifications selon les règles métier
  */
 async function determineRecipients(context: NotificationContext): Promise<string[]> {
+  console.log('[determineRecipients] Starting...');
   const recipients = new Set<string>();
   const { performedBy, affectedUsers, projectId } = context;
+
+  console.log(`[determineRecipients] Action performed by: ${performedBy.email} with role: ${performedBy.role}`);
 
   // Récupérer le manager si nécessaire
   let projectManager: any = null;
@@ -54,17 +57,23 @@ async function determineRecipients(context: NotificationContext): Promise<string
 
     if (projectRows.length > 0 && projectRows[0].id) { // Check if manager exists
       projectManager = projectRows[0];
+      console.log(`[determineRecipients] Found Project Manager: ${projectManager.email}`);
+    } else {
+      console.log('[determineRecipients] No Project Manager found for this project.');
     }
   }
 
   // Récupérer l'admin
   const { rows: admins } = await db.query("SELECT id, email, name, role FROM users WHERE role = 'ADMIN'");
   const adminEmails = admins?.map(a => a.email) || [];
+  console.log(`[determineRecipients] Found ${adminEmails.length} Admin(s):`, adminEmails);
+
 
   // Règles de notification selon le rôle de celui qui fait l'action
   switch (performedBy.role) {
     case 'EMPLOYEE':
       // Employé → Email à : Employé + Manager + Admin
+      console.log('[determineRecipients] Applying EMPLOYEE rule...');
       recipients.add(performedBy.email);
       if (projectManager) {
         recipients.add(projectManager.email);
@@ -74,11 +83,13 @@ async function determineRecipients(context: NotificationContext): Promise<string
 
     case 'MANAGER':
       // Manager → Email à : Manager + Admin + (Employés concernés si applicable)
+      console.log('[determineRecipients] Applying MANAGER rule...');
       recipients.add(performedBy.email);
       adminEmails.forEach(email => recipients.add(email));
 
       // Ajouter les employés concernés
       if (affectedUsers && affectedUsers.length > 0) {
+        console.log('[determineRecipients] Adding affected users for MANAGER rule:', affectedUsers.map(u => u.email));
         affectedUsers.forEach(user => {
           if (user.role === 'EMPLOYEE') {
             recipients.add(user.email);
@@ -89,19 +100,26 @@ async function determineRecipients(context: NotificationContext): Promise<string
 
     case 'ADMIN':
       // Admin → Email à : Admin + (Personnes concernées si applicable)
+      console.log('[determineRecipients] Applying ADMIN rule...');
       recipients.add(performedBy.email);
 
       // Ajouter les personnes concernées (employés ou managers)
       if (affectedUsers && affectedUsers.length > 0) {
+        console.log('[determineRecipients] Adding affected users for ADMIN rule:', affectedUsers.map(u => u.email));
         affectedUsers.forEach(user => recipients.add(user.email));
       }
       if (projectManager && affectedUsers && affectedUsers.length > 0) {
         recipients.add(projectManager.email);
       }
       break;
+    
+    default:
+      console.log(`[determineRecipients] Warning: Unhandled role '${performedBy.role}'. No rules applied.`);
   }
 
-  return Array.from(recipients);
+  const finalRecipients = Array.from(recipients);
+  console.log('[determineRecipients] Final recipients list:', finalRecipients);
+  return finalRecipients;
 }
 
 /**
