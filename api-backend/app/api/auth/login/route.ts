@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
     // Fetch user
     const userQuery = `
-      SELECT id, name, email, password, role
+      SELECT id, name, email, password, role, is_active
       FROM users
       WHERE email = $1
     `;
@@ -37,6 +37,12 @@ export async function POST(req: Request) {
     }
 
     const user = users[0];
+
+    // Check if user is active
+    if (!user.is_active) {
+      process.stderr.write('❌ Compte utilisateur inactif\n');
+      return NextResponse.json({ error: 'Votre compte est inactif. Contactez un administrateur.' }, { status: 403 });
+    }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
