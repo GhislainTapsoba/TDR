@@ -39,6 +39,8 @@ const projectStatusLabels: Record<string, string> = {
   planning: "Planifié",
   in_progress: "En cours",
   paused: "En pause",
+  on_hold: "En pause",
+  ON_HOLD: "En pause",
   completed: "Terminé",
   cancelled: "Annulé",
 }
@@ -65,14 +67,17 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Utiliser dashboardApi au lieu de api
-        const [statsResponse, activitiesResponse] = await Promise.all([
-          dashboardApi.getStats(),
-          dashboardApi.getRecentActivity(10)
-        ])
-
+        // Fetch stats
+        const statsResponse = await dashboardApi.getStats()
         setStats(statsResponse.data as DashboardStats)
-        setActivities(activitiesResponse.data || [])
+
+        // Fetch activities only for admins and managers
+        if (user?.role === 'admin' || user?.role === 'manager') {
+          const activitiesResponse = await dashboardApi.getRecentActivity(10)
+          setActivities(activitiesResponse.data || [])
+        } else {
+          setActivities([])
+        }
       } catch (error) {
         console.error("Erreur lors du chargement du dashboard:", error)
       } finally {
@@ -81,7 +86,7 @@ export default function DashboardPage() {
     }
 
     fetchData()
-  }, [])
+  }, [user?.role])
 
   const getStatsCards = () => {
     if (user?.role === "admin") {

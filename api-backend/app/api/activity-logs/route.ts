@@ -18,12 +18,9 @@ export async function GET(request: NextRequest) {
     }
 
     const userRole = mapDbRoleToUserRole(user.role as string | null);
-    // Temporarily bypass permission check for activity-logs for admin
-    if (userRole !== 'admin') {
-      const perm = await requirePermission(userRole, 'activity_logs', 'read');
-      if (!perm.allowed) {
-        return corsResponse({ error: perm.error }, request, { status: 403 });
-      }
+    // Only allow admins and managers to view activity logs
+    if (userRole !== 'admin' && userRole !== 'manager') {
+      return corsResponse({ error: 'Accès refusé. Seuls les administrateurs et managers peuvent voir les activités.' }, request, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

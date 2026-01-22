@@ -320,6 +320,9 @@ export default function TasksPage() {
 
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col gap-2">
+                        <Badge className={statusColors[task.status] || statusColors.TODO}>
+                          {statusLabels[task.status] || task.status}
+                        </Badge>
                         <Badge className={priorityColors[task.priority] || priorityColors.MEDIUM}>
                           {priorityLabels[task.priority] || task.priority}
                         </Badge>
