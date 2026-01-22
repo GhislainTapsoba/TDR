@@ -358,7 +358,7 @@ export default function TasksPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {permissions.canUpdateTasks && (
+                            {(permissions.canUpdateTasks || (authUser?.role === 'employe' && task.assignees?.some(a => a.id === authUser.id))) && (
                               <DropdownMenuItem onClick={() => handleEditTask(task)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Modifier
