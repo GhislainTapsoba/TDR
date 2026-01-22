@@ -102,7 +102,8 @@ export async function PATCH(
     const userId = user.id as string;
     const userPermissions = user.permissions as string[];
     const perm = await requirePermission(userRole, 'tasks', 'update');
-    if (!perm.allowed) {
+    // Allow if user has permission or is employee (will check assignment later)
+    if (!perm.allowed && userRole !== 'user') {
       return corsResponse({ error: perm.error }, request, { status: 403 });
     }
 
