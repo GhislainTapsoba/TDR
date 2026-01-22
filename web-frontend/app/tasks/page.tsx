@@ -328,7 +328,9 @@ export default function TasksPage() {
                         </Badge>
                         <Select value={task.status} onValueChange={(value) => updateTaskStatus(task.id, value)}>
                           <SelectTrigger className="w-32">
-                            <SelectValue />
+                            <SelectValue>
+                              {statusLabels[task.status]}
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="TODO">À faire</SelectItem>
