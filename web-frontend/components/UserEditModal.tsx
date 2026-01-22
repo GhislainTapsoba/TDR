@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usersApi, User } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, User as UserIcon, Mail, Lock, Shield } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { canManageUsers } from '@/lib/permissions';
 
@@ -21,6 +22,7 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
     email: userToEdit.email,
     password: '',
     role: userToEdit.role,
+    is_active: userToEdit.is_active,
   });
   const [loading, setLoading] = useState(false);
 
@@ -31,6 +33,7 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
       email: userToEdit.email,
       password: '',
       role: userToEdit.role,
+      is_active: userToEdit.is_active,
     });
   }, [userToEdit]);
 
@@ -50,6 +53,7 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
         name: formData.name,
         email: formData.email,
         role: formData.role,
+        is_active: formData.is_active,
       };
 
       // N'envoyer le mot de passe que s'il a été modifié
@@ -165,6 +169,26 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
               <p>• <strong>Manager</strong> : Peut gérer des projets et des équipes</p>
               <p>• <strong>Administrateur</strong> : Accès complet à toutes les fonctionnalités</p>
             </div>
+          </div>
+
+          {/* Statut actif */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Shield size={18} />
+              Statut actif
+            </label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              />
+              <span className="text-sm text-gray-600">
+                {formData.is_active ? 'Utilisateur actif' : 'Utilisateur inactif'}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-gray-500">
+              Désactiver pour empêcher l'utilisateur de se connecter.
+            </p>
           </div>
 
           {/* Info Box */}

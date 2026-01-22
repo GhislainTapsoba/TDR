@@ -29,7 +29,7 @@ export async function GET(
 
     const { id } = await params;
     
-    const query = 'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = $1';
+    const query = 'SELECT id, name, email, role, is_active, created_at, updated_at FROM users WHERE id = $1';
     const { rows, rowCount } = await db.query(query, [id]);
 
     if (rowCount === 0) {
@@ -100,6 +100,10 @@ export async function PATCH(
       updateFields.push(`password = $${paramIndex++}`);
       queryParams.push(hashedPassword);
     }
+    if (body.is_active !== undefined) {
+      updateFields.push(`is_active = $${paramIndex++}`);
+      queryParams.push(body.is_active);
+    }
 
     if (updateFields.length === 0) {
         return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });
@@ -110,7 +114,7 @@ export async function PATCH(
       UPDATE users
       SET ${updateFields.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, name, email, role, created_at, updated_at
+      RETURNING id, name, email, role, is_active, created_at, updated_at
     `;
 
     const { rows, rowCount } = await db.query(queryText, queryParams);
