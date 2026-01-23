@@ -75,12 +75,21 @@ export default function ProjectsPage() {
 
   const fetchProjects = async () => {
     try {
-      const response = await api.getProjects();
-      setProjects(response.projects || []);
+      const response = await projectsApi.getAll();
+      setProjects((response.data || []) as any as Project[]);
     } catch (error) {
       console.error("Erreur lors du chargement des projets:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const updateProjectStatus = async (projectId: string, newStatus: Project["status"]) => {
+    try {
+      await projectsApi.update(projectId, { status: newStatus });
+      fetchProjects(); // Refresh all projects after update
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut:", error)
     }
   }
 
@@ -213,7 +222,25 @@ export default function ProjectsPage() {
                           </DropdownMenu>
                         </div>
                       </div>
-                      <Badge className={statusColors[project.status]}>{statusLabels[project.status]}</Badge>
+                      <div className="flex gap-1">
+                        {Object.entries(statusLabels).map(([statusKey, label]) => (
+                          <Button
+                            key={statusKey}
+                            variant={project.status === statusKey ? "default" : "outline"}
+                            size="sm"
+                            className={`px-2 py-1 text-xs ${statusColors[statusKey as keyof typeof statusColors]} ${
+                              project.status === statusKey ? 'ring-2 ring-offset-1' : ''
+                            }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              updateProjectStatus(project.id, statusKey as Project["status"]);
+                            }}
+                            disabled={!hasPermission(authUser?.permissions || [], 'projects.update')}
+                          >
+                            {label}
+                          </Button>
+                        ))}
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">

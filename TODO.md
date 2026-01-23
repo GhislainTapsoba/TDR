@@ -1,10 +1,13 @@
-# TODO: Migration HTTP vers HTTPS
+# TODO: Ajouter des boutons rapides de changement de statut
 
-## Étapes à suivre
+## Tâches à faire:
+- [x] Modifier web-frontend/app/tasks/page.tsx : Remplacer le Select par des boutons colorés pour changer le statut des tâches
+- [x] Modifier web-frontend/app/stages/page.tsx : Ajouter des boutons colorés pour changer le statut des étapes
+- [x] Modifier web-frontend/app/projects/page.tsx : Ajouter des boutons colorés pour changer le statut des projets
+- [x] Tester les changements pour s'assurer que les boutons fonctionnent correctement et respectent les permissions
 
-- [x] Créer un répertoire pour les certificats SSL (certs/)
-- [x] Générer des certificats auto-signés (Let's Encrypt ne supporte pas les IPs)
-- [x] Mettre à jour nginx.conf pour configurer HTTPS sur le port 443 et redirection HTTP vers HTTPS
-- [x] Mettre à jour docker-compose.yml pour exposer le port 443 et changer les URLs en HTTPS
-- [x] Redémarrer les services Docker
-- [x] Tester l'accès HTTPS et vérifier que HTTP redirige vers HTTPS
+## Détails techniques:
+- Utiliser les couleurs déjà définies dans statusColors
+- Ajouter des fonctions updateStageStatus et updateProjectStatus similaires à updateTaskStatus
+- Vérifier les permissions avant d'afficher les boutons
+- Les boutons doivent être petits et visuellement distincts

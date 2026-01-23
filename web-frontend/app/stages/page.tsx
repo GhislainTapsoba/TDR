@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { stagesApi, Stage as ApiStage } from "@/lib/api" // Import ApiStage
 import { MainLayout } from "@/components/layout/main-layout"
@@ -71,6 +71,15 @@ export default function StagesPage() {
       setLoading(false)
     }
   }
+
+  const updateStageStatus = useCallback(async (stageId: string, newStatus: Stage["status"]) => {
+    try {
+      await stagesApi.update(stageId, { status: newStatus });
+      fetchStages(); // Refresh all stages after update
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut:", error)
+    }
+  }, [])
 
   const handleStageEdit = (stage: Stage) => {
     setStageToEdit(stage);
@@ -204,7 +213,22 @@ export default function StagesPage() {
 
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col gap-2">
-                        <Badge className={statusColors[stage.status]}>{statusLabels[stage.status]}</Badge>
+                        <div className="flex gap-1">
+                          {Object.entries(statusLabels).map(([statusKey, label]) => (
+                            <Button
+                              key={statusKey}
+                              variant={stage.status === statusKey ? "default" : "outline"}
+                              size="sm"
+                              className={`px-2 py-1 text-xs ${statusColors[statusKey as keyof typeof statusColors]} ${
+                                stage.status === statusKey ? 'ring-2 ring-offset-1' : ''
+                              }`}
+                              onClick={() => updateStageStatus(stage.id, statusKey as Stage["status"])}
+                              disabled={!canUpdateStages}
+                            >
+                              {label}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">

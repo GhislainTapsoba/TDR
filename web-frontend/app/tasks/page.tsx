@@ -326,20 +326,22 @@ export default function TasksPage() {
                         <Badge className={priorityColors[task.priority] || priorityColors.MEDIUM}>
                           {priorityLabels[task.priority] || task.priority}
                         </Badge>
-                        <Select value={task.status} onValueChange={(value) => updateTaskStatus(task.id, value)}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue>
-                              {statusLabels[task.status]}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="TODO">À faire</SelectItem>
-                            <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                            <SelectItem value="IN_REVIEW">En revue</SelectItem>
-                            <SelectItem value="COMPLETED">Terminé</SelectItem>
-                            <SelectItem value="CANCELLED">Annulé</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex gap-1">
+                          {Object.entries(statusLabels).map(([statusKey, label]) => (
+                            <Button
+                              key={statusKey}
+                              variant={task.status === statusKey ? "default" : "outline"}
+                              size="sm"
+                              className={`px-2 py-1 text-xs ${statusColors[statusKey as keyof typeof statusColors]} ${
+                                task.status === statusKey ? 'ring-2 ring-offset-1' : ''
+                              }`}
+                              onClick={() => updateTaskStatus(task.id, statusKey as Task["status"])}
+                              disabled={!permissions.canUpdateTasks}
+                            >
+                              {label}
+                            </Button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">

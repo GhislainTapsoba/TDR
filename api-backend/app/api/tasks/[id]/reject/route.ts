@@ -77,6 +77,12 @@ export async function POST(
       }
     }
 
+    // Update task status and refusal reason
+    await db.query(
+      'UPDATE tasks SET status = $1, refusal_reason = $2, updated_at = NOW() WHERE id = $3',
+      ['REFUSED', rejectionReason, taskId]
+    );
+
     // Send email to all recipients
     for (const recipient of recipients.values()) {
       const emailHtml = taskRejectedByEmployeeTemplate({
@@ -88,18 +94,18 @@ export async function POST(
         managerName: recipient.name
       });
 
-      await sendEmail({ 
-        to: recipient.email, 
-        subject: `❌ Tâche refusée: ${task.title}`, 
-        html: emailHtml, 
-        userId: recipient.id, 
-        metadata: { 
-          task_id: task.id, 
-          project_id: project.id, 
-          action: 'TASK_REJECTED', 
-          rejected_by: user.id, 
-          rejection_reason: rejectionReason 
-        } 
+      await sendEmail({
+        to: recipient.email,
+        subject: `❌ Tâche refusée: ${task.title}`,
+        html: emailHtml,
+        userId: recipient.id,
+        metadata: {
+          task_id: task.id,
+          project_id: project.id,
+          action: 'TASK_REJECTED',
+          rejected_by: user.id,
+          rejection_reason: rejectionReason
+        }
       });
     }
 

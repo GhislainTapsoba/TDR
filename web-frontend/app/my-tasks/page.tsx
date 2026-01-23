@@ -72,6 +72,7 @@ const priorityColors = {
 // ---
 
 function TaskCard({ task, onEditClick, onRefuseClick, onDeleteClick, onCompleteClick }: { task: Task, onEditClick: (task: Task) => void, onRefuseClick: (task: Task) => void, onDeleteClick: (task: Task) => void, onCompleteClick: (task: Task) => void }) {
+  const router = useRouter()
   const { authUser } = useAuth(); // Use authUser for permissions
   const {
     attributes,
@@ -96,7 +97,7 @@ function TaskCard({ task, onEditClick, onRefuseClick, onDeleteClick, onCompleteC
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm mb-3">
-        <CardContent className="p-4">
+        <CardContent className="p-4 cursor-pointer" onClick={() => router.push(`/tasks/${task.id}`)}>
           <div className="space-y-3">
             <div className="flex items-start justify-between">
               <h3 className="font-medium text-foreground line-clamp-2">{task.title}</h3>
