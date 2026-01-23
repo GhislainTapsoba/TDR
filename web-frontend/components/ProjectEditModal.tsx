@@ -28,12 +28,23 @@ export default function ProjectEditModal({ project, isOpen, onClose, onProjectUp
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
 
+  const mapFrenchToEnglishStatus = (frenchStatus: string) => {
+    switch (frenchStatus) {
+      case 'planifie': return 'PLANNING';
+      case 'en_cours': return 'IN_PROGRESS';
+      case 'en_pause': return 'ON_HOLD';
+      case 'termine': return 'COMPLETED';
+      case 'annule': return 'CANCELLED';
+      default: return 'PLANNING';
+    }
+  };
+
   useEffect(() => {
     // Mettre à jour le formulaire quand le projet change
     setFormData({
       title: project.title,
       description: project.description || '',
-      status: project.status,
+      status: mapFrenchToEnglishStatus(project.status),
       start_date: project.start_date?.split('T')[0] || '',
       end_date: project.end_date?.split('T')[0] || '',
       due_date: project.due_date?.split('T')[0] || '',
