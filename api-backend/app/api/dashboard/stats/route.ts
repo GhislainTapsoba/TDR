@@ -33,10 +33,13 @@ export async function GET(request: NextRequest) {
       myTasksCountResult,
       pendingTasksCountResult,
       inProgressTasksCountResult,
+      stagesCountResult,
+      completedStagesCountResult,
       recentProjectsResult,
       recentTasksResult,
       tasksByStatusResult,
       projectsByStatusResult,
+      stagesByStatusResult,
     ] = await Promise.all([
       db.query('SELECT COUNT(*)::int FROM projects'),
       db.query('SELECT COUNT(*)::int FROM tasks'),
@@ -46,6 +49,8 @@ export async function GET(request: NextRequest) {
       db.query('SELECT COUNT(DISTINCT t.id)::int FROM tasks t JOIN task_assignees ta ON t.id = ta.task_id WHERE ta.user_id = $1', [userId]),
       db.query("SELECT COUNT(DISTINCT t.id)::int FROM tasks t JOIN task_assignees ta ON t.id = ta.task_id WHERE ta.user_id = $1 AND t.status = 'TODO'", [userId]),
       db.query("SELECT COUNT(DISTINCT t.id)::int FROM tasks t JOIN task_assignees ta ON t.id = ta.task_id WHERE ta.user_id = $1 AND t.status = 'IN_PROGRESS'", [userId]),
+      db.query('SELECT COUNT(*)::int FROM stages'),
+      db.query("SELECT COUNT(*)::int FROM stages WHERE status = 'COMPLETED'"),
       db.query(`
         SELECT p.*, m.name as manager_name, c.name as created_by_name
         FROM projects p
@@ -56,7 +61,7 @@ export async function GET(request: NextRequest) {
       `),
       db.query(`
         SELECT t.*, c.name as created_by_name,
-               (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email)) 
+               (SELECT json_agg(json_build_object('id', u.id, 'name', u.name, 'email', u.email))
                 FROM task_assignees ta
                 JOIN users u ON ta.user_id = u.id
                 WHERE ta.task_id = t.id) as assignees
@@ -67,6 +72,7 @@ export async function GET(request: NextRequest) {
       `),
       db.query('SELECT status, COUNT(*)::int FROM tasks GROUP BY status'),
       db.query('SELECT status, COUNT(*)::int FROM projects GROUP BY status'),
+      db.query('SELECT status, COUNT(*)::int FROM stages GROUP BY status'),
     ]);
 
     const projectsCount = projectsCountResult.rows[0].count;
@@ -77,6 +83,8 @@ export async function GET(request: NextRequest) {
     const myTasksCount = myTasksCountResult.rows[0].count;
     const pendingTasksCount = pendingTasksCountResult.rows[0].count;
     const inProgressTasksCount = inProgressTasksCountResult.rows[0].count;
+    const stagesCount = stagesCountResult.rows[0].count;
+    const completedStagesCount = completedStagesCountResult.rows[0].count;
     const recentProjects = recentProjectsResult.rows;
     const recentTasks = recentTasksResult.rows;
 
@@ -90,6 +98,11 @@ export async function GET(request: NextRequest) {
     };
     projectsByStatusResult.rows.forEach(row => { projectStatusCounts[row.status] = row.count; });
 
+    const stageStatusCounts: { [key: string]: number } = {
+      PENDING: 0, IN_PROGRESS: 0, COMPLETED: 0
+    };
+    stagesByStatusResult.rows.forEach(row => { stageStatusCounts[row.status] = row.count; });
+
     const stats = {
       totalProjects: projectsCount || 0,
       activeProjects: projectStatusCounts.IN_PROGRESS || 0,
@@ -99,6 +112,8 @@ export async function GET(request: NextRequest) {
       pendingTasks: statusCounts.TODO || 0,
       activeTasks: statusCounts.IN_PROGRESS || 0,
       overdueTasks: 0, // TODO: implement overdue logic
+      totalStages: stagesCount || 0,
+      completedStages: completedStagesCount || 0,
       myProjects: myProjectsCount || 0,
       myTasks: myTasksCount || 0,
       pending_my_tasks: pendingTasksCount || 0,
@@ -107,6 +122,7 @@ export async function GET(request: NextRequest) {
       recentActivity: [], // TODO: implement
       tasksByStatus: statusCounts,
       projectsByStatus: projectStatusCounts,
+      stagesByStatus: stageStatusCounts,
       recentProjects: recentProjects || [],
       recentTasks: recentTasks || [],
     };

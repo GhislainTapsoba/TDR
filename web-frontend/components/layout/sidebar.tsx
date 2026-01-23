@@ -97,52 +97,66 @@ export function Sidebar() {
   }, [user?.role])
 
   return (
-    <div className="flex flex-col h-screen bg-sidebar border-r border-sidebar-border w-64">
+    <div className="flex flex-col h-screen bg-sidebar/95 backdrop-blur-xl border-r border-sidebar-border/50 w-64 shadow-2xl">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Briefcase className="h-4 w-4 text-primary-foreground" />
+      <div className="flex items-center justify-between p-6 border-b border-sidebar-border/30">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
+            <Briefcase className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-sidebar-foreground">
-            {user ? (roleLabels[user.role] || user.role?.replace("_", " ")) : "Employé"}
-          </span>
+          <div>
+            <span className="font-bold text-sidebar-foreground text-lg">
+              TDR Platform
+            </span>
+            <p className="text-xs text-sidebar-foreground/60">
+              {user ? (roleLabels[user.role] || user.role?.replace("_", " ")) : "Employé"}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* User Info */}
       {user && (
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-4 border-b border-sidebar-border/30 bg-gradient-to-r from-sidebar-accent/20 to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center ring-2 ring-primary/20">
               {/* @ts-ignore */}
-              <span className="text-sm font-medium text-primary">{user.name?.charAt(0).toUpperCase()}</span>
+              <span className="text-sm font-bold text-primary">{user.name?.charAt(0).toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
+              <p className="text-sm font-semibold text-sidebar-foreground truncate">{user.name}</p>
               {/* @ts-ignore */}
-              <p className="text-xs text-sidebar-foreground/60">{roleLabels[user.role] || user.role?.replace("_", " ")}</p>
+              <p className="text-xs text-sidebar-foreground/70 font-medium">{roleLabels[user.role] || user.role?.replace("_", " ")}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 space-y-1">
+      <nav className="flex-1 p-4 space-y-2">
         {filteredNavigation.map((item) => {
           const isActive = pathname === item.href
           return (
             <Link key={item.name} href={item.href}>
               <div
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden",
                   isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    ? "bg-gradient-to-r from-sidebar-primary to-sidebar-primary/90 text-sidebar-primary-foreground shadow-lg shadow-sidebar-primary/25"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground hover:translate-x-1",
                 )}
               >
-                <item.icon className="h-4 w-4 flex-shrink-0" />
-                <span>{item.name}</span>
+                {isActive && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-50" />
+                )}
+                <item.icon className={cn(
+                  "h-5 w-5 flex-shrink-0 transition-transform duration-200",
+                  isActive ? "scale-110" : "group-hover:scale-105"
+                )} />
+                <span className="relative z-10">{item.name}</span>
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary-foreground rounded-r-full" />
+                )}
               </div>
             </Link>
           )
@@ -150,14 +164,14 @@ export function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="p-2 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border/30">
         <Button
           variant="ghost"
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent"
+          className="w-full justify-start gap-3 text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200 rounded-xl py-3"
         >
-          <LogOut className="h-4 w-4" />
-          <span>Déconnexion</span>
+          <LogOut className="h-5 w-5" />
+          <span className="font-medium">Déconnexion</span>
         </Button>
       </div>
     </div>

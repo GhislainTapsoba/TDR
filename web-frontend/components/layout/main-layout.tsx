@@ -35,8 +35,12 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">{children}</div>
+      <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background to-background/95">
+        <div className="min-h-full p-8 max-w-7xl mx-auto">
+          <div className="space-y-8">
+            {children}
+          </div>
+        </div>
       </main>
     </div>
   )

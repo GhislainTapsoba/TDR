@@ -19,6 +19,8 @@ interface DashboardStats {
   totalTasks?: number
   completedTasks?: number
   pendingTasks?: number
+  totalStages?: number
+  completedStages?: number
   myProjects?: number
   myTasks?: number
   pending_my_tasks?: number
@@ -26,6 +28,7 @@ interface DashboardStats {
   totalUsers?: number
   projectsByStatus?: Record<string, number>
   tasksByStatus?: Record<string, number>
+  stagesByStatus?: Record<string, number>
   recentProjects?: Project[]
   recentTasks?: Task[]
 }
@@ -191,6 +194,12 @@ export default function DashboardPage() {
     return total > 0 ? Math.round((completed / total) * 100) : 0
   }
 
+  const getStagesProgressPercentage = () => {
+    const total = stats.totalStages || 0
+    const completed = stats.completedStages || 0
+    return total > 0 ? Math.round((completed / total) * 100) : 0
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("fr-FR", {
       day: "numeric",
@@ -220,51 +229,76 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold gradient-text">Tableau de bord</h1>
-          <p className="text-muted-foreground mt-2">Bienvenue, {user?.name}. Voici un aperçu de vos activités.</p>
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 p-8 border border-primary/20">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-50" />
+          <div className="relative z-10">
+            <h1 className="text-4xl font-bold gradient-text mb-2">Tableau de bord</h1>
+            <p className="text-muted-foreground text-lg">Bienvenue, {user?.name}. Voici un aperçu de vos activités.</p>
+          </div>
+          <div className="absolute top-4 right-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl" />
+          <div className="absolute bottom-4 left-4 w-16 h-16 bg-primary/5 rounded-full blur-xl" />
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {getStatsCards().map((card, index) => (
-            <Card key={index} className="glass border-border/50 hover:border-primary/20 transition-colors">
-              <CardContent className="p-6">
+            <Card key={index} className="group relative overflow-hidden glass border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <CardContent className="p-6 relative z-10">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-                    <p className="text-2xl font-bold text-foreground">{card.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">{card.title}</p>
+                    <p className="text-3xl font-bold text-foreground mb-1 group-hover:scale-105 transition-transform duration-200">{card.value}</p>
+                    <p className="text-xs text-muted-foreground">{card.description}</p>
                   </div>
-                  <div className={`p-3 rounded-lg bg-muted/30 ${card.color}`}>
-                    <card.icon className="h-6 w-6" />
+                  <div className={`p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 ${card.color} group-hover:scale-110 transition-transform duration-200 shadow-lg`}>
+                    <card.icon className="h-7 w-7" />
                   </div>
                 </div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/20 to-primary/40 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Progress Overview */}
-          <Card className="lg:col-span-2 glass border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
+          <Card className="lg:col-span-2 glass border-border/50 hover:border-primary/20 transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <TrendingUp className="h-6 w-6 text-primary" />
+                </div>
                 Progression globale
               </CardTitle>
-              <CardDescription>Avancement des tâches et projets</CardDescription>
+              <CardDescription className="text-base">Avancement des tâches et projets</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Tâches terminées</span>
-                  <span>{getProgressPercentage()}%</span>
+            <CardContent className="space-y-8">
+              <div className="relative">
+                <div className="flex justify-between text-sm mb-3">
+                  <span className="font-medium">Tâches terminées</span>
+                  <span className="font-bold text-primary">{getProgressPercentage()}%</span>
                 </div>
-                <Progress value={getProgressPercentage()} className="h-2" />
+                <div className="relative">
+                  <Progress value={getProgressPercentage()} className="h-3 bg-muted/50" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/40 rounded-full" style={{ width: `${getProgressPercentage()}%` }} />
+                </div>
               </div>
+
+              {stats.totalStages && stats.totalStages > 0 && (
+                <div className="relative">
+                  <div className="flex justify-between text-sm mb-3">
+                    <span className="font-medium">Étapes terminées</span>
+                    <span className="font-bold text-primary">{getStagesProgressPercentage()}%</span>
+                  </div>
+                  <div className="relative">
+                    <Progress value={getStagesProgressPercentage()} className="h-3 bg-muted/50" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-blue-500/40 rounded-full" style={{ width: `${getStagesProgressPercentage()}%` }} />
+                  </div>
+                </div>
+              )}
 
               {stats.projectsByStatus && (
                 <div>
@@ -295,27 +329,46 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+
+              {stats.stagesByStatus && (
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Statut des étapes</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(stats.stagesByStatus).map(([status, count]) => (
+                      <Badge
+                        key={status}
+                        variant={status.toLowerCase() === "pending" ? "secondary" : status.toLowerCase() === "in_progress" ? "default" : status.toLowerCase() === "completed" ? "default" : "outline"}
+                        className="capitalize"
+                      >
+                        {status.toLowerCase() === "pending" ? "En attente" : status.toLowerCase() === "in_progress" ? "En cours" : status.toLowerCase() === "completed" ? "Terminée" : status.toLowerCase().replace(/_/g, " ")}: {count}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Recent Activities */}
-          <Card className="glass border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ActivityIcon className="h-5 w-5 text-primary" />
+          <Card className="glass border-border/50 hover:border-primary/20 transition-all duration-300">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <ActivityIcon className="h-6 w-6 text-primary" />
+                </div>
                 Activités récentes
               </CardTitle>
-              <CardDescription>Dernières actions sur la plateforme</CardDescription>
+              <CardDescription className="text-base">Dernières actions sur la plateforme</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {activities.slice(0, 8).map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                  <div key={activity.id} className="group flex items-start gap-4 p-3 rounded-lg hover:bg-muted/30 transition-colors duration-200">
+                    <div className="w-3 h-3 bg-gradient-to-r from-primary to-primary/60 rounded-full mt-2 flex-shrink-0 shadow-sm" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">{activity.details || activity.action}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
+                      <p className="text-sm text-foreground font-medium leading-relaxed">{activity.details || activity.action}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
                           {activity.user?.name ?? "—"}
                         </span>
                         <span className="text-xs text-muted-foreground">{formatDate(activity.created_at)}</span>
@@ -324,7 +377,10 @@ export default function DashboardPage() {
                   </div>
                 ))}
                 {activities.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">Aucune activité récente</p>
+                  <div className="text-center py-8">
+                    <ActivityIcon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">Aucune activité récente</p>
+                  </div>
                 )}
               </div>
             </CardContent>
