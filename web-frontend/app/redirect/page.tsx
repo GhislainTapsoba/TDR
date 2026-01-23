@@ -11,6 +11,8 @@ export default function RedirectPage() {
   useEffect(() => {
     const redirectTo = searchParams.get('to');
     const isConfirmed = searchParams.get('confirmed') === 'true';
+    const isRejectTask = searchParams.get('reject_task') === 'true';
+    const taskId = searchParams.get('taskId');
     const message = searchParams.get('message');
 
     if (isConfirmed) {
@@ -21,11 +23,19 @@ export default function RedirectPage() {
         router.push(loginUrl);
       });
 
+    } else if (isRejectTask && taskId) {
+      // This is a task rejection redirect. First, sign out the user.
+      signOut({ redirect: false }).then(() => {
+        // After signOut is complete, redirect to the login page with task rejection info.
+        const loginUrl = `/login?reject_task=true&taskId=${taskId}${message ? `&message=${encodeURIComponent(message)}` : ''}`;
+        router.push(loginUrl);
+      });
+
     } else if (redirectTo) {
       // This is a generic redirect for other purposes.
       const decodedRedirectTo = decodeURIComponent(redirectTo);
       router.push(decodedRedirectTo);
-      
+
     } else {
       // Fallback to the dashboard if no specific instruction is provided.
       router.push('/dashboard');

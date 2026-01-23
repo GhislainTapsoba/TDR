@@ -85,7 +85,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   console.log("✅ Connexion réussie, redirection...");
-  router.push('/dashboard');
+
+  // Check if there's a task rejection request in the URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const rejectTask = urlParams.get('reject_task');
+  const taskId = urlParams.get('taskId');
+
+  if (rejectTask === 'true' && taskId) {
+    router.push(`/reject-task?taskId=${taskId}`);
+  } else {
+    router.push('/dashboard');
+  }
 }, [router])
 
   const logout = useCallback(async () => {
