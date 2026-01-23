@@ -42,18 +42,18 @@ import TaskRefusalModal from "@/components/TaskRefusalModal" // Import TaskRefus
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Import DeleteConfirmationModal
 
 interface Task extends ApiTask { // Extend the ApiTask interface
-  id: string
+  id: number
   title: string
   description: string
   status: "a_faire" | "en_cours" | "termine"
   priority: "low" | "medium" | "high"
   due_date: string | null
   project: {
-    id: string
+    id: number
     title: string
   }
   stage: {
-    id: string
+    id: number
     name: string
   } | null
 }
@@ -169,7 +169,7 @@ function TaskCard({ task, onEditClick, onRefuseClick, onDeleteClick, onCompleteC
               <Button
                 className="w-full mt-3"
                 onClick={() => onCompleteClick(task)}
-                variant="default"
+                variant="success"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Marquer comme terminé
@@ -183,7 +183,7 @@ function TaskCard({ task, onEditClick, onRefuseClick, onDeleteClick, onCompleteC
 }
 
 
-function TaskColumn({ title, status, tasks, taskIds, onEditClick, onRefuseClick, onDeleteClick, onCompleteClick }: { title: string; status: "a_faire" | "en_cours" | "termine"; tasks: Task[]; taskIds: string[], onEditClick: (task: Task) => void, onRefuseClick: (task: Task) => void, onDeleteClick: (task: Task) => void, onCompleteClick: (task: Task) => void }) {
+function TaskColumn({ title, status, tasks, taskIds, onEditClick, onRefuseClick, onDeleteClick, onCompleteClick }: { title: string; status: "a_faire" | "en_cours" | "termine"; tasks: Task[]; taskIds: number[], onEditClick: (task: Task) => void, onRefuseClick: (task: Task) => void, onDeleteClick: (task: Task) => void, onCompleteClick: (task: Task) => void }) {
   const { setNodeRef } = useSortable({ id: status });
 
   return (
@@ -257,7 +257,7 @@ export default function MyTasksPage() {
     }
   };
 
-  const updateTaskStatus = async (taskId: string, newStatus: string) => {
+  const updateTaskStatus = async (taskId: number, newStatus: string) => {
     // Optimistic update
     const oldTasks = tasks;
     setTasks(prevTasks => prevTasks.filter(Boolean).map(task =>
@@ -265,7 +265,7 @@ export default function MyTasksPage() {
     ));
     try {
       const dbStatus = mapFrontendToDbStatus(newStatus);
-      await tasksApi.update(taskId, { status: dbStatus });
+      await tasksApi.update(taskId.toString(), { status: dbStatus });
     } catch (error) {
       console.error("Erreur lors de la mise à jour du statut:", error)
       setTasks(oldTasks); // Rollback on error
@@ -329,7 +329,7 @@ export default function MyTasksPage() {
         // Determine if over.id is a column or a task, then get the status
         if (typeof overId === 'string' && (overId === 'a_faire' || overId === 'en_cours' || overId === 'termine' || overId === 'refuse')) { // Include 'refuse' here
           overContainerStatus = overId;
-        } else if (typeof overId === 'string') {
+        } else if (typeof overId === 'number') {
           const overTask = tasks.find(t => t.id === overId);
           overContainerStatus = overTask?.status;
         }
@@ -427,7 +427,7 @@ export default function MyTasksPage() {
           itemName={taskToDelete.title}
           onConfirm={async () => {
             try {
-              await tasksApi.delete(taskToDelete.id);
+              await tasksApi.remove(taskToDelete.id.toString());
               onTaskSave(); // Refresh tasks after deletion
             } catch (error) {
               console.error("Erreur lors de la suppression de la tâche:", error);
