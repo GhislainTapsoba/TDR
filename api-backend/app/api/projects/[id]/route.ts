@@ -8,11 +8,16 @@ import { isValidUUID } from '@/lib/validation';
 // Helper function to map frontend status to DB status
 const mapFrontendStatusToDbStatus = (frontendStatus: string) => {
   switch (frontendStatus) {
-    case 'planifie': return 'PLANNING';
-    case 'en_cours': return 'IN_PROGRESS';
-    case 'en_pause': return 'ON_HOLD';
-    case 'termine': return 'COMPLETED';
-    case 'annule': return 'CANCELLED';
+    case 'planifie':
+    case 'PLANNING': return 'PLANNING';
+    case 'en_cours':
+    case 'IN_PROGRESS': return 'IN_PROGRESS';
+    case 'en_pause':
+    case 'ON_HOLD': return 'ON_HOLD';
+    case 'termine':
+    case 'COMPLETED': return 'COMPLETED';
+    case 'annule':
+    case 'CANCELLED': return 'CANCELLED';
     default: return 'PLANNING'; // Default to a valid status
   }
 };
