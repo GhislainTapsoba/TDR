@@ -16,6 +16,12 @@
 - ✅ API backend étendue avec statistiques des étapes
 - ✅ Dashboard amélioré avec progression des étapes
 - ✅ Design moderne avec gradients, animations et effets visuels
+- ✅ Présentation améliorée des cartes avec informations bien organisées
+
+## Améliorations de présentation des cartes:
+- ✅ **Tâches**: Titre, description, priorité, statut, projet, étape, assignés, échéance - organisés dans une grille
+- ✅ **Étapes**: Titre, description, statut, projet, durée, créateur - informations claires et accessibles
+- ✅ **Projets**: Titre, description, statut, dates, manager, progression - présentation structurée
 
 ## Détails techniques:
 - ✅ Maintenir la compatibilité avec shadcn/ui
@@ -25,7 +31,9 @@
 - ✅ Améliorer la hiérarchie visuelle et la lisibilité
 
 ## État actuel:
-- ✅ Frontend: http://localhost:3001 (en cours d'exécution)
-- ✅ Backend: http://localhost:3000 (en cours d'exécution)
+- ✅ Frontend: `http://localhost:3001` (en cours d'exécution)
+- ✅ Backend: `http://localhost:3000` (en cours d'exécution)
 - ✅ Toutes les modifications appliquées avec succès
 - ✅ Tests de compilation réussis
+- ✅ Boutons de statut rapides fonctionnels
+- ✅ Informations bien organisées dans les cartes
