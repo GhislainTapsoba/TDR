@@ -1,23 +1,30 @@
 'use client';
 
 import { useState, Suspense, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth'; // Assuming you have a useAuth hook for the token
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/auth-context';
 
 function RejectTaskForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { user, token, loading: authLoading } = useAuth();
   const taskId = searchParams.get('taskId');
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { data: authData } = useAuth(); // Get auth data, including the token
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      // Rediriger vers la page de connexion si l'utilisateur n'est pas authentifié
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.href)}`);
+      return;
+    }
+
     if (!taskId) {
       setError('ID de la tâche manquant dans l\'URL.');
     }
-  }, [taskId]);
+  }, [taskId, user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +46,7 @@ function RejectTaskForm() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authData?.token}`, // Use token from auth hook
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ rejectionReason: reason }),
       });
@@ -52,12 +59,27 @@ function RejectTaskForm() {
 
       setMessage('Votre refus a été soumis avec succès. Vous pouvez fermer cette page.');
       setReason(''); // Clear the textarea
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur inconnue est survenue';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
+
+  // Afficher un loader pendant la vérification de l'authentification
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Ne rien afficher si l'utilisateur n'est pas authentifié (il sera redirigé)
+  if (!user) {
+    return null;
+  }
 
   if (error && !taskId) {
     return (
