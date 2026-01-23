@@ -50,7 +50,7 @@ export default function ProjectEditModal({ project, isOpen, onClose, onProjectUp
   const loadUsers = async () => {
     try {
       const { data: usersData } = await usersApi.getAll(); // Correctly destructure data from response
-      const managers = usersData.filter((u: User) => u.role === 'MANAGER'); // Filter managers
+      const managers = usersData.filter((u: User) => u.role === 'manager'); // Filter managers
       setUsers(managers);
     } catch (error) {
       console.error('Error loading users:', error);
