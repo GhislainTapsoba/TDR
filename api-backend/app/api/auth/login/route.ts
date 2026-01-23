@@ -57,6 +57,7 @@ export async function POST(req: Request) {
     // Lowercase role
     const lowercasedRole = user.role?.toLowerCase() || 'user';
 
+
     // Fetch permissions from role_permissions
     const permsQuery = `
       SELECT p.resource, p.action
@@ -67,8 +68,6 @@ export async function POST(req: Request) {
     `;
     const { rows: perms } = await db.query(permsQuery, [lowercasedRole]);
     const permissions = perms.map(p => `${p.resource}.${p.action}`); // array of strings like 'projects.create'
-
-    process.stderr.write(`🔑 Permissions pour ${lowercasedRole}: ${permissions.join(', ')}\n`);
 
     // Build user object with permissions
     const userResponse = { 

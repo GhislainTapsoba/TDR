@@ -588,6 +588,34 @@ export function taskRejectedByEmployeeTemplate(data: {
   return baseTemplate(content);
 }
 
+// Template: Tâche refusée
+export function taskRefusedTemplate(data: {
+  taskTitle: string;
+  projectName: string;
+  refusedBy: string;
+  refusalReason: string;
+  taskId: string;
+}): string {
+  const content = `
+    <h2 style="color: #dc3545;">❌ Tâche refusée</h2>
+    <p>La tâche "<strong>${data.taskTitle}</strong>" du projet <strong>${data.projectName}</strong> a été refusée.</p>
+
+    <div class="task-details" style="background: #f8d7da; border-left: 4px solid #dc3545;">
+      <h3 style="margin-top: 0; color: #721c24;">${data.taskTitle}</h3>
+      <p><strong>Refusée par:</strong> ${data.refusedBy}</p>
+      <p><strong>Raison du refus:</strong><br/><em>${data.refusalReason}</em></p>
+    </div>
+
+    <p style="text-align: center;">
+      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button" style="background: #dc3545;">
+        Consulter la tâche
+      </a>
+    </p>
+  `;
+
+  return baseTemplate(content);
+}
+
 /**
  * Template d'email pour notifier le changement de statut d'une tâche par un employé
  */

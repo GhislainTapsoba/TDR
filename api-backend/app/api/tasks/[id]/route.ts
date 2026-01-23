@@ -12,6 +12,7 @@ const mapFrontendStatusToDb = (status: string): string => {
     'a_faire': 'TODO',
     'en_cours': 'IN_PROGRESS',
     'termine': 'COMPLETED',
+    'refuse': 'REFUSED', // Add refused status mapping
   };
   return statusMap[status] || status;
 };

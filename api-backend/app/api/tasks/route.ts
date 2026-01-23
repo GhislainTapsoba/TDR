@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
                WHEN t.status = 'TODO' THEN 'a_faire'
                WHEN t.status = 'IN_PROGRESS' THEN 'en_cours'
                WHEN t.status = 'COMPLETED' THEN 'termine'
+               WHEN t.status = 'REFUSED' THEN 'refuse'
                ELSE t.status
              END as status,
              c.name as created_by_name,
@@ -256,6 +257,7 @@ export async function POST(request: NextRequest) {
                WHEN t.status = 'TODO' THEN 'a_faire'
                WHEN t.status = 'IN_PROGRESS' THEN 'en_cours'
                WHEN t.status = 'COMPLETED' THEN 'termine'
+               WHEN t.status = 'REFUSED' THEN 'refuse'
                ELSE t.status
              END as status,
              c.name as created_by_name,

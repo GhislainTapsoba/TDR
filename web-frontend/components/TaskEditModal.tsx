@@ -67,7 +67,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
 
     // Corrected permission check
     const canUpdate = hasPermission(authUser?.permissions || [], 'tasks.update');
-    const isEmployeeAssignee = authUser?.role === 'employe' && task.assignees?.includes(authUser?.id);
+    const isEmployeeAssignee = authUser?.role === 'EMPLOYEE' && task.assignees?.includes(authUser?.id);
 
     if (!authUser || (!canUpdate && !isEmployeeAssignee)) {
       toast.error("Vous n'avez pas la permission de modifier une tâche.");

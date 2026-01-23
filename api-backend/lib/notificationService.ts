@@ -8,6 +8,7 @@ export type ActionType =
   | 'TASK_STATUS_CHANGED'
   | 'TASK_ASSIGNED'
   | 'TASK_COMPLETED'
+  | 'TASK_REFUSED' // Add new action type for task refusal
   | 'PROJECT_CREATED'
   | 'PROJECT_UPDATED'
   | 'STAGE_CREATED'
@@ -174,6 +175,18 @@ function generateEmailContent(context: NotificationContext, recipientEmail: stri
           changes: metadata?.changes || 'Modifications effectuées',
           taskId: entity.id,
           updatedBy: performedBy.name
+        })
+      };
+
+    case 'TASK_REFUSED': // Add new case for task refused
+      return {
+        subject: `❌ Tâche refusée: ${entity.data.title}`,
+        html: emailTemplates.taskRefusedTemplate({
+          taskTitle: entity.data.title,
+          projectName: metadata?.projectName || 'Projet',
+          refusedBy: metadata?.refusedBy || performedBy.name,
+          refusalReason: metadata?.refusalReason || 'Aucune raison fournie.',
+          taskId: entity.id,
         })
       };
 
