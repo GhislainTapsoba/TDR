@@ -158,6 +158,8 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
+    console.log('Received body for project update:', body); // Debug log
+
 
     const { rows: projectRows, rowCount: projectCount } = await db.query('SELECT id, manager_id FROM projects WHERE id = $1', [id]);
     if (projectCount === 0) {
@@ -173,7 +175,7 @@ export async function PATCH(
     const queryParams: any[] = [];
     let paramIndex = 1;
     
-    const fieldsToUpdate = ['title', 'description', 'start_date', 'end_date', 'manager_id']; // Removed 'status'
+    const fieldsToUpdate = ['title', 'description', 'start_date', 'end_date', 'due_date', 'manager_id']; // Removed 'status'
 
     fieldsToUpdate.forEach(field => {
         if (body[field] !== undefined) {
@@ -188,6 +190,8 @@ export async function PATCH(
       updateFields.push(`status = $${paramIndex++}`);
       queryParams.push(dbStatus);
     }
+    console.log('Generated update fields:', updateFields); // Debug log
+
 
     if (updateFields.length === 0) {
       return corsResponse({ error: 'Aucun champ à mettre à jour' }, request, { status: 400 });

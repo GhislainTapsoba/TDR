@@ -67,7 +67,12 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
 
     // Corrected permission check
     const canUpdate = hasPermission(authUser?.permissions || [], 'tasks.update');
-    const isEmployeeAssignee = authUser?.role === 'EMPLOYEE' && task.assignees?.includes(authUser?.id);
+    const isEmployeeAssignee = authUser?.role === 'EMPLOYEE' && task.assignees?.some((a: any) => a.id === authUser?.id);
+
+    console.log('TaskEditModal: authUser', authUser);
+    console.log('TaskEditModal: canUpdate', canUpdate);
+    console.log('TaskEditModal: isEmployeeAssignee', isEmployeeAssignee);
+    console.log('TaskEditModal: formData', formData);
 
     if (!authUser || (!canUpdate && !isEmployeeAssignee)) {
       toast.error("Vous n'avez pas la permission de modifier une tâche.");
@@ -75,7 +80,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
     }
 
     // Un utilisateur ne peut modifier que ses propres tâches
-    if (authUser?.role === 'employe' && !task.assignees?.includes(authUser?.id)) {
+    if (authUser?.role?.toLowerCase() === 'employee' && !task.assignees?.some((a: any) => a.id === authUser?.id)) {
       toast.error("Vous ne pouvez modifier que les tâches qui vous sont assignées.");
       return;
     }

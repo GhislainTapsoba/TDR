@@ -108,6 +108,7 @@ export default function EditProjectPage() {
     e.preventDefault()
     setLoading(true)
     try {
+      console.log('Sending project update data:', formData); // Added console.log
       await api.put(`/projects/${params.id}`, {
         ...formData,
         manager_id: formData.manager_id,
@@ -137,6 +138,7 @@ export default function EditProjectPage() {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible et supprimera toutes les tâches et étapes associées.")) {
       setDeleting(true);
       try {
+        console.log('Attempting to delete project:', project.id); // Added console.log
         await api.delete(`/projects/${project.id}`);
         toast({ title: "Projet supprimé", description: "Le projet a été supprimé avec succès." });
         router.push("/projects");

@@ -46,15 +46,16 @@ export default function TaskRefusalModal({
 
     setLoading(true);
     try {
-      await api.post(`/tasks/${task.id}/refuse`, { reason });
+      await api.post(`/tasks/${task.id}/reject`, { rejectionReason: reason });
       toast({
         title: "Tâche refusée",
         description: `La tâche "${task.title}" a été refusée avec succès.`,
       });
       onSave(); // Refresh tasks list
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors du refus de la tâche:", error);
+      console.error('Task refusal error status:', error.response?.status); // Debug log
       toast({
         title: "Erreur",
         description: "Échec du refus de la tâche. Veuillez réessayer.",
