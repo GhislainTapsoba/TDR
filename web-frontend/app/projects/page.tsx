@@ -178,8 +178,15 @@ export default function ProjectsPage() {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="space-y-1 flex-1">
-                          <CardTitle className="text-lg text-foreground line-clamp-1">{project.title}</CardTitle>
-                          <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+                          <div className="text-sm">
+                            <strong>Titre:</strong> {project.title}
+                          </div>
+                          <div className="text-sm">
+                            <strong>Description:</strong> {project.description}
+                          </div>
+                          <div className="text-sm">
+                            <strong>Statut:</strong> {statusLabels[project.status]}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           {project.stats?.is_overdue && (
@@ -221,25 +228,6 @@ export default function ProjectsPage() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {Object.entries(statusLabels).map(([statusKey, label]) => (
-                          <Button
-                            key={statusKey}
-                            variant={project.status === statusKey ? "default" : "outline"}
-                            size="sm"
-                            className={`px-2 py-1 text-xs ${statusColors[statusKey as keyof typeof statusColors]} ${
-                              project.status === statusKey ? 'ring-2 ring-offset-1' : ''
-                            }`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              updateProjectStatus(project.id, statusKey as Project["status"]);
-                            }}
-                            disabled={!hasPermission(authUser?.permissions || [], 'projects.update')}
-                          >
-                            {label}
-                          </Button>
-                        ))}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">

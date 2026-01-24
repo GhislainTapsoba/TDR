@@ -1,39 +1,7 @@
-# TODO: Redesign complet de l'application - TERMINÉ ✅
+# TODO: Modifier l'affichage des cartes projet, étape et tâche
 
-## Tâches de redesign réalisées:
-- [x] Améliorer le système de couleurs et la cohérence visuelle
-- [x] Redessiner la sidebar avec un design plus moderne
-- [x] Améliorer le layout principal avec de meilleurs espacements
-- [x] Redessiner le dashboard avec des cartes plus attrayantes
-- [x] Ajouter la progression des étapes dans le dashboard
-- [x] Améliorer la responsivité mobile (layout responsive maintenu)
-- [x] Uniformiser les composants (boutons, cartes, formulaires) - Design system cohérent appliqué
-- [x] Ajouter des animations et transitions subtiles (transitions et hover effects ajoutés)
-- [x] Améliorer l'expérience utilisateur globale (UX améliorée avec design moderne)
-
-## Fonctionnalités ajoutées:
-- ✅ Boutons rapides de changement de statut pour tâches, étapes et projets avec couleurs
-- ✅ API backend étendue avec statistiques des étapes
-- ✅ Dashboard amélioré avec progression des étapes
-- ✅ Design moderne avec gradients, animations et effets visuels
-- ✅ Présentation améliorée des cartes avec informations bien organisées
-
-## Améliorations de présentation des cartes:
-- ✅ **Tâches**: Titre, description, priorité, statut, projet, étape, assignés, échéance - organisés dans une grille
-- ✅ **Étapes**: Titre, description, statut, projet, durée, créateur - informations claires et accessibles
-- ✅ **Projets**: Titre, description, statut, dates, manager, progression - présentation structurée
-
-## Détails techniques:
-- ✅ Maintenir la compatibilité avec shadcn/ui
-- ✅ Améliorer l'accessibilité (contraste, navigation clavier)
-- ✅ Optimiser les performances (lazy loading, code splitting)
-- ✅ Assurer la cohérence entre les thèmes clair/sombre
-- ✅ Améliorer la hiérarchie visuelle et la lisibilité
-
-## État actuel:
-- ✅ Frontend: `http://localhost:3001` (en cours d'exécution)
-- ✅ Backend: `http://localhost:3000` (en cours d'exécution)
-- ✅ Toutes les modifications appliquées avec succès
-- ✅ Tests de compilation réussis
-- ✅ Boutons de statut rapides fonctionnels
-- ✅ Informations bien organisées dans les cartes
+## Étapes à suivre :
+- [x] Modifier web-frontend/app/projects/page.tsx pour afficher "Titre: {title}", "Description: {description}", "Statut: {status}"
+- [x] Modifier web-frontend/app/stages/page.tsx pour afficher "Titre: {name}", "Description: {description}", "Statut: {status}"
+- [x] Modifier web-frontend/app/tasks/page.tsx pour afficher "Titre: {title}", "Description: {description}", "Statut: {status}", "Priorité: {priority}"
+- [x] Tester les changements en lançant l'application

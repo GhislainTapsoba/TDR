@@ -181,12 +181,17 @@ export default function StagesPage() {
                     <div className="flex-1 space-y-3">
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold text-foreground">{stage.name}</h3>
+                          <div className="text-sm">
+                            <strong>Titre:</strong> {stage.name}
                           </div>
                           {stage.description && (
-                            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{stage.description}</p>
+                            <div className="text-sm">
+                              <strong>Description:</strong> {stage.description}
+                            </div>
                           )}
+                          <div className="text-sm">
+                            <strong>Statut:</strong> {statusLabels[stage.status]}
+                          </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <span>Projet:</span>

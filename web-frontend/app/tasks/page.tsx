@@ -277,13 +277,21 @@ export default function TasksPage() {
                     <div className="flex-1 space-y-3">
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-semibold text-foreground">{task.title}</h3>
-                            {isOverdue(task) && <AlertTriangle className="h-4 w-4 text-red-400" />}
+                          <div className="text-sm">
+                            <strong>Titre:</strong> {task.title}
+                            {isOverdue(task) && <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" />}
                           </div>
                           {task.description && (
-                            <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{task.description}</p>
+                            <div className="text-sm">
+                              <strong>Description:</strong> {task.description}
+                            </div>
                           )}
+                          <div className="text-sm">
+                            <strong>Statut:</strong> {statusLabels[task.status]}
+                          </div>
+                          <div className="text-sm">
+                            <strong>Priorité:</strong> {priorityLabels[task.priority]}
+                          </div>
                           <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <span>Projet:</span>
@@ -320,12 +328,6 @@ export default function TasksPage() {
 
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col gap-2">
-                        <Badge className={statusColors[task.status] || statusColors.TODO}>
-                          {statusLabels[task.status] || task.status}
-                        </Badge>
-                        <Badge className={priorityColors[task.priority] || priorityColors.MEDIUM}>
-                          {priorityLabels[task.priority] || task.priority}
-                        </Badge>
                         <div className="flex gap-1">
                           {Object.entries(statusLabels).map(([statusKey, label]) => (
                             <Button
