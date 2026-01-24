@@ -229,6 +229,25 @@ export default function ProjectsPage() {
                           </DropdownMenu>
                         </div>
                       </div>
+                      <div className="flex gap-1">
+                        {Object.entries(statusLabels).map(([statusKey, label]) => (
+                          <Button
+                            key={statusKey}
+                            variant={project.status === statusKey ? "default" : "outline"}
+                            size="sm"
+                            className={`px-2 py-1 text-xs ${statusColors[statusKey as keyof typeof statusColors]} ${
+                              project.status === statusKey ? 'ring-2 ring-offset-1' : ''
+                            }`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              updateProjectStatus(project.id, statusKey as Project["status"]);
+                            }}
+                            disabled={!hasPermission(authUser?.permissions || [], 'projects.update')}
+                          >
+                            {label}
+                          </Button>
+                        ))}
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
