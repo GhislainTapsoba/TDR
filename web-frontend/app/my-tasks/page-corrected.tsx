@@ -45,7 +45,7 @@ interface Task extends ApiTask { // Extend the ApiTask interface
   id: string
   title: string
   description: string
-  status: "a_faire" | "en_cours" | "termine" | "refuse"
+  status: "a_faire" | "en_cours" | "termine"
   priority: "low" | "medium" | "high"
   due_date: string | null
   project: {
@@ -225,9 +225,6 @@ export default function MyTasksPage() {
   const [showEditTaskModal, setShowEditTaskModal] = useState(false); // State for edit modal
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null); // State for task to edit
 
-  const [showRefuseTaskModal, setShowRefuseTaskModal] = useState(false); // State for refuse modal
-  const [taskToRefuse, setTaskToRefuse] = useState<Task | null>(null); // State for task to refuse
-
   const [showDeleteTaskModal, setShowDeleteTaskModal] = useState(false); // State for delete modal
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null); // State for task to delete
 
@@ -281,8 +278,7 @@ export default function MyTasksPage() {
   };
 
   const handleTaskRefuse = (task: Task) => {
-    setTaskToRefuse(task);
-    setShowRefuseTaskModal(true);
+    window.location.href = `/reject-task?taskId=${task.id}`;
   };
 
   const handleTaskDelete = (task: Task) => {
@@ -298,9 +294,7 @@ export default function MyTasksPage() {
   const onTaskSave = () => {
     setShowEditTaskModal(false);
     setTaskToEdit(null);
-    setShowRefuseTaskModal(false);
-    setTaskToRefuse(null);
-    fetchMyTasks(); // Refresh tasks after edit/delete/refuse
+    fetchMyTasks(); // Refresh tasks after edit/delete
   };
 
   const filteredTasks = tasks.filter((task) => {
@@ -422,15 +416,7 @@ export default function MyTasksPage() {
         />
       )}
 
-      {/* Task Refusal Modal */}
-      {taskToRefuse && (
-        <TaskRefusalModal
-          isOpen={showRefuseTaskModal}
-          onClose={() => setShowRefuseTaskModal(false)}
-          task={taskToRefuse}
-          onSave={onTaskSave}
-        />
-      )}
+
 
       {/* Delete Confirmation Modal */}
       {taskToDelete && (
