@@ -47,11 +47,10 @@ services:
     entrypoint: >
       /bin/sh -c "
       set -ex;
-      /usr/bin/mc config host add minio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} || exit 1;
-      if ! /usr/bin/mc ls minio/documents; then
+      if ! /usr/bin/mc --no-color --debug ls http://minio:9000/documents --access-key=${MINIO_ROOT_USER:-minioadmin} --secret-key=${MINIO_ROOT_PASSWORD:-minioadmin}; then
         echo 'Creating bucket documents';
-        /usr/bin/mc mb minio/documents || exit 1;
-        /usr/bin/mc policy set download minio/documents || exit 1;
+        /usr/bin/mc --no-color --debug mb http://minio:9000/documents --access-key=${MINIO_ROOT_USER:-minioadmin} --secret-key=${MINIO_ROOT_PASSWORD:-minioadmin} || exit 1;
+        /usr/bin/mc --no-color --debug policy set download http://minio:9000/documents --access-key=${MINIO_ROOT_USER:-minioadmin} --secret-key=${MINIO_ROOT_PASSWORD:-minioadmin} || exit 1;
       else
         echo 'Bucket documents already exists';
       fi;
