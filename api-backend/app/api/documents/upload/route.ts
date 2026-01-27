@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
     const file = data.get('file') as File | null;
     const taskId = data.get('task_id') as string | null;
     const projectId = data.get('project_id') as string | null;
+    const description = data.get('description') as string | null;
 
     if (!file) {
       return corsResponse({ error: 'No file provided' }, request, { status: 400 });
@@ -57,8 +58,8 @@ export async function POST(request: NextRequest) {
     const file_url = storage_path;
 
     const insertQuery = `
-      INSERT INTO documents (task_id, project_id, uploaded_by, name, file_url, file_type, file_size)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO documents (task_id, project_id, uploaded_by, name, file_url, file_type, file_size, description)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *;
     `;
     const { rows } = await db.query(insertQuery, [
@@ -69,6 +70,7 @@ export async function POST(request: NextRequest) {
       file_url,
       file.type,
       file.size,
+      description || null,
     ]);
 
     return corsResponse(rows[0], request, { status: 201 });

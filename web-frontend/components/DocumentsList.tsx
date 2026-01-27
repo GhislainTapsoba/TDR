@@ -84,6 +84,9 @@ export default function DocumentsList({ projectId, taskId, canUpload = false }: 
       if (taskId) {
         formData.append('task_id', taskId);
       }
+      if (uploadDescription) {
+        formData.append('description', uploadDescription);
+      }
 
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/documents/upload`, {
         method: 'POST',
