@@ -40,7 +40,7 @@ export async function GET(
     // Generate presigned URL for the file
     const getObjectCommand = new GetObjectCommand({
         Bucket: process.env.MINIO_BUCKET!,
-        Key: document.storage_path,
+        Key: document.file_url,
     });
     const presignedUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 }); // URL valide 1 heure
 
@@ -153,7 +153,7 @@ export async function DELETE(
     const { id } = await params;
     
     // Get document info before deleting
-    const { rows: docRows, rowCount: docCount } = await db.query('SELECT name, storage_path FROM documents WHERE id = $1', [id]);
+    const { rows: docRows, rowCount: docCount } = await db.query('SELECT name, file_url FROM documents WHERE id = $1', [id]);
     if (docCount === 0) {
       return corsResponse({ error: 'Document non trouvé' }, request, { status: 404 });
     }
@@ -162,7 +162,7 @@ export async function DELETE(
     // Delete from MinIO
     const deleteCommand = new DeleteObjectCommand({
         Bucket: process.env.MINIO_BUCKET!,
-        Key: document.storage_path,
+        Key: document.file_url,
     });
     await s3Client.send(deleteCommand);
 

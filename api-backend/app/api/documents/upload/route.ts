@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
     const file_url = storage_path;
 
     const insertQuery = `
-      INSERT INTO documents (task_id, project_id, user_id, file_name, file_url, file_type, file_size, storage_path)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO documents (task_id, project_id, uploaded_by, name, file_url, file_type, file_size)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *;
     `;
     const { rows } = await db.query(insertQuery, [
@@ -69,7 +69,6 @@ export async function POST(request: NextRequest) {
       file_url,
       file.type,
       file.size,
-      storage_path,
     ]);
 
     return corsResponse(rows[0], request, { status: 201 });

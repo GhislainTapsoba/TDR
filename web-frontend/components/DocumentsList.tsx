@@ -78,6 +78,12 @@ export default function DocumentsList({ projectId, taskId, canUpload = false }: 
       // Étape 1: Upload du fichier vers Supabase Storage
       const formData = new FormData();
       formData.append('file', uploadFile);
+      if (projectId) {
+        formData.append('project_id', projectId);
+      }
+      if (taskId) {
+        formData.append('task_id', taskId);
+      }
 
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/documents/upload`, {
         method: 'POST',
@@ -92,19 +98,6 @@ export default function DocumentsList({ projectId, taskId, canUpload = false }: 
         const errorData = await uploadResponse.json();
         throw new Error(errorData.error || 'Erreur lors de l\'upload du fichier');
       }
-
-      const uploadData = await uploadResponse.json();
-
-      // Étape 2: Créer l'entrée dans la base de données
-      await documentsApi.create({
-        name: uploadName,
-        file_url: uploadData.file_url,
-        file_type: uploadData.file_type || uploadFile.type,
-        file_size: uploadData.file_size || uploadFile.size,
-        description: uploadDescription || null,
-        project_id: projectId || null,
-        task_id: taskId || null,
-      });
 
       toast.success('Document uploadé avec succès !');
       setShowUploadModal(false);
