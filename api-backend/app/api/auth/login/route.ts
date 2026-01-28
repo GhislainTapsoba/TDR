@@ -11,6 +11,8 @@ export async function POST(req: NextRequest) {
   try {
     const { email, password } = await req.json();
 
+    console.log('Login attempt for email:', email);
+
     if (!email || !password) {
       return corsResponse({ error: 'Email et mot de passe sont requis' }, req, { status: 400 });
     }
@@ -21,6 +23,8 @@ export async function POST(req: NextRequest) {
       [email]
     );
 
+    console.log('Database query result for user:', rows);
+
     if (rows.length === 0) {
       return corsResponse({ error: 'Email ou mot de passe incorrect' }, req, { status: 401 });
     }
@@ -29,6 +33,7 @@ export async function POST(req: NextRequest) {
 
     // Compare the provided password with the hashed password
     const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log('Password comparison result:', passwordMatch);
 
     if (!passwordMatch) {
       return corsResponse({ error: 'Email ou mot de passe incorrect' }, req, { status: 401 });
