@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  experimental: {
+    trustHostHeader: true, // important pour que NextAuth détecte HTTPS derrière Nginx
+  },
   async headers() {
     return [
       {

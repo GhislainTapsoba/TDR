@@ -109,12 +109,12 @@ const authOptions: AuthOptions = {
   debug: true,
   cookies: {
     sessionToken: {
-      name: "next-auth.session-token",
+      name: `__Secure-next-auth.session-token`,
       options: {
         httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production", // 🔹 Secure seulement en prod HTTPS
+        sameSite: 'lax',
+        path: '/',
+        secure: true, // <- doit être true en HTTPS
       },
     },
   },
