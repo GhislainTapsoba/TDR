@@ -72,6 +72,7 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXTAUTH_URL=https://teamproject.deep-technologies.com
       - NEXT_PUBLIC_API_URL=https://teamproject.deep-technologies.com/api
+      - NEXT_PUBLIC_FRONTEND_URL=https://teamproject.deep-technologies.com
       - MAILJET_API_KEY=${MAILJET_API_KEY}
       - MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}
       - MAIL_FROM_EMAIL=${MAIL_FROM_EMAIL}
@@ -81,6 +82,7 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
       - MINIO_BUCKET=documents
+      - CRON_SECRET=13e8d8de-4b5d-485f-b792-5f19e19bbf7e
     expose:
       - "3000"
     networks:
@@ -96,6 +98,28 @@ services:
       - postgres
       - minio
       - createbuckets
+
+  # Cron Job Scheduler
+  cron-scheduler:
+    image: curlimages/curl:latest
+    depends_on:
+      - api-backend
+    # Command to run every 24 hours (86400 seconds)
+    # It sends a request to the cron endpoint to trigger email reminders
+    command: >
+      /bin/sh -c '
+        while true; do
+          echo "CRON: Triggering send-reminders job at $(date)...";
+          curl -s -X GET \
+            -H "Authorization: Bearer 13e8d8de-4b5d-485f-b792-5f19e19bbf7e" \
+            http://api-backend:3000/api/cron/send-reminders;
+          echo "CRON: Job triggered. Waiting for 24 hours...";
+          sleep 86400;
+        done
+      '
+    networks:
+      - app-network
+    restart: unless-stopped
 
   # Frontend
   web-frontend:

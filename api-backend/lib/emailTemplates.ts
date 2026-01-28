@@ -236,7 +236,6 @@ export function stageCompletedTemplate(data: {
   return baseTemplate(content);
 }
 
-// Template: Rappel d'échéance
 export function taskDueSoonTemplate(data: {
   userName: string;
   taskTitle: string;
@@ -244,13 +243,25 @@ export function taskDueSoonTemplate(data: {
   daysRemaining: number;
   taskId: string;
 }): string {
+  const isOverdue = data.daysRemaining < 0;
   const urgency = data.daysRemaining <= 1 ? 'URGENT' : 'IMPORTANT';
   const urgencyColor = data.daysRemaining <= 1 ? '#dc3545' : '#fd7e14';
 
+  let title = `⚠️ ${urgency}: Échéance proche`;
+  let message = `La tâche "<strong>${data.taskTitle}</strong>" arrive à échéance dans <strong style="color: ${urgencyColor};">${data.daysRemaining} jour(s)</strong>.`;
+
+  if (isOverdue) {
+    title = `🚨 URGENT: Tâche en retard`;
+    message = `La tâche "<strong>${data.taskTitle}</strong>" est en retard de <strong style="color: ${urgencyColor};">${Math.abs(data.daysRemaining)} jour(s)</strong>.`;
+  } else if (data.daysRemaining === 0) {
+    title = `⏰ URGENT: Échéance aujourd'hui`;
+    message = `La tâche "<strong>${data.taskTitle}</strong>" arrive à échéance <strong style="color: ${urgencyColor};">aujourd'hui</strong>.`;
+  }
+
   const content = `
-    <h2 style="color: ${urgencyColor};">⚠️ ${urgency}: Échéance proche</h2>
+    <h2 style="color: ${urgencyColor};">${title}</h2>
     <p>Bonjour <strong>${data.userName}</strong>,</p>
-    <p>La tâche "<strong>${data.taskTitle}</strong>" arrive à échéance dans <strong style="color: ${urgencyColor};">${data.daysRemaining} jour(s)</strong>.</p>
+    <p>${message}</p>
 
     <div class="info-box">
       <p><strong>Date limite:</strong> ${new Date(data.dueDate).toLocaleDateString('fr-FR', {
@@ -261,7 +272,7 @@ export function taskDueSoonTemplate(data: {
       })}</p>
     </div>
 
-    <p>Merci de compléter cette tâche avant la date limite.</p>
+    <p>Merci de compléter cette tâche ou de mettre à jour son statut dès que possible.</p>
 
     <p style="text-align: center;">
       <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button">
