@@ -75,6 +75,7 @@ const authOptions: AuthOptions = {
         token.permissions = user.permissions;
         token.accessToken = (user as any).accessToken;
       }
+      console.log("JWT callback token at return:", token); // Added log
       return token;
     },
     async session({ session, token }) {
