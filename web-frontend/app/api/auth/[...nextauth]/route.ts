@@ -3,6 +3,13 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import type { AuthOptions } from "next-auth";
 
+export const config = {
+  api: {
+    bodyParser: true,
+    externalResolver: true,
+  },
+};
+
 const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
