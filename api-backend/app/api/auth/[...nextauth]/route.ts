@@ -54,6 +54,8 @@ const authOptions: AuthOptions = {
           name: data.user.name || '',
           role: data.user.role, // Assuming role is directly available
           permissions: data.user.permissions || [],
+          // Add the token from the login API response to the user object
+          accessToken: data.token,
         };
       },
     }),
