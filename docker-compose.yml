@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # PostgreSQL Database
   postgres:
@@ -33,12 +35,12 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "mc", "alias", "set", "local", "http://minio:9000", "${MINIO_ROOT_USER:-minioadmin}", "${MINIO_ROOT_PASSWORD:-minioadmin}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
-  
+
   createbuckets:
     image: minio/mc:latest
     depends_on:
@@ -48,13 +50,10 @@ services:
       /bin/sh -c "
       set -ex;
       export MC_HOST_minio='http://${MINIO_ROOT_USER:-minioadmin}:${MINIO_ROOT_PASSWORD:-minioadmin}@minio:9000';
-      if ! /usr/bin/mc --no-color --debug ls minio/documents; then
-        echo 'Creating bucket documents';
-        /usr/bin/mc --no-color --debug mb minio/documents || exit 1;
-        /usr/bin/mc --no-color --debug policy set download minio/documents || exit 1;
-      else
-        echo 'Bucket documents already exists';
-      fi;
+      if ! /usr/bin/mc ls minio/documents; then
+        /usr/bin/mc mb minio/documents;
+        /usr/bin/mc policy set download minio/documents;
+      fi
       "
     networks:
       - app-network
@@ -65,15 +64,14 @@ services:
       context: ./api-backend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
+        NEXT_PUBLIC_FRONTEND_URL=https://teamproject.deep-technologies.com
     environment:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=postgresql://${POSTGRES_USER:-deep-user}:${POSTGRES_PASSWORD:-deep-projet}@postgres:5432/${POSTGRES_DB:-deep-db}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=https://194.195.211.111
-      - NEXT_PUBLIC_API_URL=http://localhost:3000
-      - NEXT_PUBLIC_FRONTEND_URL=https://194.195.211.111
+      - NEXTAUTH_URL=https://teamproject.deep-technologies.com
+      - NEXT_PUBLIC_API_URL=https://teamproject.deep-technologies.com/api
       - MAILJET_API_KEY=${MAILJET_API_KEY}
       - MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}
       - MAIL_FROM_EMAIL=${MAIL_FROM_EMAIL}
@@ -95,26 +93,20 @@ services:
       start_period: 40s
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-      createbuckets:
-        condition: service_completed_successfully
+      - postgres
+      - minio
+      - createbuckets
 
   # Frontend
   web-frontend:
     build:
       context: ./web-frontend
       dockerfile: Dockerfile
-      args:
-        - NEXT_PUBLIC_API_URL=/api
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - NEXT_PUBLIC_API_URL=https://194.195.211.111/api
-      - INTERNAL_API_URL=http://api-backend:3000/api
-      - NEXTAUTH_URL=https://194.195.211.111
+      - NEXT_PUBLIC_API_URL=https://teamproject.deep-technologies.com/api
+      - NEXTAUTH_URL=https://teamproject.deep-technologies.com
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     expose:
       - "3001"
