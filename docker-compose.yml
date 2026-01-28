@@ -64,7 +64,7 @@ services:
       context: ./api-backend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_FRONTEND_URL=https://teamproject.deep-technologies.com
+        NEXT_PUBLIC_FRONTEND_URL: "https://teamproject.deep-technologies.com"
     environment:
       - NODE_ENV=production
       - PORT=3000
