@@ -36,9 +36,8 @@ const authOptions: AuthOptions = {
           id: String(data.user.id),
           email: data.user.email,
           name: data.user.name || '',
-          role: data.user.role || 'user',
+          role: data.user.role, // Assuming role is directly available
           permissions: data.user.permissions || [],
-          accessToken: data.token,
         };
       },
     }),

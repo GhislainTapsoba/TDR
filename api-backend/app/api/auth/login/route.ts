@@ -1,105 +1,67 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { handleCorsOptions, corsResponse } from '@/lib/cors'; // Import CORS handler
+
+export async function OPTIONS(request: Request) {
+  return handleCorsOptions(request);
+}
 
 export async function POST(req: Request) {
-  process.stderr.write('>>> API Backend /auth/login route hit\n');
-
   try {
     const { email, password } = await req.json();
 
     if (!email || !password) {
-      process.stderr.write('❌ Email ou mot de passe manquant\n');
-      return NextResponse.json(
-        { error: 'Email et mot de passe sont requis.' },
-        { status: 400 }
-      );
+      return corsResponse({ error: 'Email et mot de passe sont requis' }, req, { status: 400 });
     }
 
-    const normalizedEmail = email.toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-      process.stderr.write('❌ Format d\'email invalide\n');
-      return NextResponse.json({ error: 'Format d\'email invalide.' }, { status: 400 });
+    // Look up the user in the database
+    const { rows } = await db.query(
+      `SELECT id, name, email, password, role_id, is_active FROM users WHERE email = $1`,
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return corsResponse({ error: 'Email ou mot de passe incorrect' }, req, { status: 401 });
     }
 
-    // Fetch user
-    const userQuery = `
-      SELECT id, name, email, password, role, is_active
-      FROM users
-      WHERE email = $1
-    `;
-    const { rows: users } = await db.query(userQuery, [normalizedEmail]);
+    const user = rows[0];
 
-    if (users.length === 0) {
-      process.stderr.write('❌ Utilisateur non trouvé\n');
-      return NextResponse.json({ error: 'Email ou mot de passe incorrect.' }, { status: 401 });
+    // Compare the provided password with the hashed password
+    const passwordMatch = await bcrypt.compare(password, user.password);
+
+    if (!passwordMatch) {
+      return corsResponse({ error: 'Email ou mot de passe incorrect' }, req, { status: 401 });
     }
 
-    const user = users[0];
-
-    // Check if user is active
     if (!user.is_active) {
-      process.stderr.write('❌ Compte utilisateur inactif\n');
-      return NextResponse.json({ error: 'Votre compte est inactif. Contactez un administrateur.' }, { status: 403 });
+      return corsResponse({ error: 'Votre compte est inactif. Veuillez contacter l\'administrateur.' }, req, { status: 403 });
     }
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      process.stderr.write('❌ Mot de passe incorrect\n');
-      return NextResponse.json({ error: 'Email ou mot de passe incorrect.' }, { status: 401 });
-    }
-
-    // Remove password
-    const { password: _, ...userWithoutPassword } = user;
-
-    // Lowercase role
-    const lowercasedRole = user.role?.toLowerCase() || 'user';
+    // Fetch permissions for the user's role
+    const { rows: permissionRows } = await db.query(
+        `SELECT p.name
+         FROM permissions p
+         JOIN role_permissions rp ON p.id = rp.permission_id
+         WHERE rp.role_id = $1
+        `, [user.role_id]);
+    const permissions = permissionRows.map(row => row.name);
 
 
-    // Fetch permissions from role_permissions
-    const permsQuery = `
-      SELECT p.resource, p.action
-      FROM role_permissions rp
-      JOIN permissions p ON rp.permission_id = p.id
-      JOIN roles r ON rp.role_id = r.id
-      WHERE r.name = $1
-    `;
-    const { rows: perms } = await db.query(permsQuery, [lowercasedRole]);
-    const permissions = perms.map(p => `${p.resource}.${p.action}`); // array of strings like 'projects.create'
-
-    // Build user object with permissions
-    const userResponse = { 
-      ...userWithoutPassword, 
-      id: String(userWithoutPassword.id),
-      permissions
-    };
-
-    // Generate JWT with permissions
-    const tokenPayload = { 
-      sub: user.id, 
-      email: user.email, 
-      role: lowercasedRole, 
-      id: user.id,
-      permissions
-    };
-    const token = jwt.sign(tokenPayload, process.env.NEXTAUTH_SECRET!, { expiresIn: '30d' });
-    process.stderr.write('✅ Connexion réussie, jeton généré\n');
-
-    // Return for NextAuth
-    return NextResponse.json({
+    return corsResponse({
       success: true,
-      user: userResponse,
-      token,
-    }, { status: 200 });
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role, // Assuming user.role is a string like 'ADMIN', 'MANAGER', 'EMPLOYEE'
+        is_active: user.is_active,
+        permissions: permissions
+      },
+    }, req, { status: 200 });
 
   } catch (error) {
-    process.stderr.write(`💥 ERREUR CRITIQUE dans /auth/login: ${error}\n`);
-    console.error('LOGIN ERROR >>>', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Erreur interne' },
-      { status: 500 }
-    );
+    console.error('API /api/auth/login error:', error);
+    return corsResponse({ error: 'Erreur interne du serveur' }, req, { status: 500 });
   }
 }
