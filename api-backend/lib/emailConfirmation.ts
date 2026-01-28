@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { db } from './db';
-import { sendEmailToResponsibles } from './emailService';
+import { sendEmailToResponsibles, sendEmail } from './emailService'; // Added sendEmail import
 import {
   employeeTaskConfirmationTemplate,
   taskStatusChangeAcknowledgementTemplate,
