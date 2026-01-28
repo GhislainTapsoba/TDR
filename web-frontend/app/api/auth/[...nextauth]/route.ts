@@ -18,44 +18,21 @@ const authOptions: AuthOptions = {
         }
 
         try {
-          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
-
-          const res = await fetch(apiUrl, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
+            body: JSON.stringify(credentials),
           });
 
-          const responseText = await res.text();
-          if (!res.ok) {
-            console.error("❌ Erreur HTTP:", res.status, responseText);
-            return null;
-          }
+          if (!res.ok) return null;
 
-          let data;
-          try {
-            data = JSON.parse(responseText);
-          } catch (e) {
-            console.error("❌ Erreur parsing JSON:", e);
-            return null;
-          }
+          const user = await res.json();
 
-          if (!data.success || !data.user) return null;
+          if (!user?.id) return null;
 
-          // 🔑 Retourne l'utilisateur avec son rôle et ses permissions
-          return {
-            id: String(data.user.id),
-            email: data.user.email,
-            name: data.user.name || "",
-            role: data.user.role?.toLowerCase() || "user",
-            accessToken: data.token,
-            permissions: data.user.permissions || [], // ✅ IMPORTANT pour middleware
-          };
+          return user;
         } catch (error) {
-          console.error("💥 ERREUR CRITIQUE:", error);
+          console.error("Auth error:", error);
           return null;
         }
       },
