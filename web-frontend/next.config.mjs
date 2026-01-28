@@ -9,6 +9,9 @@ const nextConfig = {
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   },
+  experimental: {
+    serverActions: false,
+  },
 }
 
 export default nextConfig
