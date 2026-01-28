@@ -142,7 +142,7 @@ async function generateEmailContent(context: NotificationContext, recipientEmail
       const rejectionToken = await createRejectionToken(
         metadata?.assigneeId, // Assuming assigneeId is passed in metadata
         entity.id,
-        'Raison de refus à fournir par l'utilisateur' // Placeholder reason, actual reason will be provided by user
+        "Raison de refus à fournir par l'utilisateur" // Placeholder reason, actual reason will be provided by user
       );
 
       if (!rejectionToken) {
