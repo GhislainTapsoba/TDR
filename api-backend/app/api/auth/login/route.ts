@@ -17,10 +17,16 @@ export async function POST(req: NextRequest) {
       return corsResponse({ error: 'Email et mot de passe sont requis' }, req, { status: 400 });
     }
 
+    // Normalize email to lowercase
+    const normalizedEmail = email.toLowerCase();
+
     // Look up the user in the database
     const { rows } = await db.query(
-      `SELECT id, name, email, password, role_id, is_active FROM users WHERE email = $1`,
-      [email]
+      `SELECT u.id, u.name, u.email, u.password, u.role_id, u.is_active, r.name as role
+       FROM users u
+       LEFT JOIN roles r ON u.role_id = r.id
+       WHERE u.email = $1`,
+      [normalizedEmail]
     );
 
     console.log('Database query result for user:', rows);
