@@ -18,7 +18,7 @@ const authOptions: AuthOptions = {
         }
 
         try {
-          const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/login`;
 
           const res = await fetch(apiUrl, {
             method: "POST",

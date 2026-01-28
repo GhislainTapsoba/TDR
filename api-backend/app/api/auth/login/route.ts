@@ -59,6 +59,9 @@ export async function POST(req: NextRequest) {
     const permissions = permissionRows.map(row => row.name);
 
 
+    // Generate a simple token (in production, use JWT)
+    const token = `token_${user.id}_${Date.now()}`;
+
     return corsResponse({
       success: true,
       user: {
@@ -69,6 +72,7 @@ export async function POST(req: NextRequest) {
         is_active: user.is_active,
         permissions: permissions
       },
+      token: token,
     }, req, { status: 200 });
 
   } catch (error) {
