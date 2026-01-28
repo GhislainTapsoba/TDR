@@ -11,27 +11,43 @@ const authOptions: AuthOptions = {
         password: {},
       },
       async authorize(credentials, req) {
+        console.log("NextAuth authorize function called.");
+        console.log("Credentials received:", credentials);
+
         if (!credentials?.email || !credentials?.password) {
+          console.log("NextAuth authorize: Missing email or password.");
           return null;
         }
 
+        const loginUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`;
+        console.log("NextAuth authorize: Attempting to fetch from:", loginUrl);
+
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+          loginUrl,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(credentials),
           }
         );
+        console.log("NextAuth authorize: Fetch response status:", res.status);
+        console.log("NextAuth authorize: Fetch response ok:", res.ok);
 
-        if (!res.ok) return null;
-
-        const data = await res.json();
-
-        if (!data.success || !data.user) {
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("NextAuth authorize: Login API returned error:", errorText);
           return null;
         }
 
+        const data = await res.json();
+        console.log("NextAuth authorize: Data from login API:", data);
+
+        if (!data.success || !data.user) {
+          console.log("NextAuth authorize: Login API did not return success or user data.");
+          return null;
+        }
+
+        console.log("NextAuth authorize: Login successful, returning user:", data.user.email);
         return {
           id: String(data.user.id),
           email: data.user.email,
