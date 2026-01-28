@@ -14,29 +14,48 @@ const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           console.log("❌ Credentials manquantes");
-          console.log("🌍 INTERNAL_API_URL =", process.env.INTERNAL_API_URL);
           return null;
         }
 
         try {
-          const res = await fetch(
-            `${process.env.INTERNAL_API_URL}/login`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(credentials),
-            }
-          );
+          const apiUrl = `${process.env.INTERNAL_API_URL}/auth/login`;
 
-          if (!res.ok) return null;
+          const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
 
-          const user = await res.json();
+          const responseText = await res.text();
+          if (!res.ok) {
+            console.error("❌ Erreur HTTP:", res.status, responseText);
+            return null;
+          }
 
-          if (!user?.id) return null;
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (e) {
+            console.error("❌ Erreur parsing JSON:", e);
+            return null;
+          }
 
-          return user;
+          if (!data.success || !data.user) return null;
+
+          // 🔑 Retourne l'utilisateur avec son rôle et ses permissions
+          return {
+            id: String(data.user.id),
+            email: data.user.email,
+            name: data.user.name || "",
+            role: data.user.role?.toLowerCase() || "user",
+            accessToken: data.token,
+            permissions: data.user.permissions || [], // ✅ IMPORTANT pour middleware
+          };
         } catch (error) {
-          console.error("Auth error:", error);
+          console.error("💥 ERREUR CRITIQUE:", error);
           return null;
         }
       },
