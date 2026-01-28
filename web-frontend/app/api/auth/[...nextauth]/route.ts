@@ -14,6 +14,7 @@ const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           console.log("❌ Credentials manquantes");
+          console.log("🌍 INTERNAL_API_URL =", process.env.INTERNAL_API_URL);
           return null;
         }
 
