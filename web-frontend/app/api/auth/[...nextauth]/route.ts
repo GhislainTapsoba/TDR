@@ -69,16 +69,20 @@ const authOptions: AuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        console.log("➡️ JWT callback - user found:", user);
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.role = user.role;
         token.accessToken = (user as any).accessToken;
-        token.permissions = (user as any).permissions; // ✅ Ajout des permissions
+        token.permissions = (user as any).permissions;
+      } else {
+        console.log("➡️ JWT callback - token:", token);
       }
       return token;
     },
     async session({ session, token }) {
+      console.log("➡️ Session callback - token:", token);
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
@@ -87,6 +91,7 @@ const authOptions: AuthOptions = {
         session.user.permissions = token.permissions as string[];
         (session as any).accessToken = token.accessToken;
       }
+      console.log("➡️ Session callback - session:", session);
       return session;
     },
   },
@@ -95,6 +100,17 @@ const authOptions: AuthOptions = {
     error: "/403",
   },
   debug: true,
+  cookies: {
+    sessionToken: {
+      name: "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production", // 🔹 Secure seulement en prod HTTPS
+      },
+    },
+  },
 };
 
 const handler = NextAuth(authOptions);
