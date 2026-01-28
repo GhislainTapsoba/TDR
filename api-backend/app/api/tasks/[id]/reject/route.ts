@@ -36,6 +36,15 @@ export async function POST(
     }
     const task = taskRows[0];
 
+    // Add idempotency check: prevent re-rejecting or rejecting completed/cancelled tasks
+    if (['COMPLETED', 'CANCELLED', 'REFUSED'].includes(task.status)) {
+      return corsResponse(
+        { error: `Cette tâche a déjà le statut "${task.status}" et ne peut pas être refusée.` },
+        request,
+        { status: 400 }
+      );
+    }
+
     // Check if user is assigned to this task
     const { rows: assigneeRows } = await db.query(
       'SELECT user_id FROM task_assignees WHERE task_id = $1 AND user_id = $2',

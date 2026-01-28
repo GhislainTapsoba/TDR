@@ -1,35 +1,28 @@
 'use client';
 
 import { useState, Suspense, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-context';
+import { useSearchParams } from 'next/navigation';
 
 function RejectTaskForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { user, token, loading: authLoading } = useAuth();
-  const taskId = searchParams.get('taskId');
+  const token = searchParams.get('token');
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [displayedTaskId, setDisplayedTaskId] = useState<string | null>(null);
+  const [taskTitle, setTaskTitle] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      // Rediriger vers la page de connexion si l'utilisateur n'est pas authentifié
-      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.href)}`);
-      return;
+    if (!token) {
+      setError('Jeton de refus manquant dans l\'URL.');
     }
-
-    if (!taskId) {
-      setError('ID de la tâche manquant dans l\'URL.');
-    }
-  }, [taskId, user, authLoading, router]);
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!taskId) {
-      setError('Impossible de soumettre : ID de la tâche manquant.');
+    if (!token) {
+      setError('Impossible de soumettre : Jeton manquant.');
       return;
     }
     if (!reason.trim()) {
@@ -42,13 +35,12 @@ function RejectTaskForm() {
     setMessage('');
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}/reject`, {
+      const response = await fetch(`/api/reject-task-via-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ rejectionReason: reason }),
+        body: JSON.stringify({ token, rejectionReason: reason }),
       });
 
       const result = await response.json();
@@ -57,7 +49,9 @@ function RejectTaskForm() {
         throw new Error(result.error || 'Une erreur est survenue.');
       }
 
-      setMessage('Votre refus a été soumis avec succès. Vous pouvez fermer cette page.');
+      setMessage(result.message || 'Votre refus a été soumis avec succès.');
+      setDisplayedTaskId(result.taskId || null);
+      setTaskTitle(result.taskTitle || null);
       setReason(''); // Clear the textarea
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Une erreur inconnue est survenue';
@@ -67,21 +61,7 @@ function RejectTaskForm() {
     }
   };
 
-  // Afficher un loader pendant la vérification de l'authentification
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Ne rien afficher si l'utilisateur n'est pas authentifié (il sera redirigé)
-  if (!user) {
-    return null;
-  }
-
-  if (error && !taskId) {
+  if (!token) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="p-8 bg-white shadow-md rounded-lg text-red-500">
@@ -96,7 +76,7 @@ function RejectTaskForm() {
       <div className="max-w-xl w-full mx-auto p-8 bg-white shadow-lg rounded-lg">
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-4">Refuser la Tâche</h1>
         <p className="text-center text-gray-600 mb-6">
-          Tâche ID: <code className="bg-gray-200 text-gray-800 px-2 py-1 rounded">{taskId}</code>
+          {displayedTaskId ? `Tâche : ${taskTitle} (ID: ${displayedTaskId})` : 'Veuillez saisir la raison de votre refus.'}
         </p>
 
         {message ? (

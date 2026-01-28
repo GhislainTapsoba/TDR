@@ -1,6 +1,7 @@
 import { db } from './db';
 import { sendEmail } from './emailService';
 import * as emailTemplates from './emailTemplates';
+import { createConfirmationToken, createRejectionToken } from './emailConfirmation'; // Import createRejectionToken
 
 export type ActionType =
   | 'TASK_CREATED'
@@ -103,7 +104,7 @@ async function determineRecipients(context: NotificationContext): Promise<string
         recipients.add(projectManager.email);
       }
       break;
-    
+
     default:
       // No rules applied for other roles
       break;
@@ -115,15 +116,40 @@ async function determineRecipients(context: NotificationContext): Promise<string
 /**
  * Génère le contenu de l'email selon le type d'action
  */
-function generateEmailContent(context: NotificationContext, recipientEmail: string): {
+async function generateEmailContent(context: NotificationContext, recipientEmail: string): Promise<{
   subject: string;
   html: string;
-} | null {
+} | null> { // Made async
   const { actionType, performedBy, entity, metadata } = context;
 
   switch (actionType) {
     case 'TASK_CREATED':
     case 'TASK_ASSIGNED':
+      // Generate confirmation token (for accepting the task)
+      const confirmationToken = await createConfirmationToken({
+        type: 'TASK_ASSIGNMENT',
+        userId: metadata?.assigneeId, // Assuming assigneeId is passed in metadata
+        entityType: 'task',
+        entityId: entity.id,
+      });
+
+      if (!confirmationToken) {
+        console.error(`Failed to generate confirmation token for task ${entity.id}`);
+        return null;
+      }
+
+      // Generate rejection token (for refusing the task)
+      const rejectionToken = await createRejectionToken(
+        metadata?.assigneeId, // Assuming assigneeId is passed in metadata
+        entity.id,
+        'Raison de refus à fournir par l'utilisateur' // Placeholder reason, actual reason will be provided by user
+      );
+
+      if (!rejectionToken) {
+        console.error(`Failed to generate rejection token for task ${entity.id}`);
+        return null;
+      }
+
       return {
         subject: `Nouvelle tâche assignée: ${entity.data.title}`,
         html: emailTemplates.taskAssignedTemplate({
@@ -134,7 +160,8 @@ function generateEmailContent(context: NotificationContext, recipientEmail: stri
           dueDate: entity.data.due_date,
           priority: entity.data.priority || 'MEDIUM',
           taskId: entity.id,
-          confirmationToken: metadata?.confirmationToken
+          confirmationToken: confirmationToken,
+          rejectionToken: rejectionToken, // Pass the rejection token to the template
         })
       };
 
@@ -251,7 +278,7 @@ export async function sendActionNotification(context: NotificationContext): Prom
 
     // Envoyer l'email à chaque destinataire
     for (const recipientEmail of recipients) {
-      const emailContent = generateEmailContent(context, recipientEmail);
+      const emailContent = await generateEmailContent(context, recipientEmail); // Await here
 
       if (!emailContent) {
         console.error(`No email template found for action type: ${context.actionType}`);
@@ -269,7 +296,7 @@ export async function sendActionNotification(context: NotificationContext): Prom
 
     // Logger l'activité
     await db.query(
-      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+      `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [
         context.performedBy.id,

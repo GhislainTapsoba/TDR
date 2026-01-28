@@ -119,6 +119,7 @@ export function taskAssignedTemplate(data: {
   priority: string;
   taskId: string;
   confirmationToken?: string;
+  rejectionToken?: string; // Added for task rejection
 }): string {
   const priorityClass = data.priority === 'HIGH' || data.priority === 'URGENT' ? 'priority-high' : 'priority-medium';
 
@@ -146,11 +147,13 @@ export function taskAssignedTemplate(data: {
               ✓ Confirmer et démarrer
             </a>
           </td>
+          ${data.rejectionToken ? `
           <td style="padding: 5px; text-align: center;">
-            <a href="${FRONTEND_URL}/redirect?reject_task=true&taskId=${data.taskId}" class="button" style="background: #dc3545; display: inline-block; padding: 12px 30px; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            <a href="${FRONTEND_URL}/reject-task?token=${data.rejectionToken}" class="button" style="background: #dc3545; display: inline-block; padding: 12px 30px; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-weight: bold;">
               ✕ Refuser la tâche
             </a>
           </td>
+          ` : ''}
         </tr>
       </table>
 

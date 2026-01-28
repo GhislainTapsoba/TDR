@@ -4,11 +4,12 @@ import { sendEmailToResponsibles } from './emailService';
 import {
   employeeTaskConfirmationTemplate,
   taskStatusChangeAcknowledgementTemplate,
-  stageStatusChangeAcknowledgementTemplate
+  stageStatusChangeAcknowledgementTemplate,
+  taskRejectedByEmployeeTemplate // Added for task rejection
 } from './emailTemplates';
 
 export interface ConfirmationTokenData {
-  type: 'TASK_ASSIGNMENT' | 'TASK_STATUS_CHANGE' | 'STAGE_STATUS_CHANGE' | 'PROJECT_CREATED';
+  type: 'TASK_ASSIGNMENT' | 'TASK_STATUS_CHANGE' | 'STAGE_STATUS_CHANGE' | 'PROJECT_CREATED' | 'TASK_REJECTION';
   userId: string;
   entityType: string;
   entityId: string;
@@ -56,6 +57,23 @@ export async function createConfirmationToken(data: ConfirmationTokenData): Prom
     console.error('Error in createConfirmationToken:', error);
     return null;
   }
+}
+
+/**
+ * Wrapper for creating a task rejection token
+ */
+export async function createRejectionToken(
+  userId: string,
+  taskId: string,
+  rejectionReason: string
+): Promise<string | null> {
+  return createConfirmationToken({
+    type: 'TASK_REJECTION',
+    userId: userId,
+    entityType: 'task',
+    entityId: taskId,
+    metadata: { rejectionReason: rejectionReason } // Store reason in metadata
+  });
 }
 
 /**
@@ -111,7 +129,7 @@ export async function confirmToken(token: string): Promise<{
 /**
  * Exécuter l'action liée à la confirmation
  */
-export async function executeConfirmationAction(confirmationData: any): Promise<boolean> {
+export async function executeConfirmationAction(confirmationData: any, additionalData?: any): Promise<boolean> {
   try {
     switch (confirmationData.type) {
       case 'TASK_ASSIGNMENT':
@@ -127,16 +145,16 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
         const updatedTask = updatedTaskRows[0];
 
         const { rows: taskDetailsRows } = await db.query(
-          `SELECT 
+          `SELECT
             t.id, t.title, t.description,
             p.id as project_id, p.title as project_title
-           FROM tasks t 
-           LEFT JOIN projects p ON t.project_id = p.id 
+           FROM tasks t
+           LEFT JOIN projects p ON t.project_id = p.id
            WHERE t.id = $1`,
           [confirmationData.entityId]
         );
         const taskDetails = taskDetailsRows[0];
-        
+
         // Get assignees for this task
         const { rows: assigneesRows } = await db.query(
           `SELECT u.id as assignee_id, u.name as assignee_name, u.email as assignee_email
@@ -146,9 +164,9 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
           [confirmationData.entityId]
         );
         const firstAssignee = assigneesRows[0] || { assignee_name: 'Un employé', assignee_email: '', assignee_id: '' };
-        
+
         await db.query(
-          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details) 
+          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details)
            VALUES ($1, 'start', 'task', $2, $3)`,
           [confirmationData.userId, confirmationData.entityId, 'Task started by email confirmation']
         );
@@ -173,13 +191,102 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
         }
         break;
 
+      case 'TASK_REJECTION': // New case for task rejection
+        const { rows: taskToRejectRows } = await db.query(
+          `SELECT t.*, p.id as project_id, p.title as project_title,
+                  u.name as employee_name, u.email as employee_email
+           FROM tasks t
+           LEFT JOIN projects p ON t.project_id = p.id
+           LEFT JOIN users u ON u.id = $1 -- Join with user who initiated rejection
+           WHERE t.id = $2`,
+          [confirmationData.userId, confirmationData.entityId]
+        );
+
+        if (taskToRejectRows.length === 0) {
+          console.error('Error: Task not found for rejection confirmation.');
+          return false;
+        }
+        const taskToReject = taskToRejectRows[0];
+        // Use rejection reason from additionalData if provided, otherwise fallback to metadata
+        const rejectionReason = additionalData?.rejectionReason || confirmationData.metadata?.rejectionReason || 'Raison non spécifiée';
+
+        // Check if task is already in a state where rejection is not applicable
+        if (['COMPLETED', 'CANCELLED', 'REFUSED'].includes(taskToReject.status)) {
+          console.log(`Task ${taskToReject.id} is already in status ${taskToReject.status}. Rejection ignored.`);
+          return true; // Consider it successful as the desired end state is achieved or no further action needed
+        }
+
+        // Update task status to REFUSED and save reason
+        const { rowCount: updatedRejectionCount } = await db.query(
+          `UPDATE tasks SET status = 'REFUSED', refusal_reason = $1, updated_at = NOW() WHERE id = $2`,
+          [rejectionReason, confirmationData.entityId]
+        );
+
+        if (updatedRejectionCount === 0) {
+          console.error('Error updating task status to REFUSED.');
+          return false;
+        }
+
+        // Fetch project manager and admins to notify
+        const { rows: projectManagerRows } = await db.query(
+          `SELECT u.id, u.email, u.name FROM users u JOIN projects p ON u.id = p.manager_id WHERE p.id = $1`,
+          [taskToReject.project_id]
+        );
+        const projectManager = projectManagerRows[0];
+
+        const { rows: admins } = await db.query("SELECT id, email, name FROM users WHERE UPPER(role) = 'ADMIN'");
+
+        const recipients = new Map<string, { id: string; email: string; name: string }>();
+
+        if (projectManager) {
+          recipients.set(projectManager.email, { id: projectManager.id, email: projectManager.email, name: projectManager.name || 'Manager' });
+        }
+        if (admins) {
+          for (const admin of admins) {
+            if (!recipients.has(admin.email)) {
+              recipients.set(admin.email, { id: admin.id, email: admin.email, name: admin.name || 'Responsable général' });
+            }
+          }
+        }
+
+        // Send email notifications to manager/admins
+        for (const recipient of recipients.values()) {
+          const emailHtml = taskRejectedByEmployeeTemplate({
+            employeeName: taskToReject.employee_name || 'Un employé',
+            taskTitle: taskToReject.title,
+            projectName: taskToReject.project_title,
+            taskId: taskToReject.id,
+            rejectionReason: rejectionReason,
+            managerName: recipient.name
+          });
+
+          await sendEmail({
+            to: recipient.email,
+            subject: `❌ Tâche refusée par ${taskToReject.employee_name}: ${taskToReject.title}`,
+            html: emailHtml,
+            userId: recipient.id,
+            metadata: {
+              task_id: taskToReject.id,
+              project_id: taskToReject.project_id,
+              action: 'TASK_REJECTED_BY_TOKEN'
+            }
+          });
+        }
+
+        await db.query(
+          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details)
+           VALUES ($1, 'reject_task_via_token', 'task', $2, $3)`,
+          [confirmationData.userId, confirmationData.entityId, `Raison: ${rejectionReason}`]
+        );
+        break;
+
       case 'TASK_STATUS_CHANGE':
         const { rows: taskStatusDetailsRows, rowCount: taskStatusDetailsCount } = await db.query(
-          `SELECT 
-            t.*, 
+          `SELECT
+            t.*,
             p.id as project_id, p.title as project_title
-           FROM tasks t 
-           LEFT JOIN projects p ON t.project_id = p.id 
+           FROM tasks t
+           LEFT JOIN projects p ON t.project_id = p.id
            WHERE t.id = $1`,
           [confirmationData.entityId]
         );
@@ -191,7 +298,7 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
         const taskData = taskStatusDetailsRows[0];
 
         await db.query(
-          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata)
            VALUES ($1, 'acknowledge', 'task', $2, $3, $4)`,
           [confirmationData.userId, confirmationData.entityId, 'Task status change acknowledged', JSON.stringify(confirmationData.metadata)]
         );
@@ -220,11 +327,11 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
 
       case 'STAGE_STATUS_CHANGE':
         const { rows: stageDetailsRows, rowCount: stageDetailsCount } = await db.query(
-          `SELECT 
-            s.*, 
+          `SELECT
+            s.*,
             p.id as project_id, p.title as project_title
-           FROM stages s 
-           LEFT JOIN projects p ON s.project_id = p.id 
+           FROM stages s
+           LEFT JOIN projects p ON s.project_id = p.id
            WHERE s.id = $1`,
           [confirmationData.entityId]
         );
@@ -242,7 +349,7 @@ export async function executeConfirmationAction(confirmationData: any): Promise<
         const employeeData = employeeDataRows[0];
 
         await db.query(
-          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata) 
+          `INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, metadata)
            VALUES ($1, 'acknowledge', 'stage', $2, $3, $4)`,
           [confirmationData.userId, confirmationData.entityId, 'Stage status change acknowledged', JSON.stringify(confirmationData.metadata)]
         );
