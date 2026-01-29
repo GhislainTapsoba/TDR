@@ -64,10 +64,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
   console.log("🔐 Tentative de connexion:", email);
 
+  // Check if there's a task rejection request in the URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const rejectTask = urlParams.get('reject_task');
+  const taskId = urlParams.get('taskId');
+
+  const callbackUrl = rejectTask === 'true' && taskId ? `/reject-task?taskId=${taskId}` : '/dashboard';
+
   const result = await signIn('credentials', {
     redirect: false,
     email,
     password,
+    callbackUrl,
   });
 
   console.log("📊 Résultat signIn:", result);
@@ -84,18 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     throw new Error("Échec de la connexion");
   }
 
-  console.log("✅ Connexion réussie, redirection...");
-
-  // Check if there's a task rejection request in the URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const rejectTask = urlParams.get('reject_task');
-  const taskId = urlParams.get('taskId');
-
-  if (rejectTask === 'true' && taskId) {
-    router.push(`/reject-task?taskId=${taskId}`);
-  } else {
-    router.push('/dashboard');
-  }
+  console.log("✅ Connexion réussie, redirection vers:", callbackUrl);
+  router.push(callbackUrl);
 }, [router])
 
   const logout = useCallback(async () => {
