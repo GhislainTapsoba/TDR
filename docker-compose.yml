@@ -131,8 +131,11 @@ services:
     image: nginx:alpine
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./certs/cert.pem:/etc/ssl/certs/cert.pem
+      - ./certs/key.pem:/etc/ssl/private/key.pem
     networks:
       - app-network
     restart: unless-stopped
