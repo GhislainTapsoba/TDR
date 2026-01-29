@@ -94,7 +94,7 @@ const authOptions: AuthOptions = {
     signIn: "/login",
     error: "/403",
   },
-  debug: true,
+  debug: false,
 };
 
 const handler = NextAuth(authOptions);
