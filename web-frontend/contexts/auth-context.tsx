@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   if (rejectTask === 'true' && taskId) {
     router.push(`/reject-task?taskId=${taskId}`);
   } else if (urlParams.get('verify_task') === 'true' && taskId) {
-    router.push(`/dashboard/tasks/${taskId}`);
+    router.push(`/tasks/${taskId}`);
   } else {
     router.push('/dashboard');
   }
