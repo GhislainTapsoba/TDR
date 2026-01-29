@@ -106,7 +106,7 @@ export function Sidebar() {
           </div>
           <div>
             <span className="font-bold text-sidebar-foreground text-lg">
-              TDR Platform
+              Team Project
             </span>
             <p className="text-xs text-sidebar-foreground/60">
               {user ? (roleLabels[user.role] || user.role?.replace("_", " ")) : "Employé"}

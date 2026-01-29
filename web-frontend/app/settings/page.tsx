@@ -373,7 +373,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-6">
-            {/* Notifications */}
+            {/* Notifications 
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -448,9 +448,9 @@ export default function SettingsPage() {
                   </Button>
                 </form>
               </CardContent>
-            </Card>
+            </Card>*/}
 
-            {/* Préférences */}
+            {/* Préférences 
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -512,7 +512,7 @@ export default function SettingsPage() {
                   </Button>
                 </form>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </div>
       </div>

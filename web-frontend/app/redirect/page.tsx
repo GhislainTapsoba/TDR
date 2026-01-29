@@ -31,6 +31,14 @@ export default function RedirectPage() {
         router.push(loginUrl);
       });
 
+    } else if (searchParams.get('verify_task') === 'true' && taskId) {
+      // This is a task verification redirect. First, sign out the user.
+      signOut({ redirect: false }).then(() => {
+        // After signOut is complete, redirect to the login page with task verification info.
+        const loginUrl = `/login?verify_task=true&taskId=${taskId}${message ? `&message=${encodeURIComponent(message)}` : ''}`;
+        router.push(loginUrl);
+      });
+      
     } else if (redirectTo) {
       // This is a generic redirect for other purposes.
       const decodedRedirectTo = decodeURIComponent(redirectTo);

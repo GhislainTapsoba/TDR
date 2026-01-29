@@ -452,7 +452,7 @@ export function taskCompletedByEmployeeTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button" style="background: #28a745;">
+      <a href="${FRONTEND_URL}/redirect?verify_task=true&taskId=${data.taskId}" class="button" style="background: #28a745;">
         Vérifier la tâche
       </a>
     </p>
