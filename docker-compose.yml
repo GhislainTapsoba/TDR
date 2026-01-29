@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # PostgreSQL Database
   postgres:
@@ -33,7 +35,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "mc", "alias", "set", "local", "http://minio:9000", "${MINIO_ROOT_USER:-minioadmin}", "${MINIO_ROOT_PASSWORD:-minioadmin}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,24 +67,24 @@ services:
       context: ./api-backend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
+        NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-deep-user}:${POSTGRES_PASSWORD:-deep-projet}@postgres:5432/${POSTGRES_DB:-deep-db}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=https://194.195.211.111
-      - NEXT_PUBLIC_API_URL=http://localhost:3000
-      - NEXT_PUBLIC_FRONTEND_URL=https://194.195.211.111
-      - MAILJET_API_KEY=${MAILJET_API_KEY}
-      - MAILJET_SECRET_KEY=${MAILJET_SECRET_KEY}
-      - MAIL_FROM_EMAIL=${MAIL_FROM_EMAIL}
-      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
-      - MINIO_ENDPOINT=minio
-      - MINIO_PORT=9000
-      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
-      - MINIO_BUCKET=documents
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-deep-user}:${POSTGRES_PASSWORD:-deep-projet}@postgres:5432/${POSTGRES_DB:-deep-db}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: https://194.195.211.111
+      NEXT_PUBLIC_API_URL: https://194.195.211.111
+      NEXT_PUBLIC_FRONTEND_URL: https://194.195.211.111
+      MAILJET_API_KEY: ${MAILJET_API_KEY}
+      MAILJET_SECRET_KEY: ${MAILJET_SECRET_KEY}
+      MAIL_FROM_EMAIL: ${MAIL_FROM_EMAIL}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: documents
     expose:
       - "3000"
     networks:
@@ -108,14 +110,14 @@ services:
       context: ./web-frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=/api
+        NEXT_PUBLIC_API_URL=/api
     environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - NEXT_PUBLIC_API_URL=https://194.195.211.111/api
-      - INTERNAL_API_URL=http://api-backend:3000/api
-      - NEXTAUTH_URL=https://194.195.211.111
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      NODE_ENV: production
+      PORT: 3001
+      NEXT_PUBLIC_API_URL: https://194.195.211.111/api
+      INTERNAL_API_URL: http://api-backend:3000/api
+      NEXTAUTH_URL: https://194.195.211.111
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
     expose:
       - "3001"
     networks:
@@ -131,7 +133,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ./certs:/etc/ssl/certs:ro
       - ./certs:/etc/ssl/private:ro
     networks:
