@@ -155,13 +155,13 @@ export function taskAssignedTemplate(data: {
       </table>
 
       <p style="text-align: center; margin-top: 10px;">
-        <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" style="color: #667eea; text-decoration: none;">
+        <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" style="color: #667eea; text-decoration: none;">
           Ou consulter la tâche
         </a>
       </p>
     ` : `
       <p style="text-align: center;">
-        <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button">
+        <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button">
           Voir la tâche
         </a>
       </p>
@@ -194,7 +194,7 @@ export function taskUpdatedTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button">
         Consulter la tâche
       </a>
     </p>
@@ -227,7 +227,7 @@ export function stageCompletedTemplate(data: {
     ` : ''}
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" class="button">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" class="button">
         Voir le projet
       </a>
     </p>
@@ -264,7 +264,7 @@ export function taskDueSoonTemplate(data: {
     <p>Merci de compléter cette tâche avant la date limite.</p>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button">
         Accéder à la tâche
       </a>
     </p>
@@ -294,7 +294,7 @@ export function projectCreatedTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" class="button">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" class="button">
         Consulter le projet
       </a>
     </p>
@@ -342,7 +342,7 @@ export function taskStatusChangeByManagerTemplate(data: {
     ` : ''}
 
     <p style="text-align: center; margin-top: 20px;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" style="color: #667eea; text-decoration: none;">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" style="color: #667eea; text-decoration: none;">
         Consulter la tâche
       </a>
     </p>
@@ -378,7 +378,7 @@ export function stageStatusChangeByEmployeeTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" class="button">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" class="button">
         Consulter le projet
       </a>
     </p>
@@ -418,7 +418,7 @@ export function projectCreatedNotificationTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" class="button">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" class="button">
         Gérer le projet
       </a>
     </p>
@@ -528,7 +528,7 @@ export function allStagesCompletedTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" class="button" style="background: #28a745;">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" class="button" style="background: #28a745;">
         Consulter le projet
       </a>
     </p>
@@ -575,7 +575,7 @@ export function taskRejectedByEmployeeTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button" style="background: #dc3545;">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button" style="background: #dc3545;">
         Consulter la tâche
       </a>
     </p>
@@ -607,7 +607,7 @@ export function taskRefusedTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button" style="background: #dc3545;">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button" style="background: #dc3545;">
         Consulter la tâche
       </a>
     </p>
@@ -686,13 +686,13 @@ export function taskStatusChangedByEmployeeTemplate(data: {
     ` : ''}
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button">
         Voir la tâche
       </a>
     </p>
 
     <p style="text-align: center; margin-top: 10px;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" style="color: #667eea; text-decoration: none; font-size: 14px;">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" style="color: #667eea; text-decoration: none; font-size: 14px;">
         Voir le projet complet →
       </a>
     </p>
@@ -769,14 +769,14 @@ export function stageStatusChangedByEmployeeTemplate(data: {
     ` : ''}
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" class="button">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" class="button">
         Voir le projet
       </a>
     </p>
 
     <p style="text-align: center; margin-top: 10px;">
 
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}#stage-${data.stageId}`)}" style="color: #667eea; text-decoration: none; font-size: 14px;">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}#stage-${data.stageId}`)}" style="color: #667eea; text-decoration: none; font-size: 14px;">
         Voir les détails de l'étape →
       </a>
     </p>
@@ -805,7 +805,7 @@ export function employeeTaskConfirmationTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button">
         Consulter la tâche
       </a>
     </p>
@@ -853,7 +853,7 @@ export function taskStatusChangeAcknowledgementTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/tasks/${data.taskId}`)}" class="button">
+      <a href="${createRedirectUrl(`/tasks/${data.taskId}`)}" class="button">
         Consulter la tâche
       </a>
     </p>
@@ -897,7 +897,7 @@ export function stageStatusChangeAcknowledgementTemplate(data: {
     </div>
 
     <p style="text-align: center;">
-      <a href="${createRedirectUrl(`/dashboard/projects/${data.projectId}`)}" class="button">
+      <a href="${createRedirectUrl(`/projects/${data.projectId}`)}" class="button">
         Consulter le projet
       </a>
     </p>
