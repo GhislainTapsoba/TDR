@@ -125,19 +125,14 @@ services:
       context: ./web-frontend
       dockerfile: Dockerfile
       args:
-        # ✅ AJOUT : Passer les variables au BUILD
         NEXT_PUBLIC_API_URL: "https://teamproject.deep-technologies.com/api"
         NEXTAUTH_URL: "https://teamproject.deep-technologies.com"
     environment:
-      # ✅ CORRECTION CRITIQUE : Ajouter TOUTES les variables nécessaires
       - NODE_ENV=production
       - PORT=3001
-      # Variables publiques (client-side)
       - NEXT_PUBLIC_API_URL=https://teamproject.deep-technologies.com/api
-      # Variables NextAuth
       - NEXTAUTH_URL=https://teamproject.deep-technologies.com
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      # Variable interne (server-side)
       - INTERNAL_API_URL=http://api-backend:3000/api
     expose:
       - "3001"
@@ -155,8 +150,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./certs:/etc/ssl/certs:ro
-      - ./certs:/etc/ssl/private:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - app-network
     restart: unless-stopped
