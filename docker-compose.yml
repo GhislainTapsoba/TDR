@@ -132,6 +132,8 @@ services:
       - NEXT_PUBLIC_API_URL=https://teamproject.deep-technologies.com/api
       - NEXTAUTH_URL=https://teamproject.deep-technologies.com
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      # ✅ AJOUT CRITIQUE : Variable manquante pour les appels serveur → serveur
+      - INTERNAL_API_URL=http://api-backend:3000/api
     expose:
       - "3001"
     networks:
