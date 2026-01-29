@@ -67,7 +67,7 @@ services:
       context: ./api-backend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
+        - NEXT_PUBLIC_FRONTEND_URL=${NEXT_PUBLIC_FRONTEND_URL}
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -110,7 +110,7 @@ services:
       context: ./web-frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL=/api
+        - NEXT_PUBLIC_API_URL=/api
     environment:
       NODE_ENV: production
       PORT: 3001
