@@ -104,8 +104,6 @@ services:
     image: curlimages/curl:latest
     depends_on:
       - api-backend
-    # Command to run every 24 hours (86400 seconds)
-    # It sends a request to the cron endpoint to trigger email reminders
     command: >
       /bin/sh -c '
         while true; do
@@ -126,13 +124,20 @@ services:
     build:
       context: ./web-frontend
       dockerfile: Dockerfile
+      args:
+        # ✅ AJOUT : Passer les variables au BUILD
+        NEXT_PUBLIC_API_URL: "https://teamproject.deep-technologies.com/api"
+        NEXTAUTH_URL: "https://teamproject.deep-technologies.com"
     environment:
+      # ✅ CORRECTION CRITIQUE : Ajouter TOUTES les variables nécessaires
       - NODE_ENV=production
       - PORT=3001
+      # Variables publiques (client-side)
       - NEXT_PUBLIC_API_URL=https://teamproject.deep-technologies.com/api
+      # Variables NextAuth
       - NEXTAUTH_URL=https://teamproject.deep-technologies.com
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      # ✅ AJOUT CRITIQUE : Variable manquante pour les appels serveur → serveur
+      # Variable interne (server-side)
       - INTERNAL_API_URL=http://api-backend:3000/api
     expose:
       - "3001"
