@@ -138,6 +138,12 @@ services:
       - "3001"
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
     depends_on:
       - api-backend
@@ -155,8 +161,10 @@ services:
       - app-network
     restart: unless-stopped
     depends_on:
-      - web-frontend
-      - api-backend
+      web-frontend:
+        condition: service_healthy
+      api-backend:
+        condition: service_healthy
 
 networks:
   app-network:
