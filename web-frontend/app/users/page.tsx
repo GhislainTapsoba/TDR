@@ -27,7 +27,7 @@ import {
   Wrap,
   WrapItem
 } from '@chakra-ui/react'
-import { FiPlus, FiSearch, FiMail, FiShield, FiUser, FiBriefcase, FiCrown } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiMail, FiShield, FiUser, FiBriefcase, FiAward } from 'react-icons/fi'
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/permissions"
 import UserEditModal from "@/components/UserEditModal"
@@ -46,7 +46,7 @@ const roleColors = {
 }
 
 const roleIcons = {
-  admin: FiCrown,
+  admin: FiAward,
   manager: FiBriefcase,
   employe: FiUser,
 }
