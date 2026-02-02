@@ -127,8 +127,8 @@ export default function ProjectBoardPage() {
         return;
     }
 
-    const taskId = active.id as number;
-    const newStageId = overContainer.id as number;
+    const taskId = active.id;
+    const newStageId = overContainer.id;
     
     // Optimistic Update
     setStages((prevStages) => {
