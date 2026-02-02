@@ -654,7 +654,7 @@ export default function ProjectDetailPage() {
         <ProjectEditModal
             isOpen={showEditProjectModal}
             onClose={() => setShowEditProjectModal(false)}
-            project={project}
+            project={project as any}
             onProjectUpdated={() => {
                 setShowEditProjectModal(false);
                 fetchData(project.id); // Refresh project details after update
@@ -667,8 +667,9 @@ export default function ProjectDetailPage() {
           isOpen={showDeleteStageModal}
           onClose={() => setShowDeleteStageModal(false)}
           onConfirm={handleDeleteStage}
+          title="Supprimer l'étape"
+          description="Êtes-vous sûr de vouloir supprimer cette étape ?"
           itemName={stageToDelete.name}
-          itemType="étape"
         />
       )}
 
@@ -676,7 +677,7 @@ export default function ProjectDetailPage() {
         <StageEditModal
           isOpen={showEditStageModal}
           onClose={() => setShowEditStageModal(false)}
-          stage={stageToEdit}
+          stage={stageToEdit as any}
           onSuccess={onStageUpdated}
         />
       )}
@@ -685,7 +686,7 @@ export default function ProjectDetailPage() {
         <TaskEditModal
           isOpen={showEditTaskModal}
           onClose={() => setShowEditTaskModal(false)}
-          task={taskToEdit}
+          task={taskToEdit as any}
           onSave={onTaskSave}
         />
       )}
