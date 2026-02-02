@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
   return (
     <MainLayout>
-      <VStack spacing={8} align="stretch">
+      <VStack gap={8} alignItems="stretch">
         {/* Header */}
         <Box bg="gray.800" p={8} borderRadius="xl" border="1px" borderColor="gray.700">
           <Heading size="xl" color="white" mb={2}>Tableau de bord</Heading>
@@ -118,11 +118,11 @@ export default function DashboardPage() {
         </Box>
 
         {/* Stats Cards */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={6}>
           {getStatsCards().map((card, index) => (
             <Card key={index} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400', transform: 'translateY(-2px)' }} transition="all 0.2s">
               <CardBody>
-                <Flex justify="space-between" align="center">
+                <Flex justify="space-between" alignItems="center">
                   <Box>
                     <Text color="gray.400" fontSize="sm">{card.title}</Text>
                     <Text color="white" fontSize="2xl" fontWeight="bold">{card.value}</Text>
@@ -135,11 +135,11 @@ export default function DashboardPage() {
           ))}
         </SimpleGrid>
 
-        <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={8}>
+        <SimpleGrid columns={{ base: 1, lg: 3 }} gap={8}>
           {/* Progress */}
           <Card bg="gray.800" borderColor="gray.700" gridColumn={{ lg: "span 2" }}>
             <CardBody>
-              <VStack align="stretch" spacing={6}>
+              <VStack alignItems="stretch" gap={6}>
                 <HStack>
                   <Icon as={FiTrendingUp} color="blue.400" />
                   <Heading size="md" color="white">Progression</Heading>
@@ -172,19 +172,19 @@ export default function DashboardPage() {
           {/* Activities */}
           <Card bg="gray.800" borderColor="gray.700">
             <CardBody>
-              <VStack align="stretch" spacing={4}>
+              <VStack alignItems="stretch" gap={4}>
                 <HStack>
                   <Icon as={FiActivity} color="blue.400" />
                   <Heading size="md" color="white">Activités</Heading>
                 </HStack>
                 
-                <VStack align="stretch" spacing={3}>
+                <VStack alignItems="stretch" gap={3}>
                   {activities.slice(0, 6).map((activity) => (
                     <Box key={activity.id} p={3} bg="gray.700" borderRadius="md">
                       <Text color="white" fontSize="sm" mb={1}>
                         {activity.details || activity.action}
                       </Text>
-                      <HStack spacing={3}>
+                      <HStack gap={3}>
                         <Badge size="sm" colorScheme="gray">{activity.user?.name || "—"}</Badge>
                         <Text color="gray.400" fontSize="xs">
                           {new Date(activity.created_at).toLocaleDateString('fr-FR')}
