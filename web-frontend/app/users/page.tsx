@@ -27,7 +27,7 @@ import {
   Wrap,
   WrapItem
 } from '@chakra-ui/react'
-import { FiPlus, FiSearch, FiMail, FiShield, FiUser, FiBriefcase, FiUser as FiUserAlt } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiMail, FiShield, FiUser, FiBriefcase, FiCrown } from 'react-icons/fi'
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/permissions"
 import UserEditModal from "@/components/UserEditModal"
@@ -145,9 +145,6 @@ export default function UsersPage() {
 
         <Flex gap={4}>
           <InputGroup maxW="sm">
-            <InputLeftElement>
-              <Icon as={FiSearch} color="gray.400" />
-            </InputLeftElement>
             <Input
               placeholder="Rechercher..."
               value={searchTerm}
@@ -184,7 +181,6 @@ export default function UsersPage() {
                     <HStack w="full" justify="space-between">
                       <HStack>
                         <Avatar size="md" name={user.name} bg="blue.500">
-                          <AvatarBadge boxSize="1em" bg={user.is_active ? "green.500" : "gray.500"} />
                         </Avatar>
                         <VStack align="start" spacing={0}>
                           <Heading size="sm" color="white">{user.name}</Heading>
