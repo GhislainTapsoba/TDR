@@ -159,3 +159,86 @@ export async function sendEmailToResponsibles(
     console.error('Error sending emails to responsibles:', error);
   }
 }
+
+// Envoyer un rappel de tâche par email
+export async function sendTaskReminderEmail(
+  email: string,
+  taskData: {
+    taskTitle: string;
+    projectTitle: string;
+    dueDate: string;
+    daysDiff: number;
+    assigneeName: string;
+  }
+): Promise<boolean> {
+  const { taskTitle, projectTitle, dueDate, daysDiff, assigneeName } = taskData;
+  
+  let urgencyLevel = '';
+  let urgencyColor = '';
+  let message = '';
+  
+  if (daysDiff === 0) {
+    urgencyLevel = 'URGENT';
+    urgencyColor = '#dc2626';
+    message = 'est due aujourd\'hui';
+  } else if (daysDiff === 1) {
+    urgencyLevel = 'IMPORTANT';
+    urgencyColor = '#ea580c';
+    message = 'est due demain';
+  } else {
+    urgencyLevel = 'RAPPEL';
+    urgencyColor = '#2563eb';
+    message = `est due dans ${daysDiff} jours`;
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Rappel de tâche</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: ${urgencyColor}; color: white; padding: 15px; border-radius: 8px 8px 0 0; text-align: center;">
+                <h1 style="margin: 0; font-size: 24px;">🔔 ${urgencyLevel}</h1>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef;">
+                <p style="font-size: 18px; margin-bottom: 20px;">Bonjour <strong>${assigneeName}</strong>,</p>
+                
+                <div style="background: white; padding: 15px; border-radius: 6px; border-left: 4px solid ${urgencyColor};">
+                    <h3 style="margin-top: 0; color: ${urgencyColor};">Rappel de tâche</h3>
+                    <p><strong>Tâche :</strong> ${taskTitle}</p>
+                    <p><strong>Projet :</strong> ${projectTitle}</p>
+                    <p><strong>Date d'échéance :</strong> ${dueDate}</p>
+                    <p style="font-size: 16px; color: ${urgencyColor}; font-weight: bold;">
+                        ⏰ Cette tâche ${message}
+                    </p>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #e3f2fd; border-radius: 6px;">
+                    <p style="margin: 0; font-size: 14px; color: #1565c0;">
+                        💡 <strong>Conseil :</strong> Connectez-vous à la plateforme pour voir tous les détails de cette tâche.
+                    </p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <p style="font-size: 12px; color: #666;">
+                        Ceci est un rappel automatique de Team Project<br>
+                        Pour toute question, contactez votre responsable de projet.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: `${urgencyLevel}: ${taskTitle} ${message}`,
+    html,
+    metadata: { type: 'task_reminder', urgency: urgencyLevel }
+  });
+}

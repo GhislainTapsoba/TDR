@@ -277,4 +277,16 @@ export const authApi = {
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
 };
 
+export const exportApi = {
+  exportData: async (types: string[], format: string, dateRange: string) => {
+    const response = await api.post('/export', { types, format, dateRange }, {
+      responseType: format === 'json' ? 'json' : 'blob'
+    });
+    return response.data;
+  }
+};
+
+// Ajouter exportData à l'instance api pour compatibilité
+(api as any).exportData = exportApi.exportData;
+
 export default api;

@@ -4,40 +4,60 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { useSession } from "next-auth/react"
 import { tasksApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, Calendar, User, AlertTriangle, CheckCircle, Clock, MoreVertical, Edit, Trash2 } from "lucide-react"
+import {
+  Box,
+  Button,
+  Card,
+  CardBody,
+  Badge,
+  Input,
+  Select,
+  VStack,
+  HStack,
+  Text,
+  Heading,
+  Spinner,
+  Center,
+  SimpleGrid,
+  Icon,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  InputGroup,
+  InputLeftElement,
+  Flex,
+  Wrap,
+  WrapItem
+} from '@chakra-ui/react'
+import { FiPlus, FiSearch, FiCalendar, FiUser, FiAlertTriangle, FiCheckCircle, FiClock, FiMoreVertical, FiEdit, FiTrash2 } from 'react-icons/fi'
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
-import { useAuth } from "@/contexts/auth-context" // Import useAuth
-import { hasPermission } from "@/lib/permissions" // Import hasPermission
-import TaskEditModal from "@/components/TaskEditModal" // Import TaskEditModal
-import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Import DeleteConfirmationModal
+import { useAuth } from "@/contexts/auth-context"
+import { hasPermission } from "@/lib/permissions"
+import TaskEditModal from "@/components/TaskEditModal"
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal"
 
 interface Task {
-  id: string // Changed from number to string
+  id: string
   title: string
   description: string
   status: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "COMPLETED" | "CANCELLED"
   priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
   due_date: string | null
-  assigned_to: string | null // Changed from number to string
+  assigned_to: string | null
   assignees: {
     id: string
     name: string
     email: string
   }[]
   project: {
-    id: string // Changed from number to string
+    id: string
     title: string
   }
   stage: {
-    id: string // Changed from number to string
+    id: string
     name: string
   } | null
 }
@@ -51,11 +71,11 @@ const statusLabels = {
 }
 
 const statusColors = {
-  TODO: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  IN_PROGRESS: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  IN_REVIEW: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  COMPLETED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  CANCELLED: "bg-red-500/10 text-red-400 border-red-500/20",
+  TODO: "gray",
+  IN_PROGRESS: "orange",
+  IN_REVIEW: "blue",
+  COMPLETED: "green",
+  CANCELLED: "red",
 }
 
 const priorityLabels = {
@@ -65,21 +85,13 @@ const priorityLabels = {
   URGENT: "Urgente",
 }
 
-const priorityColors = {
-  LOW: "bg-green-500/10 text-green-400 border-green-500/20",
-  MEDIUM: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  HIGH: "bg-red-500/10 text-red-400 border-red-500/20",
-  URGENT: "bg-red-500/10 text-red-400 border-red-500/20",
-}
-
 const isOverdue = (task: Task) => {
   return task.due_date && new Date(task.due_date) < new Date() && task.status !== "COMPLETED"
 }
 
 export default function TasksPage() {
   const { data: session, status: sessionStatus } = useSession()
-  const user = session?.user;
-  const { user: authUser } = useAuth(); // Use useAuth for permissions
+  const { user: authUser } = useAuth()
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,10 +99,10 @@ export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
 
-  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
-  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
-  const [showDeleteTaskModal, setShowDeleteTaskModal] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false)
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null)
+  const [showDeleteTaskModal, setShowDeleteTaskModal] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null)
 
   const permissions = useMemo(() => {
     return {
@@ -98,8 +110,8 @@ export default function TasksPage() {
       canCreateTasks: hasPermission(authUser?.permissions || [], 'tasks.create'),
       canUpdateTasks: hasPermission(authUser?.permissions || [], 'tasks.update'),
       canDeleteTasks: hasPermission(authUser?.permissions || [], 'tasks.delete'),
-    };
-  }, [authUser?.permissions]);
+    }
+  }, [authUser?.permissions])
 
   useEffect(() => {
     fetchTasks()
@@ -107,12 +119,12 @@ export default function TasksPage() {
 
   const fetchTasks = async () => {
     try {
-      const response = await tasksApi.getAll();
-      setTasks(response.data || []); // Removed .filter(Boolean) as API should return valid data
-      setError(null);
+      const response = await tasksApi.getAll()
+      setTasks(response.data || [])
+      setError(null)
     } catch (error) {
-      console.error("Erreur lors du chargement des tâches:", error)
-      setError("Erreur lors du chargement des tâches")
+      console.error("Erreur tâches:", error)
+      setError("Erreur lors du chargement")
     } finally {
       setLoading(false)
     }
@@ -120,46 +132,44 @@ export default function TasksPage() {
 
   const updateTaskStatus = useCallback(async (taskId: string, newStatus: Task["status"]) => {
     try {
-      await tasksApi.update(taskId, { status: newStatus });
-      fetchTasks(); // Refresh all tasks after update
+      await tasksApi.update(taskId, { status: newStatus })
+      fetchTasks()
     } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut:", error)
+      console.error("Erreur mise à jour:", error)
     }
   }, [])
 
   const handleEditTask = (task: Task) => {
-    setTaskToEdit(task);
-    setShowEditTaskModal(true);
-  };
+    setTaskToEdit(task)
+    setShowEditTaskModal(true)
+  }
 
   const onTaskSave = () => {
-    setShowEditTaskModal(false);
-    setTaskToEdit(null);
-    fetchTasks(); // Refresh tasks after edit
-  };
+    setShowEditTaskModal(false)
+    setTaskToEdit(null)
+    fetchTasks()
+  }
 
   const handleDeleteTaskConfirm = (task: Task) => {
-    setTaskToDelete(task);
-    setShowDeleteTaskModal(true);
-  };
+    setTaskToDelete(task)
+    setShowDeleteTaskModal(true)
+  }
 
   const onTaskDeleteConfirm = async () => {
     if (taskToDelete) {
       try {
-        await tasksApi.delete(taskToDelete.id);
-        fetchTasks();
-        setShowDeleteTaskModal(false);
-        setTaskToDelete(null);
+        await tasksApi.delete(taskToDelete.id)
+        fetchTasks()
+        setShowDeleteTaskModal(false)
+        setTaskToDelete(null)
       } catch (error) {
-        console.error("Erreur lors de la suppression de la tâche:", error);
+        console.error("Erreur suppression:", error)
       }
     }
-  };
-
+  }
 
   const filteredTasks = useMemo(() => {
-    return tasks
-      .filter((task) => { // Removed .filter(Boolean)
+    return tasks.filter((task) => {
       const matchesSearch =
         (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -170,264 +180,240 @@ export default function TasksPage() {
     })
   }, [tasks, searchTerm, statusFilter, priorityFilter])
 
-  // Permission checks
   if (sessionStatus === 'authenticated' && !permissions.canReadTasks) {
     return (
       <MainLayout>
-        <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
-          <p className="text-muted-foreground mb-4">
-            Vous n'avez pas la permission de voir cette page.
-          </p>
-          <Link href="/dashboard">
-            <Button>Retour au tableau de bord</Button>
-          </Link>
-        </div>
+        <Center py={12}>
+          <VStack>
+            <Heading size="md" color="white">Accès refusé</Heading>
+            <Text color="gray.400">Vous n'avez pas la permission de voir cette page.</Text>
+            <Button as={Link} href="/dashboard" colorScheme="blue">Retour au tableau de bord</Button>
+          </VStack>
+        </Center>
       </MainLayout>
-    );
+    )
   }
 
   if (loading || sessionStatus === 'loading') {
-      return (
-        <MainLayout>
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        </MainLayout>
-      )
+    return (
+      <MainLayout>
+        <Center h="50vh">
+          <Spinner size="xl" color="blue.500" />
+        </Center>
+      </MainLayout>
+    )
   }
 
   if (error) {
     return (
       <MainLayout>
-        <div className="text-center py-12">
-          <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4">
-            <span className="text-red-600 text-2xl">⚠️</span>
-          </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">Erreur</h3>
-          <p className="text-muted-foreground">{error}</p>
-        </div>
+        <Center py={12}>
+          <VStack>
+            <Icon as={FiAlertTriangle} boxSize={12} color="red.400" />
+            <Heading size="md" color="white">Erreur</Heading>
+            <Text color="gray.400">{error}</Text>
+          </VStack>
+        </Center>
       </MainLayout>
     )
   }
 
   return (
     <MainLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Tâches</h1>
-              <p className="text-muted-foreground">Gérez et suivez toutes vos tâches</p>
-            </div>
-            {permissions.canCreateTasks && (
-              <Link href="/tasks/new">
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nouvelle tâche
-                </Button>
-              </Link>
-            )}
-          </div>
-
-          <div className="flex gap-4 items-center flex-wrap">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher une tâche..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrer par statut" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les statuts</SelectItem>
-                <SelectItem value="TODO">À faire</SelectItem>
-                <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                <SelectItem value="IN_REVIEW">En revue</SelectItem>
-                <SelectItem value="COMPLETED">Terminé</SelectItem>
-                <SelectItem value="CANCELLED">Annulé</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrer par priorité" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Toutes les priorités</SelectItem>
-                <SelectItem value="URGENT">Urgente</SelectItem>
-                <SelectItem value="HIGH">Élevée</SelectItem>
-                <SelectItem value="MEDIUM">Moyenne</SelectItem>
-                <SelectItem value="LOW">Faible</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-4">
-            {Array.isArray(filteredTasks) && filteredTasks.filter(Boolean).map((task) => (
-              <Card
-                key={task.id}
-                className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <div className="text-sm">
-                            <strong>Titre:</strong> {task.title}
-                            {isOverdue(task) && <AlertTriangle className="h-4 w-4 text-red-400 inline ml-2" />}
-                          </div>
-                          {task.description && (
-                            <div className="text-sm">
-                              <strong>Description:</strong> {task.description}
-                            </div>
-                          )}
-                          <div className="text-sm">
-                            <strong>Statut:</strong> {statusLabels[task.status]}
-                          </div>
-                          <div className="text-sm">
-                            <strong>Priorité:</strong> {priorityLabels[task.priority]}
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <span>Projet:</span>
-                              {task.project && ( // Added conditional rendering for task.project
-                                <Link href={`/projects/${task.project.id}`} className="text-primary hover:underline">
-                                  {task.project.title}
-                                </Link>
-                              )}
-                            </div>
-                            {task.stage && (
-                              <div className="flex items-center gap-1">
-                                <span>Étape:</span>
-                                <span className="text-foreground">{task.stage.name}</span>
-                              </div>
-                            )}
-                            {task.assignees && task.assignees.length > 0 && (
-                              <div className="flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                <span>{task.assignees.map(a => a.name).join(', ')}</span>
-                              </div>
-                            )}
-                            {task.due_date && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                <span className={isOverdue(task) ? "text-red-400" : ""}>
-                                  {format(new Date(task.due_date), "dd MMM yyyy", { locale: fr })}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col gap-2">
-                        <div className="flex gap-1">
-                          {Object.entries(statusLabels).map(([statusKey, label]) => (
-                            <Button
-                              key={statusKey}
-                              variant={task.status === statusKey ? "default" : "outline"}
-                              size="sm"
-                              className={`px-2 py-1 text-xs ${statusColors[statusKey as keyof typeof statusColors]} ${
-                                task.status === statusKey ? 'ring-2 ring-offset-1' : ''
-                              }`}
-                              onClick={() => updateTaskStatus(task.id, statusKey as Task["status"])}
-                              disabled={!permissions.canUpdateTasks}
-                            >
-                              {label}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {task.status === "COMPLETED" ? (
-                          <CheckCircle className="h-6 w-6 text-emerald-400" />
-                        ) : task.status === "IN_PROGRESS" ? (
-                          <Clock className="h-6 w-6 text-amber-400" />
-                        ) : (
-                          <div className="h-6 w-6 rounded-full border-2 border-muted-foreground" />
-                        )}
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {(permissions.canUpdateTasks || (authUser?.role === 'employe' && task.assignees?.some(a => a.id === authUser.id))) && (
-                              <DropdownMenuItem onClick={() => handleEditTask(task)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Modifier
-                              </DropdownMenuItem>
-                            )}
-                            {permissions.canDeleteTasks && (
-                              <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteTaskConfirm(task)}>
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-12">
-                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Aucune tâche trouvée</h3>
-                <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== "all" || priorityFilter !== "all"
-                    ? "Aucune tâche ne correspond à vos critères de recherche."
-                    : "Aucune tâche n'est encore créée."}
-                </p>
-                {permissions.canCreateTasks &&
-                !searchTerm &&
-                statusFilter === "all" &&
-                priorityFilter === "all" && (
-                    <Link href="/tasks/new">
-                    <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Créer une tâche
-                    </Button>
-                    </Link>
-                )}
-            </div>
+      <VStack spacing={6} align="stretch">
+        <Flex justify="space-between" align="center">
+          <Box>
+            <Heading size="xl" color="white">Tâches</Heading>
+            <Text color="gray.400">Gérez vos tâches</Text>
+          </Box>
+          {permissions.canCreateTasks && (
+            <Button as={Link} href="/tasks/new" colorScheme="blue" leftIcon={<FiPlus />}>
+              Nouvelle tâche
+            </Button>
           )}
-        </div>
+        </Flex>
 
-        {taskToEdit && (
-          <TaskEditModal
-            isOpen={showEditTaskModal}
-            onClose={() => setShowEditTaskModal(false)}
-            task={taskToEdit}
-            onSave={onTaskSave}
-          />
-        )}
+        <Flex gap={4} wrap="wrap">
+          <InputGroup maxW="sm">
+            <InputLeftElement>
+              <Icon as={FiSearch} color="gray.400" />
+            </InputLeftElement>
+            <Input
+              placeholder="Rechercher..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              bg="gray.700"
+              borderColor="gray.600"
+              color="white"
+              _placeholder={{ color: 'gray.400' }}
+            />
+          </InputGroup>
+          
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            w="200px"
+            bg="gray.700"
+            borderColor="gray.600"
+            color="white"
+          >
+            <option value="all">Tous les statuts</option>
+            <option value="TODO">À faire</option>
+            <option value="IN_PROGRESS">En cours</option>
+            <option value="IN_REVIEW">En revue</option>
+            <option value="COMPLETED">Terminé</option>
+            <option value="CANCELLED">Annulé</option>
+          </Select>
+          
+          <Select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            w="200px"
+            bg="gray.700"
+            borderColor="gray.600"
+            color="white"
+          >
+            <option value="all">Toutes priorités</option>
+            <option value="URGENT">Urgente</option>
+            <option value="HIGH">Élevée</option>
+            <option value="MEDIUM">Moyenne</option>
+            <option value="LOW">Faible</option>
+          </Select>
+        </Flex>
 
-        {taskToDelete && (
-          <DeleteConfirmationModal
-            isOpen={showDeleteTaskModal}
-            onClose={() => setShowDeleteTaskModal(false)}
-            onConfirm={onTaskDeleteConfirm}
-            itemName={taskToDelete.title}
-            itemType="tâche"
-          />
+        <VStack spacing={4} align="stretch">
+          {filteredTasks.map((task) => (
+            <Card key={task.id} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400' }}>
+              <CardBody>
+                <Flex justify="space-between" align="start">
+                  <VStack align="start" spacing={3} flex={1}>
+                    <HStack>
+                      <Heading size="sm" color="white">{task.title}</Heading>
+                      {isOverdue(task) && <Icon as={FiAlertTriangle} color="red.400" />}
+                    </HStack>
+                    
+                    {task.description && (
+                      <Text color="gray.300" fontSize="sm">{task.description}</Text>
+                    )}
+                    
+                    <Wrap spacing={2}>
+                      <WrapItem>
+                        <Badge colorScheme={statusColors[task.status]}>
+                          {statusLabels[task.status]}
+                        </Badge>
+                      </WrapItem>
+                      <WrapItem>
+                        <Badge variant="outline">{priorityLabels[task.priority]}</Badge>
+                      </WrapItem>
+                      {task.project && (
+                        <WrapItem>
+                          <Badge colorScheme="blue" variant="subtle">
+                            {task.project.title}
+                          </Badge>
+                        </WrapItem>
+                      )}
+                      {task.assignees && task.assignees.length > 0 && (
+                        <WrapItem>
+                          <HStack spacing={1}>
+                            <Icon as={FiUser} boxSize={3} color="gray.400" />
+                            <Text fontSize="xs" color="gray.400">
+                              {task.assignees.map(a => a.name).join(', ')}
+                            </Text>
+                          </HStack>
+                        </WrapItem>
+                      )}
+                      {task.due_date && (
+                        <WrapItem>
+                          <HStack spacing={1}>
+                            <Icon as={FiCalendar} boxSize={3} color="gray.400" />
+                            <Text fontSize="xs" color={isOverdue(task) ? "red.400" : "gray.400"}>
+                              {format(new Date(task.due_date), "dd MMM yyyy", { locale: fr })}
+                            </Text>
+                          </HStack>
+                        </WrapItem>
+                      )}
+                    </Wrap>
+                  </VStack>
+
+                  <HStack>
+                    <Wrap spacing={1}>
+                      {Object.entries(statusLabels).map(([statusKey, label]) => (
+                        <WrapItem key={statusKey}>
+                          <Button
+                            size="xs"
+                            variant={task.status === statusKey ? "solid" : "outline"}
+                            colorScheme={statusColors[statusKey as keyof typeof statusColors]}
+                            onClick={() => updateTaskStatus(task.id, statusKey as Task["status"])}
+                            isDisabled={!permissions.canUpdateTasks}
+                          >
+                            {label}
+                          </Button>
+                        </WrapItem>
+                      ))}
+                    </Wrap>
+
+                    <Menu>
+                      <MenuButton as={Button} size="sm" variant="ghost">
+                        <Icon as={FiMoreVertical} />
+                      </MenuButton>
+                      <MenuList bg="gray.700" borderColor="gray.600">
+                        {(permissions.canUpdateTasks || (authUser?.role === 'employe' && task.assignees?.some(a => a.id === authUser.id))) && (
+                          <MenuItem onClick={() => handleEditTask(task)} icon={<FiEdit />}>
+                            Modifier
+                          </MenuItem>
+                        )}
+                        {permissions.canDeleteTasks && (
+                          <MenuItem onClick={() => handleDeleteTaskConfirm(task)} icon={<FiTrash2 />} color="red.400">
+                            Supprimer
+                          </MenuItem>
+                        )}
+                      </MenuList>
+                    </Menu>
+                  </HStack>
+                </Flex>
+              </CardBody>
+            </Card>
+          ))}
+        </VStack>
+
+        {filteredTasks.length === 0 && (
+          <Center py={12}>
+            <VStack>
+              <Icon as={FiCheckCircle} boxSize={12} color="gray.500" />
+              <Heading size="md" color="white">Aucune tâche</Heading>
+              <Text color="gray.400" textAlign="center">
+                {searchTerm || statusFilter !== "all" || priorityFilter !== "all"
+                  ? "Aucune tâche ne correspond à vos critères."
+                  : "Aucune tâche créée."}
+              </Text>
+              {permissions.canCreateTasks && !searchTerm && statusFilter === "all" && priorityFilter === "all" && (
+                <Button as={Link} href="/tasks/new" colorScheme="blue" leftIcon={<FiPlus />}>
+                  Créer une tâche
+                </Button>
+              )}
+            </VStack>
+          </Center>
         )}
+      </VStack>
+
+      {taskToEdit && (
+        <TaskEditModal
+          isOpen={showEditTaskModal}
+          onClose={() => setShowEditTaskModal(false)}
+          task={taskToEdit}
+          onSave={onTaskSave}
+        />
+      )}
+
+      {taskToDelete && (
+        <DeleteConfirmationModal
+          isOpen={showDeleteTaskModal}
+          onClose={() => setShowDeleteTaskModal(false)}
+          onConfirm={onTaskDeleteConfirm}
+          itemName={taskToDelete.title}
+          itemType="tâche"
+        />
+      )}
     </MainLayout>
   )
 }

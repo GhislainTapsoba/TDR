@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { handleCorsOptions, corsResponse } from '@/lib/cors';
+
+export async function OPTIONS(request: Request) {
+  return handleCorsOptions(request);
+}
 
 export async function POST(req: Request) {
   try {
     const { name, email, password } = await req.json();
 
     if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Tous les champs sont requis.' }, { status: 400 });
+      return corsResponse({ error: 'Tous les champs sont requis.' }, req, { status: 400 });
     }
 
     // Normalize email to lowercase
@@ -15,7 +20,7 @@ export async function POST(req: Request) {
 
     // Basic email validation
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
-        return NextResponse.json({ error: 'Format d\'email invalide.' }, { status: 400 });
+        return corsResponse({ error: 'Format d\'email invalide.' }, req, { status: 400 });
     }
 
     // Check if user already exists
@@ -23,7 +28,7 @@ export async function POST(req: Request) {
     const { rows: existingUsers } = await db.query(existingUserQuery, [normalizedEmail]);
 
     if (existingUsers.length > 0) {
-      return NextResponse.json({ error: 'Un utilisateur avec cet email existe déjà.' }, { status: 409 });
+      return corsResponse({ error: 'Un utilisateur avec cet email existe déjà.' }, req, { status: 409 });
     }
 
     // Hash the password
@@ -38,15 +43,15 @@ export async function POST(req: Request) {
     const { rows: newUsers } = await db.query(insertQuery, [name, normalizedEmail, hashedPassword]);
 
     if (newUsers.length === 0) {
-      return NextResponse.json({ error: 'Erreur lors de la création de l\'utilisateur.' }, { status: 500 });
+      return corsResponse({ error: 'Erreur lors de la création de l\'utilisateur.' }, req, { status: 500 });
     }
     
     const newUser = newUsers[0];
 
-    return NextResponse.json({ message: 'Utilisateur créé avec succès.', user: newUser }, { status: 201 });
+    return corsResponse({ message: 'Utilisateur créé avec succès.', user: newUser }, req, { status: 201 });
 
   } catch (error) {
     console.error('Registration error:', error);
-    return NextResponse.json({ error: 'Erreur interne du serveur.' }, { status: 500 });
+    return corsResponse({ error: 'Erreur interne du serveur.' }, req, { status: 500 });
   }
 }

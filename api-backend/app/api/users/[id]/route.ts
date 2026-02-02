@@ -153,13 +153,35 @@ export async function DELETE(
 
     const { id } = await params;
     
+    // Vérifier si l'utilisateur a des projets
+    const { rows: projects } = await db.query('SELECT COUNT(*) as count FROM projects WHERE created_by_id = $1', [id]);
+    const projectCount = parseInt(projects[0].count);
+    
+    if (projectCount > 0) {
+      return corsResponse({ 
+        error: `Impossible de supprimer cet utilisateur car il a créé ${projectCount} projet(s). Transférez d'abord ses projets à un autre utilisateur.` 
+      }, request, { status: 409 });
+    }
+    
+    // Vérifier si l'utilisateur a des tâches assignées
+    const { rows: tasks } = await db.query('SELECT COUNT(*) as count FROM task_assignees WHERE user_id = $1', [id]);
+    const taskCount = parseInt(tasks[0].count);
+    
+    if (taskCount > 0) {
+      // Supprimer les assignations de tâches
+      await db.query('DELETE FROM task_assignees WHERE user_id = $1', [id]);
+    }
+    
     const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [id]);
 
     if (rowCount === 0) {
         return corsResponse({ error: 'Utilisateur non trouvé' }, request, { status: 404 });
     }
 
-    return corsResponse({ success: true, message: 'Utilisateur supprimé avec succès' }, request);
+    return corsResponse({ 
+      success: true, 
+      message: `Utilisateur supprimé avec succès${taskCount > 0 ? ` (${taskCount} assignation(s) de tâche supprimée(s))` : ''}` 
+    }, request);
   } catch (error) {
     console.error('DELETE /api/users/[id] error:', error);
     return corsResponse(

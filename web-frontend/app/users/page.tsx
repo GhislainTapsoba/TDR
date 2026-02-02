@@ -5,16 +5,33 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { usersApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label" // Added Label import
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Plus, Search, Mail, Shield, Crown, Briefcase } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context" // Import useAuth
-import { hasPermission } from "@/lib/permissions" // Import hasPermission
+import {
+  Box,
+  Button,
+  Card,
+  CardBody,
+  Badge,
+  Input,
+  Select,
+  VStack,
+  HStack,
+  Text,
+  Heading,
+  Spinner,
+  Center,
+  SimpleGrid,
+  Icon,
+  Avatar,
+  AvatarBadge,
+  InputGroup,
+  InputLeftElement,
+  Flex,
+  Wrap,
+  WrapItem
+} from '@chakra-ui/react'
+import { FiPlus, FiSearch, FiMail, FiShield, FiCrown, FiBriefcase, FiUser } from 'react-icons/fi'
+import { useAuth } from "@/contexts/auth-context"
+import { hasPermission } from "@/lib/permissions"
 import UserEditModal from "@/components/UserEditModal"
 import UserDeleteModal from "@/components/UserDeleteModal"
 
@@ -25,21 +42,20 @@ const roleLabels = {
 }
 
 const roleColors = {
-  admin: "bg-red-500/10 text-red-400 border-red-500/20",
-  manager: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  employe: "bg-green-500/10 text-green-400 border-green-500/20",
+  admin: "red",
+  manager: "blue",
+  employe: "green",
 }
 
 const roleIcons = {
-  admin: Crown,
-  manager: Briefcase,
-  employe: Plus,
+  admin: FiCrown,
+  manager: FiBriefcase,
+  employe: FiUser,
 }
 
 export default function UsersPage() {
-  const { data: session, status } = useSession();
-  const currentUser = session?.user;
-  const { user: authUser } = useAuth(); // Use useAuth for permissions
+  const { data: session, status } = useSession()
+  const { user: authUser } = useAuth()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -48,11 +64,10 @@ export default function UsersPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
 
-  const canReadUsers = hasPermission(authUser?.permissions || [], 'users.read');
-  const canCreateUsers = hasPermission(authUser?.permissions || [], 'users.create');
-  const canUpdateUsers = hasPermission(authUser?.permissions || [], 'users.update');
-  const canDeleteUsers = hasPermission(authUser?.permissions || [], 'users.delete');
-
+  const canReadUsers = hasPermission(authUser?.permissions || [], 'users.read')
+  const canCreateUsers = hasPermission(authUser?.permissions || [], 'users.create')
+  const canUpdateUsers = hasPermission(authUser?.permissions || [], 'users.update')
+  const canDeleteUsers = hasPermission(authUser?.permissions || [], 'users.delete')
 
   useEffect(() => {
     if (canReadUsers) {
@@ -64,10 +79,10 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await usersApi.getAll();
-      setUsers(response.data as any || []);
+      const response = await usersApi.getAll()
+      setUsers(response.data as any || [])
     } catch (error) {
-      console.error("Erreur lors du chargement des utilisateurs:", error)
+      console.error("Erreur utilisateurs:", error)
     } finally {
       setLoading(false)
     }
@@ -76,13 +91,13 @@ export default function UsersPage() {
   const filteredUsers = (users || []).filter((user) => {
     const matchesSearch =
         (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-    return matchesSearch && matchesRole;
+        (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
+    return matchesSearch && matchesRole
   })
 
   const getInitials = (name: string) => {
-    if (!name) return '';
+    if (!name) return ''
     return name
       .split(" ")
       .map((word) => word[0])
@@ -93,132 +108,132 @@ export default function UsersPage() {
 
   if (status === 'loading' || loading) {
     return (
-        <MainLayout>
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-        </MainLayout>
-      )
+      <MainLayout>
+        <Center h="50vh">
+          <Spinner size="xl" color="blue.500" />
+        </Center>
+      </MainLayout>
+    )
   }
   
   if (!canReadUsers) {
     return (
-        <MainLayout>
-            <div className="text-center py-12">
-                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                    <Shield className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Accès refusé</h3>
-                <p className="text-muted-foreground">
-                    Vous n'avez pas les permissions nécessaires pour accéder à cette page.
-                </p>
-            </div>
-        </MainLayout>
+      <MainLayout>
+        <Center py={12}>
+          <VStack>
+            <Icon as={FiShield} boxSize={12} color="gray.500" />
+            <Heading size="md" color="white">Accès refusé</Heading>
+            <Text color="gray.400">Vous n'avez pas les permissions nécessaires.</Text>
+          </VStack>
+        </Center>
+      </MainLayout>
     )
   }
   
   return (
     <MainLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Utilisateurs</h1>
-              <p className="text-muted-foreground">Gérez les utilisateurs du système</p>
-            </div>
-            {canCreateUsers && (
-              <Button asChild className="bg-primary hover:bg-primary/90">
-                <Link href="/users/create">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nouvel utilisateur
-                </Link>
-              </Button>
-            )}
-          </div>
+      <VStack spacing={6} align="stretch">
+        <Flex justify="space-between" align="center">
+          <Box>
+            <Heading size="xl" color="white">Utilisateurs</Heading>
+            <Text color="gray.400">Gérez les utilisateurs</Text>
+          </Box>
+          {canCreateUsers && (
+            <Button as={Link} href="/users/create" colorScheme="blue" leftIcon={<FiPlus />}>
+              Nouvel utilisateur
+            </Button>
+          )}
+        </Flex>
 
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Rechercher un utilisateur..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filtrer par rôle" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les rôles</SelectItem>
-                <SelectItem value="admin">Administrateur</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="employe">Employé</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <Flex gap={4}>
+          <InputGroup maxW="sm">
+            <InputLeftElement>
+              <Icon as={FiSearch} color="gray.400" />
+            </InputLeftElement>
+            <Input
+              placeholder="Rechercher..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              bg="gray.700"
+              borderColor="gray.600"
+              color="white"
+              _placeholder={{ color: 'gray.400' }}
+            />
+          </InputGroup>
+          
+          <Select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            w="200px"
+            bg="gray.700"
+            borderColor="gray.600"
+            color="white"
+          >
+            <option value="all">Tous les rôles</option>
+            <option value="admin">Administrateur</option>
+            <option value="manager">Manager</option>
+            <option value="employe">Employé</option>
+          </Select>
+        </Flex>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.isArray(filteredUsers) &&
-              filteredUsers.filter(Boolean).map((user) => {
-                // @ts-ignore
-              const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || Plus
-              return (
-                <Card
-                  key={user.id}
-                  className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-primary/10 text-primary">{getInitials(user.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <CardTitle className="text-lg text-foreground">
-                          <Link href={`/users/${user.id}/view`} className="hover:underline">
-                            {user.name}
-                          </Link>
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {user.email}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      {/* @ts-ignore */}
-                      <Badge className={roleColors[user.role as keyof typeof roleColors] || roleColors.employe}>
-                        <RoleIcon className="h-3 w-3 mr-1" />
-                        {/* @ts-ignore */}
-                        {roleLabels[user.role as keyof typeof roleLabels] || roleLabels.employe}
-                      </Badge>
-                      <Badge variant={user.is_active ? "default" : "secondary"}>
-                        {user.is_active ? "Actif" : "Inactif"}
-                      </Badge>
-                    </div>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+          {filteredUsers.map((user) => {
+            const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || FiUser
+            return (
+              <Card key={user.id} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400' }}>
+                <CardBody>
+                  <VStack spacing={4}>
+                    <HStack w="full" justify="space-between">
+                      <HStack>
+                        <Avatar size="md" name={user.name} bg="blue.500">
+                          <AvatarBadge boxSize="1em" bg={user.is_active ? "green.500" : "gray.500"} />
+                        </Avatar>
+                        <VStack align="start" spacing={0}>
+                          <Heading size="sm" color="white">{user.name}</Heading>
+                          <HStack spacing={1}>
+                            <Icon as={FiMail} boxSize={3} color="gray.400" />
+                            <Text fontSize="sm" color="gray.400">{user.email}</Text>
+                          </HStack>
+                        </VStack>
+                      </HStack>
+                    </HStack>
 
-                    <div className="text-xs text-muted-foreground">
+                    <Wrap spacing={2} w="full" justify="center">
+                      <WrapItem>
+                        <Badge colorScheme={roleColors[user.role as keyof typeof roleColors]} variant="subtle">
+                          <Icon as={RoleIcon} mr={1} />
+                          {roleLabels[user.role as keyof typeof roleLabels]}
+                        </Badge>
+                      </WrapItem>
+                      <WrapItem>
+                        <Badge colorScheme={user.is_active ? "green" : "gray"} variant="outline">
+                          {user.is_active ? "Actif" : "Inactif"}
+                        </Badge>
+                      </WrapItem>
+                    </Wrap>
+
+                    <Text fontSize="xs" color="gray.500">
                       Créé le {new Date(user.created_at).toLocaleDateString("fr-FR")}
-                    </div>
+                    </Text>
 
-                    <div className="flex gap-2">
+                    <HStack w="full" spacing={2}>
                       <Button
-                        asChild
+                        as={Link}
+                        href={`/users/${user.id}/view`}
                         size="sm"
                         variant="outline"
-                        className="flex-1 bg-transparent"
+                        flex={1}
                       >
-                        <Link href={`/users/${user.id}/view`}>Voir</Link>
+                        Voir
                       </Button>
                       {canUpdateUsers && (
                         <Button
                           size="sm"
-                          className="flex-1"
+                          colorScheme="blue"
+                          flex={1}
                           onClick={() => {
-                            setSelectedUser(user);
-                            setIsEditModalOpen(true);
+                            setSelectedUser(user)
+                            setIsEditModalOpen(true)
                           }}
                         >
                           Modifier
@@ -227,70 +242,69 @@ export default function UsersPage() {
                       {canDeleteUsers && (
                         <Button
                           size="sm"
-                          variant="destructive"
-                          className="flex-1"
+                          colorScheme="red"
+                          flex={1}
                           onClick={() => {
-                            setSelectedUser(user);
-                            setIsDeleteModalOpen(true);
+                            setSelectedUser(user)
+                            setIsDeleteModalOpen(true)
                           }}
                         >
                           Supprimer
                         </Button>
                       )}
+                    </HStack>
+                  </VStack>
+                </CardBody>
+              </Card>
+            )
+          })}
+        </SimpleGrid>
 
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
-          </div>
-
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12">
-              <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                <Plus className="h-12 w-12 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Aucun utilisateur trouvé</h3>
-              <p className="text-muted-foreground mb-4">
+        {filteredUsers.length === 0 && (
+          <Center py={12}>
+            <VStack>
+              <Icon as={FiUser} boxSize={12} color="gray.500" />
+              <Heading size="md" color="white">Aucun utilisateur</Heading>
+              <Text color="gray.400" textAlign="center">
                 {searchTerm || roleFilter !== "all"
-                  ? "Aucun utilisateur ne correspond à vos critères de recherche."
-                  : "Aucun utilisateur n'est encore créé."}
-              </p>
-            </div>
-          )}
+                  ? "Aucun utilisateur ne correspond à vos critères."
+                  : "Aucun utilisateur créé."}
+              </Text>
+            </VStack>
+          </Center>
+        )}
 
-          {/* Modals */}
-          {selectedUser && (
-            <>
-              <UserEditModal
-                user={selectedUser}
-                isOpen={isEditModalOpen}
-                onClose={() => {
-                  setIsEditModalOpen(false);
-                  setSelectedUser(null);
-                }}
-                onSuccess={() => {
-                  setIsEditModalOpen(false);
-                  setSelectedUser(null);
-                  fetchUsers(); // Refresh the list
-                }}
-              />
-              <UserDeleteModal
-                user={selectedUser}
-                isOpen={isDeleteModalOpen}
-                onClose={() => {
-                  setIsDeleteModalOpen(false);
-                  setSelectedUser(null);
-                }}
-                onSuccess={() => {
-                  setIsDeleteModalOpen(false);
-                  setSelectedUser(null);
-                  fetchUsers(); // Refresh the list
-                }}
-              />
-            </>
-          )}
-        </div>
+        {selectedUser && (
+          <>
+            <UserEditModal
+              user={selectedUser}
+              isOpen={isEditModalOpen}
+              onClose={() => {
+                setIsEditModalOpen(false)
+                setSelectedUser(null)
+              }}
+              onSuccess={() => {
+                setIsEditModalOpen(false)
+                setSelectedUser(null)
+                fetchUsers()
+              }}
+            />
+            <UserDeleteModal
+              user={selectedUser}
+              isOpen={isDeleteModalOpen}
+              onClose={() => {
+                setIsDeleteModalOpen(false)
+                setSelectedUser(null)
+              }}
+              onSuccess={() => {
+                setIsDeleteModalOpen(false)
+                setSelectedUser(null)
+                fetchUsers()
+              }}
+            />
+          </>
+        )}
+      </VStack>
     </MainLayout>
   )
 }

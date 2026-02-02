@@ -38,6 +38,15 @@ export interface NotificationContext {
   metadata?: any;
 }
 
+// Interface pour les rappels de tâches
+export interface NotificationData {
+  userId: string;
+  type: 'task_reminder' | 'task_due_today' | 'task_overdue';
+  title: string;
+  message: string;
+  metadata?: any;
+}
+
 /**
  * Détermine les destinataires des notifications selon les règles métier
  */
@@ -284,5 +293,111 @@ export async function sendActionNotification(context: NotificationContext): Prom
   } catch (error) {
     console.error('Error sending action notification:', error);
     // Ne pas faire échouer la requête si l'email échoue
+  }
+}
+
+// ===== NOUVELLES FONCTIONS POUR LES RAPPELS =====
+
+/**
+ * Créer une notification interne
+ */
+export async function createNotification(data: NotificationData): Promise<void> {
+  try {
+    await db.query(
+      `INSERT INTO notifications (user_id, type, title, message, metadata, created_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [
+        data.userId,
+        data.type,
+        data.title,
+        data.message,
+        data.metadata ? JSON.stringify(data.metadata) : null
+      ]
+    );
+  } catch (error) {
+    console.error('Erreur lors de la création de la notification:', error);
+  }
+}
+
+/**
+ * Créer les notifications de rappel pour les tâches
+ */
+export async function createTaskRemindersNotifications(): Promise<void> {
+  try {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const dayAfterTomorrow = new Date(today);
+    dayAfterTomorrow.setDate(today.getDate() + 2);
+
+    const todayStr = today.toISOString().split('T')[0];
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const dayAfterTomorrowStr = dayAfterTomorrow.toISOString().split('T')[0];
+
+    // Récupérer les tâches qui nécessitent des notifications
+    const query = `
+      SELECT DISTINCT t.*, p.title as project_title, ta.user_id
+      FROM tasks t
+      LEFT JOIN projects p ON t.project_id = p.id
+      LEFT JOIN task_assignees ta ON t.id = ta.task_id
+      WHERE t.due_date::date IN ($1, $2, $3)
+        AND t.status NOT IN ('COMPLETED', 'CANCELLED')
+        AND ta.user_id IS NOT NULL
+    `;
+
+    const { rows: tasks } = await db.query(query, [todayStr, tomorrowStr, dayAfterTomorrowStr]);
+
+    for (const task of tasks) {
+      const dueDate = new Date(task.due_date);
+      const daysDiff = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      let notificationType: NotificationData['type'];
+      let title: string;
+      let message: string;
+
+      if (daysDiff === 0) {
+        notificationType = 'task_due_today';
+        title = '🚨 Tâche due aujourd\'hui';
+        message = `La tâche "${task.title}" est due aujourd'hui`;
+      } else if (daysDiff === 1) {
+        notificationType = 'task_reminder';
+        title = '⏰ Rappel de tâche';
+        message = `La tâche "${task.title}" est due demain`;
+      } else if (daysDiff === 2) {
+        notificationType = 'task_reminder';
+        title = '📅 Rappel de tâche';
+        message = `La tâche "${task.title}" est due dans 2 jours`;
+      } else {
+        continue;
+      }
+
+      // Vérifier si la notification a déjà été créée aujourd'hui
+      const existingNotif = await db.query(
+        `SELECT id FROM notifications 
+         WHERE user_id = $1 AND type = $2 AND DATE(created_at) = CURRENT_DATE 
+         AND metadata->>'task_id' = $3`,
+        [task.user_id, notificationType, task.id]
+      );
+
+      if (existingNotif.rows.length === 0) {
+        await createNotification({
+          userId: task.user_id,
+          type: notificationType,
+          title,
+          message,
+          metadata: {
+            task_id: task.id,
+            task_title: task.title,
+            project_title: task.project_title,
+            due_date: task.due_date,
+            days_remaining: daysDiff
+          }
+        });
+      }
+    }
+
+    console.log(`✅ Notifications de rappel créées pour ${tasks.length} tâches`);
+  } catch (error) {
+    console.error('Erreur lors de la création des notifications de rappel:', error);
   }
 }

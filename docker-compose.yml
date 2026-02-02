@@ -143,6 +143,24 @@ services:
       - web-frontend
       - api-backend
 
+  # Service de rappels automatiques
+  task-reminders:
+    image: alpine:latest
+    volumes:
+      - ./send-reminders.sh:/usr/local/bin/send-reminders.sh
+    networks:
+      - app-network
+    command: >
+      sh -c "
+      apk add --no-cache curl &&
+      chmod +x /usr/local/bin/send-reminders.sh &&
+      echo '0 9 * * * /usr/local/bin/send-reminders.sh' | crontab - &&
+      crond -f
+      "
+    restart: unless-stopped
+    depends_on:
+      - api-backend
+
 networks:
   app-network:
     driver: bridge

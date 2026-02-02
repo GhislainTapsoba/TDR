@@ -13,12 +13,11 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Bell, Shield, Palette, Upload } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import toast from "react-hot-toast"
 
 export default function SettingsPage() {
   const { data: session, status: sessionStatus, update: updateSession } = useSession();
   const user = session?.user;
-  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
@@ -111,16 +110,9 @@ export default function SettingsPage() {
         // Update the session with the new user data
         await updateSession({ ...session, user: { ...user, ...updatedUser.user } });
 
-        toast({
-            title: "Profil mis à jour",
-            description: "Vos informations ont été mises à jour avec succès.",
-        });
+        toast.success("Profil mis à jour avec succès");
     } catch (error) {
-        toast({
-            title: "Erreur",
-            description: "Une erreur est survenue lors de la mise à jour.",
-            variant: "destructive",
-        });
+        toast.error("Une erreur est survenue lors de la mise à jour");
     } finally {
         setLoading(false);
     }
@@ -131,20 +123,12 @@ export default function SettingsPage() {
     if (!user) return;
 
     if (profile.newPassword !== profile.confirmPassword) {
-      toast({
-        title: "Erreur",
-        description: "Les mots de passe ne correspondent pas.",
-        variant: "destructive",
-      });
+      toast.error("Les mots de passe ne correspondent pas");
       return;
     }
 
     if (profile.newPassword.length < 8) {
-      toast({
-        title: "Erreur",
-        description: "Le nouveau mot de passe doit contenir au moins 8 caractères.",
-        variant: "destructive",
-      });
+      toast.error("Le nouveau mot de passe doit contenir au moins 8 caractères");
       return;
     }
 
@@ -162,16 +146,9 @@ export default function SettingsPage() {
         confirmPassword: "",
       }));
 
-      toast({
-        title: "Mot de passe mis à jour",
-        description: "Votre mot de passe a été changé avec succès.",
-      });
+      toast.success("Mot de passe changé avec succès");
     } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.response?.data?.error || "Une erreur est survenue lors du changement de mot de passe.",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.error || "Erreur lors du changement de mot de passe");
     } finally {
       setLoading(false);
     }
@@ -188,16 +165,9 @@ export default function SettingsPage() {
         email_task_due: notifications.deadlineReminders,
       });
 
-      toast({
-        title: "Notifications mises à jour",
-        description: "Vos préférences de notifications ont été sauvegardées.",
-      });
+      toast.success("Préférences de notifications sauvegardées");
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour des notifications.",
-        variant: "destructive",
-      });
+      toast.error("Erreur lors de la mise à jour des notifications");
     } finally {
       setLoading(false);
     }
@@ -213,16 +183,9 @@ export default function SettingsPage() {
         theme: preferences.theme,
       });
 
-      toast({
-        title: "Préférences mises à jour",
-        description: "Vos préférences ont été sauvegardées.",
-      });
+      toast.success("Préférences sauvegardées");
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour des préférences.",
-        variant: "destructive",
-      });
+      toast.error("Erreur lors de la mise à jour des préférences");
     } finally {
       setLoading(false);
     }
@@ -373,7 +336,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-6">
-            {/* Notifications 
+            {/* Notifications */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -448,9 +411,9 @@ export default function SettingsPage() {
                   </Button>
                 </form>
               </CardContent>
-            </Card>*/}
+            </Card>
 
-            {/* Préférences 
+            {/* Préférences */}
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -512,7 +475,7 @@ export default function SettingsPage() {
                   </Button>
                 </form>
               </CardContent>
-            </Card> */}
+            </Card>
           </div>
         </div>
       </div>

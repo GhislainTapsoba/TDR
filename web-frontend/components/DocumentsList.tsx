@@ -116,6 +116,36 @@ export default function DocumentsList({ projectId, taskId, canUpload = false }: 
     }
   };
 
+  // Télécharger un document
+  const handleDownload = async (id: string, name: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'}/documents/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('token') : ''}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Erreur lors du téléchargement');
+      }
+
+      const documentData = await response.json();
+      
+      // Créer un lien temporaire pour télécharger le fichier
+      const link = document.createElement('a');
+      link.href = documentData.file_url; // URL pré-signée
+      link.download = name;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err: any) {
+      console.error('Download error:', err);
+      toast.error('Erreur lors du téléchargement');
+    }
+  };
+
   // Supprimer un document
   const handleDelete = async (id: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return;
@@ -196,15 +226,13 @@ export default function DocumentsList({ projectId, taskId, canUpload = false }: 
                                     <Edit size={18} />
                                   </button>
                                 )}
-                                <a
-                                  href={doc.file_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  onClick={() => handleDownload(doc.id, doc.name)}
                                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                   title="Télécharger"
                                 >
                                   <Download size={18} />
-                                </a>
+                                </button>
                                 {canDelete && (
                                   <button
                                     onClick={() => handleDelete(doc.id)}

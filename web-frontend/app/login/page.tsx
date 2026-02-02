@@ -3,12 +3,29 @@
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Lock, Mail, Eye, EyeOff } from "lucide-react"
+import {
+  Box,
+  Button,
+  Input,
+  FormControl,
+  FormLabel,
+  VStack,
+  HStack,
+  Text,
+  Image,
+  Alert,
+  AlertIcon,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
+  IconButton,
+  Card,
+  CardBody,
+  Heading,
+  Link as ChakraLink,
+  Spinner
+} from '@chakra-ui/react'
+import { ViewIcon, ViewOffIcon, EmailIcon, LockIcon } from '@chakra-ui/icons'
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -27,7 +44,6 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      // NextAuth will redirect to /dashboard
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur de connexion")
       setLoading(false);
@@ -35,97 +51,100 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <div className="w-full max-w-md">
-        <Card className="glass border-border/50 shadow-lg">
-          <CardHeader className="text-center space-y-4 pt-6">
-            <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center shadow-md bg-gradient-to-tr from-primary to-secondary">
-              <Lock className="h-8 w-8 text-primary-foreground" />
-            </div>
-            <div>
-              <CardTitle className="text-3xl font-bold gradient-text">
-                Connexion
-              </CardTitle>
-              <CardDescription className="text-lg text-card-foreground">
-                Accédez à votre espace de gestion de projets
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+    <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" p={4}>
+      <Card maxW="md" w="full" bg="gray.800" borderColor="gray.700">
+        <CardBody p={8}>
+          <VStack spacing={6}>
+            <Box>
+              <Image src="/logo.png" alt="Team Project" boxSize="60px" mx="auto" mb={4} />
+              <Heading size="lg" textAlign="center" color="white">Connexion</Heading>
+              <Text textAlign="center" color="gray.400" mt={2}>Accédez à votre espace</Text>
+            </Box>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-base text-card-foreground">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="votre@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-10 text-base bg-input text-foreground border-border placeholder-muted-foreground focus:ring-ring focus:border-primary"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-base text-card-foreground">
-                  Mot de passe
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10 text-base bg-input text-foreground border-border placeholder-muted-foreground focus:ring-ring focus:border-primary"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-3 text-muted-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-secondary text-lg text-primary-foreground shadow-md transition-all"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="animate-spin h-5 w-5" />
-                    Connexion...
-                  </>
-                ) : (
-                  "Se connecter"
+            <Box as="form" onSubmit={handleSubmit} w="full">
+              <VStack spacing={4}>
+                {error && (
+                  <Alert status="error" borderRadius="md">
+                    <AlertIcon />
+                    {error}
+                  </Alert>
                 )}
-              </Button>
-            </form>
-            <div className="mt-4 text-center text-sm">
+
+                <FormControl isRequired>
+                  <FormLabel color="gray.300">Email</FormLabel>
+                  <InputGroup>
+                    <InputLeftElement>
+                      <EmailIcon color="gray.400" />
+                    </InputLeftElement>
+                    <Input
+                      type="email"
+                      placeholder="votre@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      bg="gray.700"
+                      border="1px solid"
+                      borderColor="gray.600"
+                      color="white"
+                      _placeholder={{ color: 'gray.400' }}
+                      _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px #3182ce' }}
+                    />
+                  </InputGroup>
+                </FormControl>
+
+                <FormControl isRequired>
+                  <FormLabel color="gray.300">Mot de passe</FormLabel>
+                  <InputGroup>
+                    <InputLeftElement>
+                      <LockIcon color="gray.400" />
+                    </InputLeftElement>
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      bg="gray.700"
+                      border="1px solid"
+                      borderColor="gray.600"
+                      color="white"
+                      _placeholder={{ color: 'gray.400' }}
+                      _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px #3182ce' }}
+                    />
+                    <InputRightElement>
+                      <IconButton
+                        aria-label={showPassword ? "Masquer" : "Afficher"}
+                        icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
+                        onClick={() => setShowPassword(!showPassword)}
+                        variant="ghost"
+                        size="sm"
+                        color="gray.400"
+                      />
+                    </InputRightElement>
+                  </InputGroup>
+                </FormControl>
+
+                <Button
+                  type="submit"
+                  colorScheme="blue"
+                  size="lg"
+                  w="full"
+                  isLoading={loading}
+                  loadingText="Connexion..."
+                  spinner={<Spinner size="sm" />}
+                >
+                  Se connecter
+                </Button>
+              </VStack>
+            </Box>
+
+            <Text fontSize="sm" color="gray.400">
               Pas encore de compte?{" "}
-              <Link href="/register" className="underline">
+              <ChakraLink as={Link} href="/register" color="blue.400" _hover={{ color: 'blue.300' }}>
                 S'inscrire
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+              </ChakraLink>
+            </Text>
+          </VStack>
+        </CardBody>
+      </Card>
+    </Box>
   )
 }
