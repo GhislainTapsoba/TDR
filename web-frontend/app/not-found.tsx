@@ -5,19 +5,25 @@ import Link from 'next/link'
 
 export default function NotFound() {
   return (
-    <Box textAlign="center" py={10} px={6}>
-      <Heading as="h2" size="2xl" mb={2}>
-        404
-      </Heading>
-      <Text fontSize="18px" mt={3} mb={2}>
-        Page Non Trouvée
-      </Text>
-      <Text color="gray.500" mb={6}>
-        La page que vous recherchez n'existe pas
-      </Text>
-      <Button as={Link} href="/dashboard" colorPalette="blue">
-        Retour au tableau de bord
-      </Button>
+    <Box 
+      minH="100vh" 
+      display="flex" 
+      alignItems="center" 
+      justifyContent="center"
+      textAlign="center"
+      p={6}
+    >
+      <Box>
+        <Heading size="4xl" mb={4}>
+          404
+        </Heading>
+        <Text fontSize="xl" mb={6}>
+          Page non trouvée
+        </Text>
+        <Button as={Link} href="/dashboard" colorScheme="blue">
+          Retour au tableau de bord
+        </Button>
+      </Box>
     </Box>
   )
 }
