@@ -4,8 +4,6 @@ import { useEffect, useState } from "react"
 import {
   Box,
   SimpleGrid,
-  Card,
-  CardBody,
   Heading,
   Text,
   VStack,
@@ -120,90 +118,106 @@ export default function DashboardPage() {
         {/* Stats Cards */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={6}>
           {getStatsCards().map((card, index) => (
-            <Card key={index} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400', transform: 'translateY(-2px)' }} transition="all 0.2s">
-              <CardBody>
-                <Flex justify="space-between" alignItems="center">
-                  <Box>
-                    <Text color="gray.400" fontSize="sm">{card.title}</Text>
-                    <Text color="white" fontSize="2xl" fontWeight="bold">{card.value}</Text>
-                    <Text color="gray.500" fontSize="xs">{card.desc}</Text>
-                  </Box>
-                  <Icon as={card.icon} boxSize={8} color={`${card.color}.400`} />
-                </Flex>
-              </CardBody>
-            </Card>
+            <Box 
+              key={index} 
+              bg="gray.800" 
+              borderColor="gray.700" 
+              border="1px" 
+              borderRadius="lg" 
+              p={6}
+              _hover={{ borderColor: 'blue.400', transform: 'translateY(-2px)' }} 
+              transition="all 0.2s"
+            >
+              <Flex justifyContent="space-between" alignItems="center">
+                <Box>
+                  <Text color="gray.400" fontSize="sm">{card.title}</Text>
+                  <Text color="white" fontSize="2xl" fontWeight="bold">{card.value}</Text>
+                  <Text color="gray.500" fontSize="xs">{card.desc}</Text>
+                </Box>
+                <Icon as={card.icon} boxSize={8} color={`${card.color}.400`} />
+              </Flex>
+            </Box>
           ))}
         </SimpleGrid>
 
         <SimpleGrid columns={{ base: 1, lg: 3 }} gap={8}>
           {/* Progress */}
-          <Card bg="gray.800" borderColor="gray.700" gridColumn={{ lg: "span 2" }}>
-            <CardBody>
-              <VStack alignItems="stretch" gap={6}>
-                <HStack>
-                  <Icon as={FiTrendingUp} color="blue.400" />
-                  <Heading size="md" color="white">Progression</Heading>
-                </HStack>
-                
-                <Box>
-                  <Flex justify="space-between" mb={2}>
-                    <Text color="gray.300" fontSize="sm">Tâches terminées</Text>
-                    <Text color="blue.400" fontWeight="bold">{getProgressPercentage()}%</Text>
-                  </Flex>
-                  <Progress value={getProgressPercentage()} colorScheme="blue" size="lg" borderRadius="md" />
-                </Box>
+          <Box 
+            bg="gray.800" 
+            borderColor="gray.700" 
+            border="1px" 
+            borderRadius="lg" 
+            p={6}
+            gridColumn={{ lg: "span 2" }}
+          >
+            <VStack alignItems="stretch" gap={6}>
+              <HStack>
+                <Icon as={FiTrendingUp} color="blue.400" />
+                <Heading size="md" color="white">Progression</Heading>
+              </HStack>
+              
+              <Box>
+                <Flex justifyContent="space-between" mb={2}>
+                  <Text color="gray.300" fontSize="sm">Tâches terminées</Text>
+                  <Text color="blue.400" fontWeight="bold">{getProgressPercentage()}%</Text>
+                </Flex>
+                <Progress value={getProgressPercentage()} colorScheme="blue" size="lg" borderRadius="md" />
+              </Box>
 
-                {stats.tasksByStatus && (
-                  <Box>
-                    <Text color="gray.300" fontSize="sm" mb={3}>Statut des tâches</Text>
-                    <Flex wrap="wrap" gap={2}>
-                      {Object.entries(stats.tasksByStatus).map(([status, count]) => (
-                        <Badge key={status} colorScheme="blue" variant="subtle">
-                          {status}: {count}
-                        </Badge>
-                      ))}
-                    </Flex>
-                  </Box>
-                )}
-              </VStack>
-            </CardBody>
-          </Card>
+              {stats.tasksByStatus && (
+                <Box>
+                  <Text color="gray.300" fontSize="sm" mb={3}>Statut des tâches</Text>
+                  <Flex wrap="wrap" gap={2}>
+                    {Object.entries(stats.tasksByStatus).map(([status, count]) => (
+                      <Badge key={status} colorScheme="blue" variant="subtle">
+                        {status}: {count}
+                      </Badge>
+                    ))}
+                  </Flex>
+                </Box>
+              )}
+            </VStack>
+          </Box>
 
           {/* Activities */}
-          <Card bg="gray.800" borderColor="gray.700">
-            <CardBody>
-              <VStack alignItems="stretch" gap={4}>
-                <HStack>
-                  <Icon as={FiActivity} color="blue.400" />
-                  <Heading size="md" color="white">Activités</Heading>
-                </HStack>
-                
-                <VStack alignItems="stretch" gap={3}>
-                  {activities.slice(0, 6).map((activity) => (
-                    <Box key={activity.id} p={3} bg="gray.700" borderRadius="md">
-                      <Text color="white" fontSize="sm" mb={1}>
-                        {activity.details || activity.action}
+          <Box 
+            bg="gray.800" 
+            borderColor="gray.700" 
+            border="1px" 
+            borderRadius="lg" 
+            p={6}
+          >
+            <VStack alignItems="stretch" gap={4}>
+              <HStack>
+                <Icon as={FiActivity} color="blue.400" />
+                <Heading size="md" color="white">Activités</Heading>
+              </HStack>
+              
+              <VStack alignItems="stretch" gap={3}>
+                {activities.slice(0, 6).map((activity) => (
+                  <Box key={activity.id} p={3} bg="gray.700" borderRadius="md">
+                    <Text color="white" fontSize="sm" mb={1}>
+                      {activity.details || activity.action}
+                    </Text>
+                    <HStack gap={3}>
+                      <Badge size="sm" colorScheme="gray">{activity.user?.name || "—"}</Badge>
+                      <Text color="gray.400" fontSize="xs">
+                        {new Date(activity.created_at).toLocaleDateString('fr-FR')}
                       </Text>
-                      <HStack gap={3}>
-                        <Badge size="sm" colorScheme="gray">{activity.user?.name || "—"}</Badge>
-                        <Text color="gray.400" fontSize="xs">
-                          {new Date(activity.created_at).toLocaleDateString('fr-FR')}
-                        </Text>
-                      </HStack>
-                    </Box>
-                  ))}
-                  {activities.length === 0 && (
-                    <Center py={8}>
-                      <VStack>
-                        <Icon as={FiActivity} boxSize={8} color="gray.500" />
-                        <Text color="gray.500" fontSize="sm">Aucune activité</Text>
-                      </VStack>
-                    </Center>
-                  )}
-                </VStack>
+                    </HStack>
+                  </Box>
+                ))}
+                {activities.length === 0 && (
+                  <Center py={8}>
+                    <VStack>
+                      <Icon as={FiActivity} boxSize={8} color="gray.500" />
+                      <Text color="gray.500" fontSize="sm">Aucune activité</Text>
+                    </VStack>
+                  </Center>
+                )}
               </VStack>
-            </CardBody>
-          </Card>
+            </VStack>
+          </Box>
         </SimpleGrid>
       </VStack>
     </MainLayout>
