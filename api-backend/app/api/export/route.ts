@@ -88,20 +88,28 @@ export async function POST(request: NextRequest) {
 
     // Format de retour selon le type demandé
     if (format === 'json') {
-      return corsResponse(data, request, {
+      return new Response(JSON.stringify(data), {
+        status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.json"`
+          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.json"`,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
         }
       });
     }
 
     if (format === 'csv') {
       const csv = convertToCSV(data, types);
-      return corsResponse(csv, request, {
+      return new Response(csv, {
+        status: 200,
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.csv"`
+          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.csv"`,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
         }
       });
     }
