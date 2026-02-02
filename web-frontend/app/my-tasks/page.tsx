@@ -437,7 +437,8 @@ export default function MyTasksPage() {
         <DeleteConfirmationModal
           isOpen={showDeleteTaskModal}
           onClose={() => setShowDeleteTaskModal(false)}
-          itemType="tâche"
+          title="Supprimer la tâche"
+          description="Êtes-vous sûr de vouloir supprimer cette tâche ?"
           itemName={taskToDelete.title}
           onConfirm={async () => {
             try {
