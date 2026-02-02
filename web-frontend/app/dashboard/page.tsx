@@ -4,10 +4,6 @@ import { useEffect, useState } from "react"
 import {
   Box,
   SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
   Card,
   CardBody,
   Heading,
@@ -126,16 +122,14 @@ export default function DashboardPage() {
           {getStatsCards().map((card, index) => (
             <Card key={index} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400', transform: 'translateY(-2px)' }} transition="all 0.2s">
               <CardBody>
-                <Stat>
-                  <Flex justify="space-between" align="center">
-                    <Box>
-                      <StatLabel color="gray.400" fontSize="sm">{card.title}</StatLabel>
-                      <StatNumber color="white" fontSize="2xl">{card.value}</StatNumber>
-                      <StatHelpText color="gray.500" fontSize="xs">{card.desc}</StatHelpText>
-                    </Box>
-                    <Icon as={card.icon} boxSize={8} color={`${card.color}.400`} />
-                  </Flex>
-                </Stat>
+                <Flex justify="space-between" align="center">
+                  <Box>
+                    <Text color="gray.400" fontSize="sm">{card.title}</Text>
+                    <Text color="white" fontSize="2xl" fontWeight="bold">{card.value}</Text>
+                    <Text color="gray.500" fontSize="xs">{card.desc}</Text>
+                  </Box>
+                  <Icon as={card.icon} boxSize={8} color={`${card.color}.400`} />
+                </Flex>
               </CardBody>
             </Card>
           ))}

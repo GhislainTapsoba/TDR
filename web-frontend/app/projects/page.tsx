@@ -23,17 +23,13 @@ import {
   SimpleGrid,
   Icon,
   Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   InputGroup,
-  InputLeftElement,
   Flex,
   Progress,
   Wrap,
   WrapItem
 } from '@chakra-ui/react'
-import { FiPlus, FiSearch, FiCalendar, FiUsers, FiBarChart3, FiAlertTriangle, FiMoreVertical, FiEdit, FiTrash2 } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiCalendar, FiUsers, FiBarChart, FiAlertTriangle, FiMoreVertical, FiEdit, FiTrash2 } from 'react-icons/fi'
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"

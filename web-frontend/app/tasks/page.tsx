@@ -21,11 +21,7 @@ import {
   SimpleGrid,
   Icon,
   Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   InputGroup,
-  InputLeftElement,
   Flex,
   Wrap,
   WrapItem
@@ -235,9 +231,6 @@ export default function TasksPage() {
 
         <Flex gap={4} wrap="wrap">
           <InputGroup maxW="sm">
-            <InputLeftElement>
-              <Icon as={FiSearch} color="gray.400" />
-            </InputLeftElement>
             <Input
               placeholder="Rechercher..."
               value={searchTerm}
@@ -352,23 +345,18 @@ export default function TasksPage() {
                       ))}
                     </Wrap>
 
-                    <Menu>
-                      <MenuButton as={Button} size="sm" variant="ghost">
-                        <Icon as={FiMoreVertical} />
-                      </MenuButton>
-                      <MenuList bg="gray.700" borderColor="gray.600">
-                        {(permissions.canUpdateTasks || (authUser?.role === 'employe' && task.assignees?.some(a => a.id === authUser.id))) && (
-                          <MenuItem onClick={() => handleEditTask(task)} icon={<FiEdit />}>
-                            Modifier
-                          </MenuItem>
-                        )}
-                        {permissions.canDeleteTasks && (
-                          <MenuItem onClick={() => handleDeleteTaskConfirm(task)} icon={<FiTrash2 />} color="red.400">
-                            Supprimer
-                          </MenuItem>
-                        )}
-                      </MenuList>
-                    </Menu>
+                    <HStack spacing={1}>
+                      {(permissions.canUpdateTasks || (authUser?.role === 'employe' && task.assignees?.some(a => a.id === authUser.id))) && (
+                        <Button size="sm" variant="ghost" onClick={() => handleEditTask(task)}>
+                          <Icon as={FiEdit} />
+                        </Button>
+                      )}
+                      {permissions.canDeleteTasks && (
+                        <Button size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeleteTaskConfirm(task)}>
+                          <Icon as={FiTrash2} />
+                        </Button>
+                      )}
+                    </HStack>
                   </HStack>
                 </Flex>
               </CardBody>

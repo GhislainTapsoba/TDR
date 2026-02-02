@@ -22,14 +22,12 @@ import {
   SimpleGrid,
   Icon,
   Avatar,
-  AvatarBadge,
   InputGroup,
-  InputLeftElement,
   Flex,
   Wrap,
   WrapItem
 } from '@chakra-ui/react'
-import { FiPlus, FiSearch, FiMail, FiShield, FiCrown, FiBriefcase, FiUser } from 'react-icons/fi'
+import { FiPlus, FiSearch, FiMail, FiShield, FiUser, FiBriefcase, FiUser as FiUserAlt } from 'react-icons/fi'
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/permissions"
 import UserEditModal from "@/components/UserEditModal"
