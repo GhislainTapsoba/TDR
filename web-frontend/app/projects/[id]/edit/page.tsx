@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
-import { api, projectsApi } from "@/lib/api"
+import { api, projectsApi, usersApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -91,10 +91,8 @@ export default function EditProjectPage() {
   const loadUsers = async () => {
     if (usersLoaded) return
     try {
-      const response = await api.getUsers() as any
-      const list = Array.isArray(response)
-        ? response
-        : response.users ?? response.data ?? []
+      const response = await usersApi.getAll()
+      const list = response.data
       setUsers(list)
       setUsersLoaded(true)
     } catch (error) {
