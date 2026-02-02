@@ -45,7 +45,7 @@ interface Task extends ApiTask { // Extend the ApiTask interface
   id: string
   title: string
   description: string
-  status: "a_faire" | "en_cours" | "termine"
+  status: "a_faire" | "en_cours" | "termine" | "refuse"
   priority: "low" | "medium" | "high"
   due_date: string | null
   project: {
@@ -183,7 +183,7 @@ function TaskCard({ task, onEditClick, onRefuseClick, onDeleteClick, onCompleteC
 }
 
 
-function TaskColumn({ title, status, tasks, taskIds, onEditClick, onRefuseClick, onDeleteClick, onCompleteClick }: { title: string; status: "a_faire" | "en_cours" | "termine"; tasks: Task[]; taskIds: string[], onEditClick: (task: Task) => void, onRefuseClick: (task: Task) => void, onDeleteClick: (task: Task) => void, onCompleteClick: (task: Task) => void }) {
+function TaskColumn({ title, status, tasks, taskIds, onEditClick, onRefuseClick, onDeleteClick, onCompleteClick }: { title: string; status: "a_faire" | "en_cours" | "termine" | "refuse"; tasks: Task[]; taskIds: string[], onEditClick: (task: Task) => void, onRefuseClick: (task: Task) => void, onDeleteClick: (task: Task) => void, onCompleteClick: (task: Task) => void }) {
   const { setNodeRef } = useSortable({ id: status });
 
   return (
@@ -423,7 +423,8 @@ export default function MyTasksPage() {
         <DeleteConfirmationModal
           isOpen={showDeleteTaskModal}
           onClose={() => setShowDeleteTaskModal(false)}
-          itemType="tâche"
+          title="Supprimer la tâche"
+          description="Êtes-vous sûr de vouloir supprimer cette tâche ?"
           itemName={taskToDelete.title}
           onConfirm={async () => {
             try {
