@@ -106,20 +106,36 @@ export default function ExportPage() {
       let blob: Blob
 
       if (format === "json") {
-        // Pour JSON, récupérer les données puis créer un blob
-        const data = await api.exportData(selectedTypes, format, dateRange)
-        const jsonString = typeof data === "string" ? data : JSON.stringify(data, null, 2)
+        // Pour JSON
+        const response = await api.get('/export', {
+          params: {
+            types: selectedTypes.join(','),
+            format: 'json',
+            startDate: dateRange === 'all' ? undefined : dateRange,
+            endDate: dateRange === 'all' ? undefined : new Date().toISOString().split('T')[0]
+          }
+        })
+        const jsonString = JSON.stringify(response.data, null, 2)
         blob = new Blob([jsonString], { type: "application/json" })
       } else {
-        // Pour CSV / XLSX, récupérer directement le blob
-        blob = await api.exportData(selectedTypes, format, dateRange) as Blob
+        // Pour Excel et CSV
+        const response = await api.get('/export', {
+          params: {
+            types: selectedTypes.join(','),
+            format,
+            startDate: dateRange === 'all' ? undefined : dateRange,
+            endDate: dateRange === 'all' ? undefined : new Date().toISOString().split('T')[0]
+          },
+          responseType: 'blob'
+        })
+        blob = response.data
       }
 
-      // Créer le lien de téléchargement
+      // Download the file
       const url = window.URL.createObjectURL(blob)
-      const link = document.createElement("a")
+      const link = document.createElement('a')
       link.href = url
-      link.download = `export_${selectedTypes.join("_")}_${new Date().toISOString().split("T")[0]}.${format}`
+      link.download = `export-${new Date().toISOString().split('T')[0]}.${format}`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -130,7 +146,7 @@ export default function ExportPage() {
         description: "Les données ont été exportées avec succès.",
       })
     } catch (error) {
-      console.error("Erreur lors de l'export:", error)
+      console.error("Erreur lors de l&apos;export:", error)
       toast({
         title: "Erreur d'export",
         description: "Une erreur est survenue lors de l'export des données.",
