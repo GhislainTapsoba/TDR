@@ -203,6 +203,7 @@ export const dashboardApi = {
   getRecentActivity: (limit?: number) => api.get<ActivityLog[]>('/activity-logs', { 
     params: { limit } 
   }),
+  getTaskById: (id: string) => api.get<Task>(`/tasks/${id}`),
 };
 
 export const projectsApi = {
