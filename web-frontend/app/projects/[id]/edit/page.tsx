@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
-import { api } from "@/lib/api"
+import { api, projectsApi } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -65,8 +65,8 @@ export default function EditProjectPage() {
 
   const fetchProject = async () => {
     try {
-      const response = await api.getProject(params.id) as any
-      const projectData: Project = response.project ?? response
+      const response = await projectsApi.getById(params.id as string)
+      const projectData: Project = response.data as any
 
       setProject(projectData)
       setFormData({
