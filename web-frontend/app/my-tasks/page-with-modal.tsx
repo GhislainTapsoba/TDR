@@ -183,7 +183,7 @@ function TaskCard({ task, onEditClick, onRefuseClick, onDeleteClick, onCompleteC
 }
 
 
-function TaskColumn({ title, status, tasks, taskIds, onEditClick, onRefuseClick, onDeleteClick, onCompleteClick }: { title: string; status: "a_faire" | "en_cours" | "termine"; tasks: Task[]; taskIds: string[], onEditClick: (task: Task) => void, onRefuseClick: (task: Task) => void, onDeleteClick: (task: Task) => void, onCompleteClick: (task: Task) => void }) {
+function TaskColumn({ title, status, tasks, taskIds, onEditClick, onRefuseClick, onDeleteClick, onCompleteClick }: { title: string; status: "a_faire" | "en_cours" | "termine" | "refuse"; tasks: Task[]; taskIds: string[], onEditClick: (task: Task) => void, onRefuseClick: (task: Task) => void, onDeleteClick: (task: Task) => void, onCompleteClick: (task: Task) => void }) {
   const { setNodeRef } = useSortable({ id: status });
 
   return (
@@ -256,6 +256,7 @@ export default function MyTasksPage() {
       case 'a_faire': return 'TODO';
       case 'en_cours': return 'IN_PROGRESS';
       case 'termine': return 'COMPLETED';
+      case 'refuse': return 'REFUSED';
       default: return frontendStatus;
     }
   };
