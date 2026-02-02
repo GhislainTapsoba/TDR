@@ -11,12 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
-import { api, Task as ApiTask } from "@/lib/api";
-
-interface Task extends ApiTask {
-  id: number;
-  title: string;
-}
+import { api, Task } from "@/lib/api";
 
 interface TaskRefusalModalProps {
   isOpen: boolean;
