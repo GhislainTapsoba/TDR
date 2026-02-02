@@ -142,12 +142,12 @@ export function taskAssignedTemplate(data: {
       <table style="width: 100%; margin: 20px 0;">
         <tr>
           <td style="padding: 5px; text-align: center;">
-            <a href="${FRONTEND_URL}/api/confirm-email?token=${data.confirmationToken}" class="button" style="background: #28a745; display: inline-block; padding: 12px 30px; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-weight: bold;">
-              ✓ Confirmer et démarrer
+            <a href="${FRONTEND_URL}/task-response?taskId=${data.taskId}" class="button" style="background: #28a745; display: inline-block; padding: 12px 30px; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-weight: bold;">
+              ✓ Accepter et démarrer
             </a>
           </td>
           <td style="padding: 5px; text-align: center;">
-            <a href="${FRONTEND_URL}/redirect?reject_task=true&taskId=${data.taskId}" class="button" style="background: #dc3545; display: inline-block; padding: 12px 30px; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            <a href="${FRONTEND_URL}/task-response?taskId=${data.taskId}" class="button" style="background: #dc3545; display: inline-block; padding: 12px 30px; color: #ffffff !important; text-decoration: none; border-radius: 5px; font-weight: bold;">
               ✕ Refuser la tâche
             </a>
           </td>
