@@ -1,26 +1,10 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
+import { signIn, getSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import {
-  Box,
-  Button,
-  Input,
-  VStack,
-  HStack,
-  Text,
-  Image,
-  Alert,
-  InputGroup,
-  IconButton,
-  Card,
-  CardBody,
-  Heading,
-  Link as ChakraLink,
-  Spinner
-} from '@chakra-ui/react'
-import { ViewIcon, ViewOffIcon, EmailIcon, LockIcon } from '@chakra-ui/icons'
+import { FiEye, FiEyeOff, FiMail, FiLock } from 'react-icons/fi'
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -29,117 +13,122 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const router = useRouter();
-  const { login } = useAuth();
+  const router = useRouter()
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard")
+    }
+  }, [user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
     setLoading(true)
+    setError("")
 
     try {
-      await login(email, password);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur de connexion")
-      setLoading(false);
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError("Email ou mot de passe incorrect")
+      } else {
+        const session = await getSession()
+        if (session) {
+          router.push("/dashboard")
+        }
+      }
+    } catch (error) {
+      setError("Une erreur est survenue")
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
-    <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" p={4}>
-      <Card maxW="md" w="full" bg="gray.800" borderColor="gray.700">
-        <CardBody p={8}>
-          <VStack spacing={6}>
-            <Box>
-              <Image src="/logo.png" alt="Team Project" boxSize="60px" mx="auto" mb={4} />
-              <Heading size="lg" textAlign="center" color="white">Connexion</Heading>
-              <Text textAlign="center" color="gray.400" mt={2}>Accédez à votre espace</Text>
-            </Box>
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <img
+            src="/favicon.png"
+            alt="Logo"
+            className="mx-auto h-16 w-16 mb-4"
+          />
+          <h2 className="text-3xl font-bold text-white">Connexion</h2>
+          <p className="mt-2 text-gray-400">Connectez-vous à votre compte</p>
+        </div>
 
-            <Box as="form" onSubmit={handleSubmit} w="full">
-              <VStack spacing={4}>
-                {error && (
-                  <Alert status="error" borderRadius="md">
-                    <AlertIcon />
-                    {error}
-                  </Alert>
-                )}
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
 
-                <FormControl isRequired>
-                  <FormLabel color="gray.300">Email</FormLabel>
-                  <InputGroup>
-                    <InputLeftElement>
-                      <EmailIcon color="gray.400" />
-                    </InputLeftElement>
-                    <Input
-                      type="email"
-                      placeholder="votre@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      bg="gray.700"
-                      border="1px solid"
-                      borderColor="gray.600"
-                      color="white"
-                      _placeholder={{ color: 'gray.400' }}
-                      _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px #3182ce' }}
-                    />
-                  </InputGroup>
-                </FormControl>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <FiMail className="absolute left-3 top-3 text-gray-400" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="votre@email.com"
+                  required
+                />
+              </div>
+            </div>
 
-                <FormControl isRequired>
-                  <FormLabel color="gray.300">Mot de passe</FormLabel>
-                  <InputGroup>
-                    <InputLeftElement>
-                      <LockIcon color="gray.400" />
-                    </InputLeftElement>
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      bg="gray.700"
-                      border="1px solid"
-                      borderColor="gray.600"
-                      color="white"
-                      _placeholder={{ color: 'gray.400' }}
-                      _focus={{ borderColor: 'blue.400', boxShadow: '0 0 0 1px #3182ce' }}
-                    />
-                    <InputRightElement>
-                      <IconButton
-                        aria-label={showPassword ? "Masquer" : "Afficher"}
-                        icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
-                        onClick={() => setShowPassword(!showPassword)}
-                        variant="ghost"
-                        size="sm"
-                        color="gray.400"
-                      />
-                    </InputRightElement>
-                  </InputGroup>
-                </FormControl>
-
-                <Button
-                  type="submit"
-                  colorScheme="blue"
-                  size="lg"
-                  w="full"
-                  isLoading={loading}
-                  loadingText="Connexion..."
-                  spinner={<Spinner size="sm" />}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                Mot de passe
+              </label>
+              <div className="relative">
+                <FiLock className="absolute left-3 top-3 text-gray-400" />
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Votre mot de passe"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-300"
                 >
-                  Se connecter
-                </Button>
-              </VStack>
-            </Box>
+                  {showPassword ? <FiEyeOff /> : <FiEye />}
+                </button>
+              </div>
+            </div>
+          </div>
 
-            <Text fontSize="sm" color="gray.400">
-              Pas encore de compte?{" "}
-              <ChakraLink as={Link} href="/register" color="blue.400" _hover={{ color: 'blue.300' }}>
-                S'inscrire
-              </ChakraLink>
-            </Text>
-          </VStack>
-        </CardBody>
-      </Card>
-    </Box>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Connexion..." : "Se connecter"}
+          </button>
+
+          <div className="text-center">
+            <Link href="/register" className="text-blue-400 hover:text-blue-300 text-sm">
+              Pas encore de compte ? S'inscrire
+            </Link>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
