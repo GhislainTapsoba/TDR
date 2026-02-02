@@ -6,7 +6,6 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { NextAuthProvider } from "@/components/providers/next-auth-provider";
 import { ChakraUIProvider } from "@/components/providers/chakra-provider";
-import { ColorModeScript } from '@chakra-ui/react'
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -29,7 +28,6 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <ColorModeScript initialColorMode='dark' />
         <ChakraUIProvider>
           <Suspense fallback={null}>
             <NextAuthProvider>
