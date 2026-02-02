@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
-import { api, tasksApi, stagesApi } from "@/lib/api" // Import stagesApi for delete
+import { api, tasksApi, stagesApi, projectsApi } from "@/lib/api" // Import stagesApi for delete
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -160,13 +160,13 @@ export default function ProjectDetailPage() {
     setLoading(true);
     try {
       const [projectResponse, stagesResponse, tasksResponse] = await Promise.all([
-        api.getProject(id),
-        api.getProjectStages(id),
+        projectsApi.getById(id),
+        stagesApi.getAll({ project_id: id }),
         tasksApi.getAll({ project_id: id })
       ]);
 
       if (projectResponse?.data) {
-        const projectData = projectResponse.data;
+        const projectData = projectResponse.data as any;
         setProject(projectData);
       } else {
         throw new Error('Project data is not in the expected format.');
@@ -174,14 +174,14 @@ export default function ProjectDetailPage() {
 
       if (stagesResponse?.data) {
         // TODO: The stages API should also populate tasks for each stage
-        setStages(stagesResponse.data);
+        setStages(stagesResponse.data as any);
       } else {
         console.warn("Stages data not in expected format, setting to empty array.");
         setStages([]);
       }
 
       if (tasksResponse?.data) {
-        setTasks(tasksResponse.data);
+        setTasks(tasksResponse.data as any);
       } else {
         console.warn("Tasks data not in expected format, setting to empty array.");
         setTasks([]);
@@ -194,7 +194,7 @@ export default function ProjectDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setLoading, setProject, setStages, setTasks]);
 
   useEffect(() => {
     const projectId = params.id as string;
