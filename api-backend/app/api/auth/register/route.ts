@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 
-export async function OPTIONS(request: Request) {
+export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { name, email, password } = await req.json();
 

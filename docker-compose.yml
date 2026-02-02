@@ -170,3 +170,4 @@ volumes:
     driver: local
   minio-data:
     driver: local
+
