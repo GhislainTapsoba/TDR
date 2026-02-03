@@ -5,7 +5,6 @@ import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { NextAuthProvider } from "@/components/providers/next-auth-provider";
-import { ChakraUIProvider } from "@/components/providers/chakra-provider";
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -28,14 +27,12 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`font-sans`}>
-        <ChakraUIProvider>
-          <Suspense fallback={null}>
-            <NextAuthProvider>
-              {children}
-              <Toaster />
-            </NextAuthProvider>
-          </Suspense>
-        </ChakraUIProvider>
+        <Suspense fallback={null}>
+          <NextAuthProvider>
+            {children}
+            <Toaster />
+          </NextAuthProvider>
+        </Suspense>
         {/* <Analytics /> Désactivé en développement local */}
       </body>
     </html>
