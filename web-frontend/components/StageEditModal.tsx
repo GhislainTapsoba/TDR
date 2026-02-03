@@ -21,7 +21,7 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
   const [formData, setFormData] = useState({
     name: stage.name,
     description: stage.description || '',
-    order: stage.order,
+    position: stage.position,
     duration: stage.duration?.toString() || '',
     status: stage.status,
     project_id: stage.project_id.toString(),
@@ -37,7 +37,7 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
     setFormData({
       name: stage.name,
       description: stage.description || '',
-      order: stage.order,
+      position: stage.position,
       duration: stage.duration?.toString() || '',
       status: stage.status,
       project_id: stage.project_id.toString(),
@@ -98,7 +98,7 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
       await stagesApi.update(stage.id.toString(), {
         name: formData.name,
         description: formData.description || null,
-        order: formData.order,
+        position: formData.position,
         duration: formData.duration ? parseInt(formData.duration) : null,
         status: formData.status,
         project_id: formData.project_id,
@@ -213,17 +213,17 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
             </select>
           </div>
 
-          {/* Ordre et Durée */}
+          {/* Position et Durée */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <Hash size={18} />
-                Ordre
+                Position
               </label>
               <input
                 type="number"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: parseInt(e.target.value) || 0 })}
                 min="0"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
                 placeholder="0"
@@ -251,7 +251,7 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              ℹ️ <strong>Note :</strong> Modifier l'ordre ou le projet peut affecter les tâches associées à cette étape.
+              ℹ️ <strong>Note :</strong> Modifier la position ou le projet peut affecter les tâches associées à cette étape.
             </p>
           </div>
 

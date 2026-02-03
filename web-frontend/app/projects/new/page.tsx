@@ -131,7 +131,7 @@ export default function NewProjectPage() {
     setStages(stages.filter((_, i) => i !== index))
   }
 
-  const updateStage = (index: number, field: keyof Stage, value: any) => {
+  const updateStage = <K extends keyof Stage>(index: number, field: K, value: Stage[K]) => {
     const updatedStages = [...stages]
     updatedStages[index][field] = value;
     setStages(updatedStages)

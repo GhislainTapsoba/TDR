@@ -1,7 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
+// import { GeistSans } from "geist/font/sans"
+// import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { NextAuthProvider } from "@/components/providers/next-auth-provider";
@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className={`font-sans`}>
         <ChakraUIProvider>
           <Suspense fallback={null}>
             <NextAuthProvider>

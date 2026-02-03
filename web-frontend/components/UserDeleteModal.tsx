@@ -5,7 +5,7 @@ import { usersApi, User } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { canManageUsers } from '@/lib/permissions';
+import { canManageUsers, mapRole } from '@/lib/permissions';
 
 interface UserDeleteModalProps {
   user: User;
@@ -19,7 +19,7 @@ export default function UserDeleteModal({ user: userToDelete, isOpen, onClose, o
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
-    if (!currentUser || !canManageUsers(currentUser.permissions || [])) {
+    if (!currentUser || !canManageUsers(mapRole(currentUser?.role || ''))) {
       toast.error("Vous n'avez pas la permission de supprimer un utilisateur.");
       return;
     }

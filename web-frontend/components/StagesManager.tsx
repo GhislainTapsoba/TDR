@@ -37,7 +37,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
     name: '',
     description: '',
     duration: '',
-    order: ''
+    position: ''
   });
   const [tasksToCreate, setTasksToCreate] = useState<Array<{
     title: string;
@@ -47,9 +47,9 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
   }>>([]);
 
   // Vérifier les permissions de l'utilisateur
-  const canCreate = user ? hasPermission(mapRole(user.role), 'stages', 'create') : false;
-  const canUpdate = user ? hasPermission(mapRole(user.role), 'stages', 'update') : false;
-  const canDelete = user ? hasPermission(mapRole(user.role), 'stages', 'delete') : false;
+  const canCreate = user ? hasPermission(mapRole(user.role), 'stages.create') : false;
+  const canUpdate = user ? hasPermission(mapRole(user.role), 'stages.update') : false;
+  const canDelete = user ? hasPermission(mapRole(user.role), 'stages.delete') : false;
 
   useEffect(() => {
     loadStages();
@@ -58,7 +58,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
   const loadStages = async () => {
     try {
       const { data } = await stagesApi.getAll({ project_id: projectId });
-      setStages(data.sort((a, b) => a.order - b.order));
+      setStages(data.sort((a, b) => a.position - b.position));
     } catch (err) {
       console.error('Error loading stages:', err);
       toast.error('Erreur lors du chargement des étapes');
@@ -74,15 +74,15 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
         name: formData.name,
         description: formData.description || null,
         duration: formData.duration ? parseInt(formData.duration) : null,
-        order: formData.order ? parseInt(formData.order) : stages.length + 1,
+        position: formData.position ? parseInt(formData.position) : stages.length + 1,
         project_id: projectId,
         status: 'PENDING'
       });
 
-      setStages([...stages, data].sort((a, b) => a.order - b.order));
+      setStages([...stages, data].sort((a, b) => a.position - b.position));
       toast.success('Étape créée avec succès');
       setIsAddModalOpen(false);
-      setFormData({ name: '', description: '', duration: '', order: '' });
+      setFormData({ name: '', description: '', duration: '', position: '' });
     } catch (error: any) {
       console.error('Error creating stage:', error);
       toast.error(error.response?.data?.error || 'Erreur lors de la création');
@@ -98,23 +98,23 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
         name: formData.name,
         description: formData.description || null,
         duration: formData.duration ? parseInt(formData.duration) : null,
-        order: formData.order ? parseInt(formData.order) : selectedStage.order
+        position: formData.position ? parseInt(formData.position) : selectedStage.position
       });
 
-      setStages(stages.filter(Boolean).map(s => s.id === data.id ? data : s).sort((a, b) => a.order - b.order));
+      setStages(stages.filter(Boolean).map(s => s.id === data.id ? data : s).sort((a, b) => a.position - b.position));
       toast.success('Étape mise à jour avec succès');
       setIsEditModalOpen(false);
       setSelectedStage(null);
-      setFormData({ name: '', description: '', duration: '', order: '' });
+      setFormData({ name: '', description: '', duration: '', position: '' });
     } catch (error: any) {
       console.error('Error updating stage:', error);
       toast.error(error.response?.data?.error || 'Erreur lors de la mise à jour');
     }
   };
 
-  const handleDeleteStage = async (stageId: number) => {
+  const handleDeleteStage = async (stageId: string) => {
     try {
-      await stagesApi.delete(stageId.toString());
+      await stagesApi.delete(stageId);
       setStages(stages.filter(s => s.id !== stageId));
       toast.success('Étape supprimée avec succès');
       setIsDeleteModalOpen(false);
@@ -148,7 +148,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
       name: stage.name,
       description: stage.description || '',
       duration: stage.duration?.toString() || '',
-      order: stage.order.toString()
+      position: stage.position.toString()
     });
     setIsEditModalOpen(true);
   };
@@ -290,10 +290,10 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4 flex-1">
-                  {/* Order Badge */}
+                  {/* Position Badge */}
                   <div className="flex flex-col items-center">
                     <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                      {stage.order}
+                      {stage.position}
                     </div>
                     {index < stages.length - 1 && (
                       <ChevronRight className="w-5 h-5 text-gray-300 mt-2 rotate-90" />
@@ -335,7 +335,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
                       <button
                         onClick={() => openCompleteModal(stage)}
                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Valider l'étape"
+                        title="Valider l\'étape"
                       >
                         <CheckCircle size={20} />
                       </button>
@@ -386,7 +386,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
             <form onSubmit={handleAddStage} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom de l'étape *
+                  Nom de l\'étape *
                 </label>
                 <input
                   type="text"
@@ -428,12 +428,12 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ordre
+                    Position
                   </label>
                   <input
                     type="number"
-                    value={formData.order}
-                    onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                     min="1"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
                     placeholder={`${stages.length + 1}`}
@@ -453,7 +453,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
                   type="submit"
                   className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                 >
-                  Créer l'étape
+                  Créer l\'étape
                 </button>
               </div>
             </form>
@@ -466,7 +466,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900">Modifier l'étape</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Modifier l\'étape</h2>
               <button
                 onClick={() => setIsEditModalOpen(false)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -478,7 +478,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
             <form onSubmit={handleEditStage} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom de l'étape *
+                  Nom de l\'étape *
                 </label>
                 <input
                   type="text"
@@ -517,12 +517,12 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ordre
+                    Position
                   </label>
                   <input
                     type="number"
-                    value={formData.order}
-                    onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                     min="1"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
                   />
@@ -555,7 +555,7 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Valider l'étape</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Valider l\'étape</h2>
                 <p className="text-sm text-gray-600 mt-1">{selectedStage.name}</p>
               </div>
               <button
@@ -663,16 +663,14 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
                   onClick={handleCompleteStage}
                   className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                 >
-                  Valider l'étape
+                  Valider l\'étape
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
+
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
@@ -689,3 +687,6 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
         description="Êtes-vous sûr de vouloir supprimer cette étape ?"
         itemName={selectedStage?.name}
       />
+    </div>
+  );
+}

@@ -6,29 +6,11 @@ import { api, projectsApi } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/permissions"
 import { MainLayout } from "@/components/layout/main-layout"
-import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  Badge,
-  Input,
-  Select,
-  VStack,
-  HStack,
-  Text,
-  Heading,
-  Spinner,
-  Center,
-  SimpleGrid,
-  Icon,
-  Menu,
-  InputGroup,
-  Flex,
-  Progress,
-  Wrap,
-  WrapItem
-} from '@chakra-ui/react'
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { FiPlus, FiSearch, FiCalendar, FiUsers, FiBarChart, FiAlertTriangle, FiMoreVertical, FiEdit, FiTrash2 } from 'react-icons/fi'
 import Link from "next/link"
 import { format } from "date-fns"
@@ -139,204 +121,165 @@ export default function ProjectsPage() {
   if (loading) {
     return (
       <MainLayout>
-        <Center h="50vh">
-          <Spinner size="xl" color="blue.500" />
-        </Center>
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+        </div>
       </MainLayout>
     )
   }
 
   return (
     <MainLayout>
-      <VStack spacing={6} align="stretch">
-        <Flex justify="space-between" align="center">
-          <Box>
-            <Heading size="xl" color="white">Projets</Heading>
-            <Text color="gray.400">Gérez vos projets</Text>
-          </Box>
+      <div className="space-y-6 flex flex-col items-stretch">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Projets</h1>
+            <p className="text-gray-400">Gérez vos projets</p>
+          </div>
           {hasPermission(authUser?.permissions || [], 'projects.create') && (
-            <Button as={Link} href="/projects/new" colorScheme="blue" leftIcon={<FiPlus />}>
-              Nouveau projet
+            <Button asChild>
+              <Link href="/projects/new">
+                <FiPlus className="mr-2" />
+                Nouveau projet
+              </Link>
             </Button>
           )}
-        </Flex>
+        </div>
 
-        <Flex gap={4}>
-          <InputGroup maxW="sm">
-            <InputLeftElement>
-              <Icon as={FiSearch} color="gray.400" />
-            </InputLeftElement>
+        <div className="flex gap-4">
+          <div className="relative max-w-sm">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <Input
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              bg="gray.700"
-              borderColor="gray.600"
-              color="white"
-              _placeholder={{ color: 'gray.400' }}
+              className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
             />
-          </InputGroup>
-          
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            w="200px"
-            bg="gray.700"
-            borderColor="gray.600"
-            color="white"
-          >
-            <option value="all">Tous les statuts</option>
-            <option value="planifie">Planifié</option>
-            <option value="en_cours">En cours</option>
-            <option value="en_pause">En pause</option>
-            <option value="termine">Terminé</option>
-            <option value="annule">Annulé</option>
+          </div>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[200px] bg-gray-700 border-gray-600 text-white">
+              <SelectValue placeholder="Tous les statuts" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les statuts</SelectItem>
+              <SelectItem value="planifie">Planifié</SelectItem>
+              <SelectItem value="en_cours">En cours</SelectItem>
+              <SelectItem value="en_pause">En pause</SelectItem>
+              <SelectItem value="termine">Terminé</SelectItem>
+              <SelectItem value="annule">Annulé</SelectItem>
+            </SelectContent>
           </Select>
-        </Flex>
+        </div>
 
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
-            <Card key={project.id} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400' }}>
-              <CardBody>
-                <VStack align="stretch" spacing={4}>
-                  <Flex justify="space-between" align="start">
-                    <VStack align="start" spacing={2} flex={1}>
-                      <Heading size="sm" color="white">{project.title}</Heading>
-                      <Text color="gray.300" fontSize="sm" noOfLines={2}>{project.description}</Text>
-                    </VStack>
-                    
-                    <HStack>
-                      {project.stats?.is_overdue && (
-                        <Icon as={FiAlertTriangle} color="red.400" />
-                      )}
-                      <Menu>
-                        <MenuButton as={Button} size="sm" variant="ghost">
-                          <Icon as={FiMoreVertical} />
-                        </MenuButton>
-                        <MenuList bg="gray.700" borderColor="gray.600">
-                          {hasPermission(authUser?.permissions || [], 'projects.update') && (
-                            <MenuItem
-                              onClick={() => {
-                                setProjectToEdit(project)
-                                setShowEditModal(true)
-                              }}
-                              icon={<FiEdit />}
-                            >
-                              Modifier
-                            </MenuItem>
-                          )}
-                          {hasPermission(authUser?.permissions || [], 'projects.delete') && (
-                            <MenuItem
-                              onClick={() => {
-                                setProjectToDelete(project)
-                                setShowDeleteModal(true)
-                              }}
-                              icon={<FiTrash2 />}
-                              color="red.400"
-                            >
-                              Supprimer
-                            </MenuItem>
-                          )}
-                        </MenuList>
-                      </Menu>
-                    </HStack>
-                  </Flex>
+            <Card key={project.id} className="bg-gray-800 border-gray-700 hover:border-blue-400">
+              <CardContent>
+                <div className="space-y-4 flex flex-col items-stretch">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2 flex-1">
+                      <h3 className="text-sm font-medium text-white">{project.title}</h3>
+                      <p className="text-gray-300 text-sm line-clamp-2">{project.description}</p>
+                    </div>
 
-                  <Wrap spacing={1}>
+                    <div className="flex items-center gap-2">
+                      {project.stats?.is_overdue && <FiAlertTriangle className="text-red-400" />}
+                      <Button variant="ghost" size="sm">
+                        <FiMoreVertical />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
                     {Object.entries(statusLabels).map(([statusKey, label]) => (
-                      <WrapItem key={statusKey}>
-                        <Button
-                          size="xs"
-                          variant={project.status === statusKey ? "solid" : "outline"}
-                          colorScheme={statusColors[statusKey as keyof typeof statusColors]}
-                          onClick={() => updateProjectStatus(project.id, statusKey as Project["status"])}
-                          isDisabled={!hasPermission(authUser?.permissions || [], 'projects.update')}
-                        >
-                          {label}
-                        </Button>
-                      </WrapItem>
+                      <Button
+                        key={statusKey}
+                        size="sm"
+                        variant={project.status === statusKey ? "default" : "outline"}
+                        onClick={() => updateProjectStatus(project.id, statusKey as Project["status"])}
+                        disabled={!hasPermission(authUser?.permissions || [], 'projects.update')}
+                        className={project.status === statusKey ? `bg-${statusColors[statusKey as keyof typeof statusColors]}-500` : ''}
+                      >
+                        {label}
+                      </Button>
                     ))}
-                  </Wrap>
+                  </div>
 
-                  <VStack align="stretch" spacing={2}>
-                    <HStack spacing={2}>
-                      <Icon as={FiCalendar} color="gray.400" boxSize={4} />
-                      <Text fontSize="sm" color="gray.400">
+                  <div className="space-y-2 flex flex-col items-stretch">
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="text-gray-400 w-4 h-4" />
+                      <p className="text-sm text-gray-400">
                         {format(new Date(project.start_date), "dd MMM", { locale: fr })} -{" "}
                         {format(new Date(project.end_date), "dd MMM yyyy", { locale: fr })}
-                      </Text>
-                    </HStack>
+                      </p>
+                    </div>
 
-                    <HStack spacing={2}>
-                      <Icon as={FiUsers} color="gray.400" boxSize={4} />
-                      <Text fontSize="sm" color="gray.400">
+                    <div className="flex items-center gap-2">
+                      <FiUsers className="text-gray-400 w-4 h-4" />
+                      <p className="text-sm text-gray-400">
                         {project.manager?.name || "Non assigné"}
-                      </Text>
-                    </HStack>
+                      </p>
+                    </div>
 
                     {project.stats && (
-                      <Box>
-                        <Flex justify="space-between" mb={2}>
-                          <Text fontSize="sm" color="gray.400">Progression</Text>
-                          <Text fontSize="sm" color="white" fontWeight="bold">
+                      <div>
+                        <div className="flex justify-between mb-2">
+                          <p className="text-sm text-gray-400">Progression</p>
+                          <p className="text-sm text-white font-bold">
                             {project.stats.progress_percentage}%
-                          </Text>
-                        </Flex>
-                        <Progress
-                          value={project.stats.progress_percentage}
-                          colorScheme="blue"
-                          size="sm"
-                          borderRadius="md"
-                        />
-                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          </p>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${project.stats.progress_percentage}%` }}></div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
                           {project.stats.completed_tasks}/{project.stats.total_tasks} tâches
-                        </Text>
-                      </Box>
+                        </p>
+                      </div>
                     )}
-                  </VStack>
+                  </div>
 
-                  <Button
-                    as={Link}
-                    href={`/projects/${project.id}`}
-                    variant="outline"
-                    size="sm"
-                    colorScheme="blue"
-                  >
-                    Voir détails
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/projects/${project.id}`}>Voir détails</Link>
                   </Button>
-                </VStack>
-              </CardBody>
+                </div>
+              </CardContent>
             </Card>
           ))}
-        </SimpleGrid>
+        </div>
 
         {filteredProjects.length === 0 && (
-          <Center py={12}>
-            <VStack>
-              <Icon as={FiBarChart3} boxSize={12} color="gray.500" />
-              <Heading size="md" color="white">Aucun projet</Heading>
-              <Text color="gray.400" textAlign="center">
+          <div className="flex justify-center py-12">
+            <div className="space-y-4">
+              <FiBarChart className="w-12 h-12 text-gray-500" />
+              <h2 className="text-xl font-semibold text-white">Aucun projet</h2>
+              <p className="text-gray-400 text-center">
                 {searchTerm || statusFilter !== "all"
                   ? "Aucun projet ne correspond à vos critères."
                   : "Commencez par créer votre premier projet."}
-              </Text>
+              </p>
               {hasPermission(authUser?.permissions || [], 'projects.create') && !searchTerm && statusFilter === "all" && (
-                <Button as={Link} href="/projects/new" colorScheme="blue" leftIcon={<FiPlus />}>
-                  Créer un projet
+                <Button asChild>
+                  <Link href="/projects/new">
+                    <FiPlus className="mr-2" />
+                    Créer un projet
+                  </Link>
                 </Button>
               )}
-            </VStack>
-          </Center>
+            </div>
+          </div>
         )}
-      </VStack>
+      </div>
 
       {projectToDelete && (
         <DeleteConfirmationModal
           isOpen={showDeleteModal}
           onClose={() => setShowDeleteModal(false)}
           onConfirm={handleDeleteProject}
+          title="Supprimer le projet"
+          description={`Êtes-vous sûr de vouloir supprimer le projet "${projectToDelete.title}" ? Cette action est irréversible.`}
           itemName={projectToDelete.title}
-          itemType="projet"
         />
       )}
 
@@ -344,7 +287,7 @@ export default function ProjectsPage() {
         <ProjectEditModal
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
-          project={projectToEdit}
+          project={projectToEdit as any}
           onProjectUpdated={handleEditProject}
         />
       )}

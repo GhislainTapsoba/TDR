@@ -5,10 +5,10 @@ import { Task, tasksApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, Calendar, Flag, User, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context'; // Updated import path for useAuth
-import { hasPermission } from '@/lib/permissions'; // Explicitly import hasPermission from lib
+import { hasPermission, mapRole } from '@/lib/permissions'; // Explicitly import hasPermission from lib
 
 interface TaskEditModalProps {
-  task: Task;
+  task: any;
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void; // Changed (updatedTask: Task) => void to () => void
@@ -26,7 +26,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
   const [loading, setLoading] = useState(false);
 
   // Corrected permission check
-  const canDelete = hasPermission(authUser?.permissions || [], 'tasks.delete');
+  const canDelete = hasPermission(mapRole(authUser?.role || ''), 'tasks.delete');
 
   useEffect(() => {
     // Mettre à jour le formulaire quand la tâche change
@@ -66,8 +66,8 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
     e.preventDefault();
 
     // Corrected permission check
-    const canUpdate = hasPermission(authUser?.permissions || [], 'tasks.update');
-    const isEmployeeAssignee = authUser?.role === 'EMPLOYEE' && task.assignees?.some((a: any) => a.id === authUser?.id);
+    const canUpdate = hasPermission(mapRole(authUser?.role || ''), 'tasks.update');
+    const isEmployeeAssignee = authUser?.role === 'employe' && task.assignees?.some((a: any) => a.id === authUser?.id);
 
     console.log('TaskEditModal: authUser', authUser);
     console.log('TaskEditModal: canUpdate', canUpdate);

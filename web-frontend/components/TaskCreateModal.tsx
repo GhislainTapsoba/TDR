@@ -5,7 +5,7 @@ import { tasksApi, projectsApi, usersApi, stagesApi, Project, User, Stage } from
 import toast from 'react-hot-toast';
 import { X, FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { canCreateTask, hasPermission } from '@/lib/permissions';
+import { canCreateTask, hasPermission, mapRole } from '@/lib/permissions';
 
 interface TaskCreateModalProps {
   isOpen: boolean;
@@ -34,7 +34,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
   useEffect(() => {
     if (isOpen) {
       loadProjects();
-      if (user && hasPermission(user.permissions || [], 'users.read')) {
+      if (user && hasPermission(mapRole(user.role), 'users.read')) {
         loadUsers();
       }
     }
@@ -78,7 +78,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
   const loadStages = async (projectId: string) => {
     try {
       const { data } = await stagesApi.getAll({ project_id: projectId });
-      setStages(data.sort((a, b) => a.order - b.order));
+      setStages(data.sort((a, b) => a.position - b.position));
     } catch (error) {
       console.error('Error loading stages:', error);
       setStages([]);
@@ -88,7 +88,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !canCreateTask(user.permissions || [])) {
+    if (!user || !canCreateTask(mapRole(user.role))) {
       toast.error("Vous n'avez pas la permission de créer une tâche.");
       return;
     }
@@ -282,7 +282,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
           </div>
 
           {/* Assigner à */}
-          {user && hasPermission(user.permissions || [], 'users.read') && (
+          {user && hasPermission(mapRole(user.role), 'users.read') && (
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <UserIcon size={18} />

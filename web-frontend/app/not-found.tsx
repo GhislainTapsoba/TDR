@@ -20,9 +20,11 @@ export default function NotFound() {
         <Text fontSize="xl" mb={6}>
           Page non trouvée
         </Text>
-        <Button as={Link} href="/dashboard" colorScheme="blue">
-          Retour au tableau de bord
-        </Button>
+        <Link href="/dashboard">
+          <Button colorScheme="blue">
+            Retour au tableau de bord
+          </Button>
+        </Link>
       </Box>
     </Box>
   )

@@ -55,3 +55,22 @@ export function usePermission(permission: string) {
       hasPermission(userPermissions, permission),
   };
 }
+
+export function canAccessRoute(role: string, pathname: string): boolean {
+  // TODO: Implement actual route access logic based on role and pathname
+  return true;
+}
+
+export function mapRole(role: string): string[] {
+  switch (role.toLowerCase()) {
+    case 'admin':
+      // Admins can do anything
+      return ['projects.create', 'projects.update', 'projects.delete', 'tasks.create', 'tasks.assign', 'users.update', 'users.delete', 'stages.create', 'stages.update', 'stages.delete'];
+    case 'manager':
+      return ['projects.create', 'projects.update', 'tasks.create', 'tasks.assign', 'stages.create', 'stages.update'];
+    case 'user':
+      return ['tasks.update']; // e.g. update status of their own tasks
+    default:
+      return [];
+  }
+}

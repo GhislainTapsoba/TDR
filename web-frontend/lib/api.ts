@@ -1,7 +1,19 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
 // NEXT_PUBLIC_API_URL contient déjà /api (exemple: /api pour production avec proxy)
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+
+interface ExtendedApi extends AxiosInstance {
+  getTasks(): Promise<{ tasks: Task[] }>;
+  updateTaskStatus(id: string | number, status: string): ReturnType<AxiosInstance['patch']>;
+  getProject(id: string | number): ReturnType<AxiosInstance['get']>;
+  getProjects(params?: Record<string, unknown>): Promise<{ projects: Project[] }>;
+  getUsers(params?: Record<string, unknown>): Promise<{ data: User[] }>;
+  getProjectStages(projectId: string | number): ReturnType<AxiosInstance['get']>;
+  updateUser(id: string, data: Partial<User>): ReturnType<AxiosInstance['put']>;
+  createTask(data: Partial<Task>): ReturnType<AxiosInstance['post']>;
+  exportData(types: string[], format: string, dateRange: string): Promise<unknown>;
+}
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -9,7 +21,7 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true,
-});
+}) as ExtendedApi;
 
 // Intercepteur pour gérer les requêtes
 api.interceptors.request.use((config) => {
@@ -39,23 +51,26 @@ api.interceptors.response.use(
 );
 
 // Add custom methods to api instance
-(api as any).getTasks = async () => {
+api.getTasks = async (): Promise<{ tasks: Task[] }> => {
   const res = await api.get('/tasks');
   return { tasks: res.data };
 };
 
-(api as any).updateTaskStatus = (id: string | number, status: string) => api.patch(`/tasks/${id}`, { status });
+api.updateTaskStatus = (id: string | number, status: string) => api.patch(`/tasks/${id}`, { status });
 
 // Additional methods for compatibility
-(api as any).getProject = (id: string | number) => api.get(`/projects/${id}`);
-(api as any).getProjects = async (params?: Record<string, unknown>) => {
+api.getProject = (id: string | number) => api.get(`/projects/${id}`);
+api.getProjects = async (params?: Record<string, unknown>): Promise<{ projects: Project[] }> => {
   const res = await api.get('/projects', { params });
   return { projects: res.data };
 };
-(api as any).getUsers = (params?: Record<string, unknown>) => api.get('/users', { params });
-(api as any).getProjectStages = (projectId: string | number) => api.get('/stages', { params: { project_id: projectId } });
-(api as any).updateUser = (id: string, data: Partial<User>) => api.put(`/users/${id}`, data);
-(api as any).createTask = (data: any) => api.post('/tasks', data);
+api.getUsers = async (params?: Record<string, unknown>): Promise<{ data: User[] }> => {
+  const res = await api.get('/users', { params });
+  return { data: res.data };
+};
+api.getProjectStages = (projectId: string | number) => api.get('/stages', { params: { project_id: projectId } });
+api.updateUser = (id: string, data: Partial<User>) => api.put(`/users/${id}`, data);
+api.createTask = (data: Partial<Task>) => api.post('/tasks', data);
 
 // Types
 export interface Project {
@@ -64,6 +79,7 @@ export interface Project {
   description: string | null;
   status: string;
   start_date: string | null;
+  end_date: string | null;
   due_date: string | null;
   manager_id?: string | null;
   manager_name?: string | null;
@@ -80,7 +96,20 @@ export interface Task {
   priority: string;
   project_id: string;
   stage_id: string | null;
-  assignees: string[];
+  assigned_to_id?: string;
+  assignees: {
+    id: string;
+    name: string;
+    email: string;
+  }[];
+  project: {
+    id: string;
+    title: string;
+  } | null;
+  stage: {
+    id: string;
+    name: string;
+  } | null;
   created_by_name?: string | null;
   due_date: string | null;
   created_at: string;
@@ -229,7 +258,7 @@ export const stagesApi = {
   create: (data: Partial<Stage>) => api.post<Stage>('/stages', data),
   update: (id: string, data: Partial<Stage>) => api.patch<Stage>(`/stages/${id}`, data),
   delete: (id: string) => api.delete(`/stages/${id}`),
-  complete: (id: string, tasks?: Task[]) => api.post(`/stages/${id}/complete`, { tasks }),
+  complete: (id: string, tasks?: Partial<Task>[]) => api.post(`/stages/${id}/complete`, { tasks }),
 };
 
 export const usersApi = {
@@ -254,6 +283,7 @@ export const documentsApi = {
   getAll: (params?: Record<string, unknown>) => api.get<Document[]>('/documents', { params }),
   getById: (id: string) => api.get<Document>(`/documents/${id}`),
   create: (data: Partial<Document>) => api.post<Document>('/documents', data),
+  update: (id: string, data: Partial<Document>) => api.put<Document>(`/documents/${id}`, data),
   delete: (id: string) => api.delete(`/documents/${id}`),
 };
 
@@ -288,6 +318,6 @@ export const exportApi = {
 };
 
 // Ajouter exportData à l'instance api pour compatibilité
-(api as any).exportData = exportApi.exportData;
+api.exportData = exportApi.exportData;
 
 export default api;

@@ -16,7 +16,7 @@ import { api, Task } from "@/lib/api";
 interface TaskRefusalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  task: Task;
+  task: any;
   onSave: () => void; // Callback to refresh tasks after refusal
 }
 

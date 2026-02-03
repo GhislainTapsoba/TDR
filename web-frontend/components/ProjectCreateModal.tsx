@@ -29,8 +29,8 @@ import { cn } from "@/lib/utils"
 const projectSchema = z.object({
   title: z.string().min(1, "Le titre est requis"),
   description: z.string().optional(),
-  start_date: z.date({ required_error: "La date de début est requise." }),
-  end_date: z.date({ required_error: "La date de fin est requise." }),
+  start_date: z.date({ message: "La date de début est requise." }),
+  end_date: z.date({ message: "La date de fin est requise." }),
   due_date: z.date().optional(),
   status: z.string().optional(),
   manager_id: z.string().min(1, "Le manager est requis"),
@@ -143,7 +143,7 @@ export function ProjectCreateModal({ isOpen, onClose, onProjectCreated }: Projec
     setStages(stages.filter((_, i) => i !== index))
   }
 
-  const updateStage = (index: number, field: keyof Stage, value: any) => {
+  const updateStage = <K extends keyof Stage>(index: number, field: K, value: Stage[K]) => {
     const updatedStages = [...stages]
     updatedStages[index][field] = value;
     setStages(updatedStages)

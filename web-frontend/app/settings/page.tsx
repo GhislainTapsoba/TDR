@@ -104,9 +104,8 @@ export default function SettingsPage() {
             formData.append('avatar', profile.avatar);
         }
 
-        // @ts-ignore
-        const updatedUser = await api.updateUser(user.id, formData);
-        
+        const updatedUser = await api.updateUser(user.id, formData as any) as { user: any };
+
         // Update the session with the new user data
         await updateSession({ ...session, user: { ...user, ...updatedUser.user } });
 

@@ -38,11 +38,10 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal"
 interface Task {
   id: string
   title: string
-  description: string
-  status: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "COMPLETED" | "CANCELLED"
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
+  description: string | null
+  status: string
+  priority: string
   due_date: string | null
-  assigned_to: string | null
   assignees: {
     id: string
     name: string
@@ -51,7 +50,7 @@ interface Task {
   project: {
     id: string
     title: string
-  }
+  } | null
   stage: {
     id: string
     name: string
@@ -168,8 +167,8 @@ export default function TasksPage() {
     return tasks.filter((task) => {
       const matchesSearch =
         (task.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        task.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (task.project.title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        (task.description?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (task.project?.title?.toLowerCase() || '').includes(searchTerm.toLowerCase())
       const matchesStatus = statusFilter === "all" || task.status === statusFilter
       const matchesPriority = priorityFilter === "all" || task.priority === priorityFilter
       return matchesSearch && matchesStatus && matchesPriority
@@ -183,7 +182,9 @@ export default function TasksPage() {
           <VStack>
             <Heading size="md" color="white">Accès refusé</Heading>
             <Text color="gray.400">Vous n'avez pas la permission de voir cette page.</Text>
-            <Button as={Link} href="/dashboard" colorScheme="blue">Retour au tableau de bord</Button>
+            <Link href="/dashboard" passHref>
+              <Button as="a" colorScheme="blue">Retour au tableau de bord</Button>
+            </Link>
           </VStack>
         </Center>
       </MainLayout>
@@ -223,9 +224,11 @@ export default function TasksPage() {
             <Text color="gray.400">Gérez vos tâches</Text>
           </Box>
           {permissions.canCreateTasks && (
-            <Button as={Link} href="/tasks/new" colorScheme="blue" leftIcon={<FiPlus />}>
-              Nouvelle tâche
-            </Button>
+            <Link href="/tasks/new" passHref>
+              <Button as="a" colorScheme="blue" leftIcon={<FiPlus />}>
+                Nouvelle tâche
+              </Button>
+            </Link>
           )}
         </Flex>
 
@@ -291,12 +294,12 @@ export default function TasksPage() {
                     
                     <Wrap spacing={2}>
                       <WrapItem>
-                        <Badge colorScheme={statusColors[task.status]}>
-                          {statusLabels[task.status]}
+                        <Badge colorScheme={statusColors[task.status as keyof typeof statusColors]}>
+                          {statusLabels[task.status as keyof typeof statusLabels]}
                         </Badge>
                       </WrapItem>
                       <WrapItem>
-                        <Badge variant="outline">{priorityLabels[task.priority]}</Badge>
+                        <Badge variant="outline">{priorityLabels[task.priority as keyof typeof priorityLabels]}</Badge>
                       </WrapItem>
                       {task.project && (
                         <WrapItem>
@@ -375,9 +378,11 @@ export default function TasksPage() {
                   : "Aucune tâche créée."}
               </Text>
               {permissions.canCreateTasks && !searchTerm && statusFilter === "all" && priorityFilter === "all" && (
-                <Button as={Link} href="/tasks/new" colorScheme="blue" leftIcon={<FiPlus />}>
-                  Créer une tâche
-                </Button>
+                <Link href="/tasks/new" passHref>
+                  <Button as="a" colorScheme="blue" leftIcon={<FiPlus />}>
+                    Créer une tâche
+                  </Button>
+                </Link>
               )}
             </VStack>
           </Center>

@@ -46,7 +46,7 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
       await usersApi.create({
         name: formData.name,
         email: formData.email,
-        password: formData.password,
+
         role: roleMapping[formData.role] || 'employe',
         is_active: formData.is_active,
       });

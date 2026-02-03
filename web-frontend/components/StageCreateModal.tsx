@@ -19,7 +19,7 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    order: 0,
+    position: 0,
     duration: '',
     project_id: defaultProjectId || '',
   });
@@ -33,7 +33,7 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
       setFormData({
         name: '',
         description: '',
-        order: 0,
+        position: 0,
         duration: '',
         project_id: defaultProjectId || '',
       });
@@ -53,7 +53,7 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !hasPermission(mapRole(user.role), 'stages', 'create')) {
+    if (!user || !hasPermission(mapRole(user.role), 'stages.create')) {
       toast.error("Vous n'avez pas la permission de créer une étape.");
       return;
     }
@@ -70,7 +70,7 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
       await stagesApi.create({
         name: formData.name,
         description: formData.description || null,
-        order: formData.order,
+        position: formData.position,
         duration: formData.duration ? parseInt(formData.duration) : null,
         project_id: formData.project_id,
       });
@@ -79,7 +79,7 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
       setFormData({
         name: '',
         description: '',
-        order: 0,
+        position: 0,
         duration: '',
         project_id: defaultProjectId || '',
       });
@@ -169,17 +169,17 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
             />
           </div>
 
-          {/* Ordre et Durée */}
+          {/* Position et Durée */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <Hash size={18} />
-                Ordre
+                Position
               </label>
               <input
                 type="number"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: parseInt(e.target.value) || 0 })}
                 min="0"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white text-gray-900"
                 placeholder="0"
@@ -207,7 +207,7 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
           {/* Info Box */}
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
             <p className="text-sm text-purple-800">
-              💡 <strong>Astuce :</strong> L'ordre détermine la séquence des étapes. Par exemple : Conception (ordre 0), Développement (ordre 1), Tests (ordre 2).
+              💡 <strong>Astuce :</strong> La position détermine la séquence des étapes. Par exemple : Conception (position 0), Développement (position 1), Tests (position 2).
             </p>
           </div>
 

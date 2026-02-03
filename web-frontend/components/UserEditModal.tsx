@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { X, User as UserIcon, Mail, Lock, Shield } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
-import { canManageUsers } from '@/lib/permissions';
+import { canManageUsers, mapRole } from '@/lib/permissions';
 
 interface UserEditModalProps {
   user: User;
@@ -40,7 +40,7 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!currentUser || !canManageUsers(currentUser.permissions || [])) {
+    if (!currentUser || !canManageUsers(mapRole(currentUser?.role || ''))) {
       toast.error("Vous n'avez pas la permission de modifier un utilisateur.");
       return;
     }

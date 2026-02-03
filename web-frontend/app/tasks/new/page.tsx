@@ -27,7 +27,7 @@ interface UserType {
 interface Project {
   id: string
   title: string
-  description: string
+  description: string | null
   status: string
 }
 

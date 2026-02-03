@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['geist'],
   // Désactiver Vercel Analytics
   experimental: {
     webVitalsAttribution: ['CLS', 'LCP']

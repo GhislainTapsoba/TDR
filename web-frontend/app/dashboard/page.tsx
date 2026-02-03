@@ -8,13 +8,13 @@ import {
   Text,
   VStack,
   HStack,
-  Progress,
   Badge,
   Spinner,
   Center,
   Icon,
   Flex
 } from '@chakra-ui/react'
+import { Progress } from '@/components/ui/progress'
 import { FiFolder, FiCheckSquare, FiClock, FiAlertTriangle, FiUsers, FiTrendingUp, FiActivity } from 'react-icons/fi'
 import { MainLayout } from "@/components/layout/main-layout"
 import { dashboardApi, activityLogsApi, ActivityLog, Project, Task } from "@/lib/api"
@@ -161,7 +161,7 @@ export default function DashboardPage() {
                   <Text color="gray.300" fontSize="sm">Tâches terminées</Text>
                   <Text color="blue.400" fontWeight="bold">{getProgressPercentage()}%</Text>
                 </Flex>
-                <Progress value={getProgressPercentage()} colorScheme="blue" size="lg" borderRadius="md" />
+                <Progress value={getProgressPercentage()} className="h-4" />
               </Box>
 
               {stats.tasksByStatus && (

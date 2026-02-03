@@ -94,7 +94,7 @@ export function exportTasksToPDF(tasks: Task[]) {
     t.title,
     getTaskStatusLabel(t.status),
     getPriorityLabel(t.priority),
-    t.assigned_to?.name || 'Non assignée',
+    t.assignees?.[0]?.name || 'Non assignée',
     t.due_date ? new Date(t.due_date).toLocaleDateString('fr-FR') : '-',
   ]);
 
@@ -295,7 +295,7 @@ export function exportTasksToExcel(tasks: Task[]) {
     'Titre': t.title,
     'Statut': getTaskStatusLabel(t.status),
     'Priorité': getPriorityLabel(t.priority),
-    'Assigné à': t.assigned_to?.name || 'Non assignée',
+    'Assigné à': t.assignees?.[0]?.name || 'Non assignée',
     'Projet': t.project?.title || '',
     'Échéance': t.due_date ? new Date(t.due_date).toLocaleDateString('fr-FR') : '',
     'Description': t.description || '',
@@ -396,7 +396,7 @@ export function exportAnalyticsToExcel(
     'Titre': t.title,
     'Statut': getTaskStatusLabel(t.status),
     'Priorité': getPriorityLabel(t.priority),
-    'Assigné': t.assigned_to?.name || 'Non assignée',
+    'Assigné': t.assignees?.[0]?.name || 'Non assignée',
     'Projet': t.project?.title || '',
     'Échéance': t.due_date ? new Date(t.due_date).toLocaleDateString('fr-FR') : '',
   }));
