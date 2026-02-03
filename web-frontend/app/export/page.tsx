@@ -107,25 +107,24 @@ export default function ExportPage() {
 
       if (format === "json") {
         // Pour JSON
-        const response = await api.get('/export', {
-          params: {
-            types: selectedTypes.join(','),
-            format: 'json',
-            startDate: dateRange === 'all' ? undefined : dateRange,
-            endDate: dateRange === 'all' ? undefined : new Date().toISOString().split('T')[0]
-          }
+        const response = await api.post('/export', {
+          types: selectedTypes.join(','),
+          format: 'json',
+          dateRange: dateRange,
+          // startDate: dateRange === 'all' ? undefined : dateRange,
+          // endDate: dateRange === 'all' ? undefined : new Date().toISOString().split('T')[0]
         })
         const jsonString = JSON.stringify(response.data, null, 2)
         blob = new Blob([jsonString], { type: "application/json" })
       } else {
         // Pour Excel et CSV
-        const response = await api.get('/export', {
-          params: {
-            types: selectedTypes.join(','),
-            format,
-            startDate: dateRange === 'all' ? undefined : dateRange,
-            endDate: dateRange === 'all' ? undefined : new Date().toISOString().split('T')[0]
-          },
+        const response = await api.post('/export', {
+          types: selectedTypes.join(','),
+          format,
+          dateRange: dateRange,
+          // startDate: dateRange === 'all' ? undefined : dateRange,
+          // endDate: dateRange === 'all' ? undefined : new Date().toISOString().split('T')[0]
+        }, {
           responseType: 'blob'
         })
         blob = response.data

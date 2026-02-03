@@ -28,6 +28,14 @@ interface DashboardStats {
   tasksByStatus?: Record<string, number>
 }
 
+const statusLabels = {
+  TODO: "À faire",
+  IN_PROGRESS: "En cours",
+  IN_REVIEW: "En revue",
+  COMPLETED: "Terminé",
+  CANCELLED: "Annulé",
+}
+
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({})
   const [activities, setActivities] = useState<ActivityLog[]>([])
@@ -151,7 +159,7 @@ export default function DashboardPage() {
                   <div className="flex flex-wrap gap-2">
                     {Object.entries(stats.tasksByStatus).map(([status, count]) => (
                       <Badge key={status} variant="secondary" className="px-3 py-1">
-                        {status}: {count}
+                        {statusLabels[status as keyof typeof statusLabels] || status}: {count}
                       </Badge>
                     ))}
                   </div>

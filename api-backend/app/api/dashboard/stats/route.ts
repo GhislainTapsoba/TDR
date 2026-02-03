@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
       tasksByStatusResult,
       projectsByStatusResult,
       stagesByStatusResult,
+      overdueTasksCountResult,
     ] = await Promise.all([
       db.query('SELECT COUNT(*)::int FROM projects'),
       db.query('SELECT COUNT(*)::int FROM tasks'),
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
       db.query('SELECT status, COUNT(*)::int FROM tasks GROUP BY status'),
       db.query('SELECT status, COUNT(*)::int FROM projects GROUP BY status'),
       db.query('SELECT status, COUNT(*)::int FROM stages GROUP BY status'),
+      db.query("SELECT COUNT(*)::int FROM tasks WHERE due_date < NOW() AND status != 'COMPLETED'"),
     ]);
 
     const projectsCount = projectsCountResult.rows[0].count;
@@ -87,6 +89,7 @@ export async function GET(request: NextRequest) {
     const completedStagesCount = completedStagesCountResult.rows[0].count;
     const recentProjects = recentProjectsResult.rows;
     const recentTasks = recentTasksResult.rows;
+    const overdueTasksCount = overdueTasksCountResult.rows[0].count;
 
     const statusCounts: { [key: string]: number } = {
       TODO: 0, IN_PROGRESS: 0, IN_REVIEW: 0, COMPLETED: 0, CANCELLED: 0
@@ -111,7 +114,7 @@ export async function GET(request: NextRequest) {
       completedTasks: completedTasksCount || 0,
       pendingTasks: statusCounts.TODO || 0,
       activeTasks: statusCounts.IN_PROGRESS || 0,
-      overdueTasks: 0, // TODO: implement overdue logic
+      overdueTasks: overdueTasksCount || 0,
       totalStages: stagesCount || 0,
       completedStages: completedStagesCount || 0,
       myProjects: myProjectsCount || 0,

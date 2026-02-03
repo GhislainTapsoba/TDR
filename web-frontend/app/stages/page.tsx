@@ -170,63 +170,69 @@ export default function StagesPage() {
             </Select>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.isArray(filteredStages) &&
               filteredStages.filter(Boolean).map((stage) => (
-                <Card key={stage.id}
-                  className="hover:shadow-lg transition-all duration-200 border-border/50 bg-card/50 backdrop-blur-sm"
-                >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1">
-                          <div className="text-sm">
-                            <strong>Titre:</strong> {stage.name}
-                          </div>
+                <Card key={stage.id} className="shadow-lg hover:shadow-xl transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-2 flex-1">
+                          <h3 className="font-semibold text-card-foreground line-clamp-2">{stage.name}</h3>
+
                           {stage.description && (
-                            <div className="text-sm">
-                              <strong>Description:</strong> {stage.description}
-                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2">{stage.description}</p>
                           )}
-                          <div className="text-sm">
-                            <strong>Statut:</strong> {statusLabels[stage.status]}
+
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge className={statusColors[stage.status]}>
+                              {statusLabels[stage.status]}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <span>Projet:</span>
-                              <Link href={`/projects/${stage.project_id}`} className="text-primary hover:underline">
-                                {stage.project_title || `Projet ${stage.project_id}`}
-                              </Link>
-                            </div>
+
+                          <div className="space-y-2 text-sm text-muted-foreground">
+                            {stage.project_title && (
+                              <div className="flex items-center gap-2">
+                                <span>Projet:</span>
+                                <Link href={`/projects/${stage.project_id}`} className="text-primary hover:underline">
+                                  {stage.project_title}
+                                </Link>
+                              </div>
+                            )}
                             {stage.created_by_name && (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-2">
                                 <User className="h-3 w-3" />
                                 <span>{stage.created_by_name}</span>
                               </div>
                             )}
                             {stage.duration && (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-2">
                                 <Calendar className="h-3 w-3" />
                                 <span>{stage.duration} jours</span>
                               </div>
                             )}
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          {stage.status === "COMPLETED" ? (
+                            <CheckCircle className="h-6 w-6 text-emerald-400" />
+                          ) : stage.status === "IN_PROGRESS" ? (
+                            <Clock className="h-6 w-6 text-amber-400" />
+                          ) : (
+                            <Circle className="h-6 w-6 text-slate-400" />
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
                         <div className="flex gap-1">
                           {Object.entries(statusLabels).map(([statusKey, label]) => (
                             <Button
                               key={statusKey}
-                              variant={stage.status === statusKey ? "default" : "outline"}
                               size="sm"
-                              className={`px-2 py-1 text-xs ${statusColors[statusKey as keyof typeof statusColors]} ${
-                                stage.status === statusKey ? 'ring-2 ring-offset-1' : ''
-                              }`}
+                              variant={stage.status === statusKey ? "default" : "outline"}
+                              className={statusColors[statusKey as keyof typeof statusColors]}
                               onClick={() => updateStageStatus(stage.id, statusKey as Stage["status"])}
                               disabled={!canUpdateStages}
                             >
@@ -234,42 +240,17 @@ export default function StagesPage() {
                             </Button>
                           ))}
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-2">
-                        {stage.status === "COMPLETED" ? (
-                          <CheckCircle className="h-6 w-6 text-emerald-400" />
-                        ) : stage.status === "IN_PROGRESS" ? (
-                          <Clock className="h-6 w-6 text-amber-400" />
-                        ) : (
-                          <Circle className="h-6 w-6 text-slate-400" />
-                        )}
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" onClick={(e) => e.preventDefault()}>
-                              <MoreVertical className="h-4 w-4" />
+                        <div className="flex items-center gap-1">
+                          {canUpdateStages && (
+                            <Button size="sm" variant="ghost" onClick={() => handleStageEdit(stage)}>
+                              <Edit className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {canUpdateStages && (
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleStageEdit(stage);
-                                }}
-                              >
-                                <Edit className="h-4 w-4 mr-2" />
-                                Modifier
-                              </DropdownMenuItem>
-                            )}
-                            {/* Delete is handled inside StageEditModal */}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
+                  </CardContent>
                 </Card>
               ))}
           </div>

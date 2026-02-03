@@ -5,29 +5,13 @@ import Link from "next/link"
 import { useSession } from "next-auth/react"
 import { usersApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
-import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  Badge,
-  Input,
-  Select,
-  VStack,
-  HStack,
-  Text,
-  Heading,
-  Spinner,
-  Center,
-  SimpleGrid,
-  Icon,
-  Avatar,
-  InputGroup,
-  Flex,
-  Wrap,
-  WrapItem
-} from '@chakra-ui/react'
-import { FiPlus, FiSearch, FiMail, FiShield, FiUser, FiBriefcase, FiAward } from 'react-icons/fi'
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Plus, Search, Mail, Shield, User, Briefcase, Award, Loader2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/permissions"
 import UserEditModal from "@/components/UserEditModal"
@@ -40,15 +24,15 @@ const roleLabels = {
 }
 
 const roleColors = {
-  admin: "red",
-  manager: "blue",
-  employe: "green",
+  admin: "bg-red-500/10 text-red-400 border-red-500/20",
+  manager: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  employe: "bg-green-500/10 text-green-400 border-green-500/20",
 }
 
 const roleIcons = {
-  admin: FiAward,
-  manager: FiBriefcase,
-  employe: FiUser,
+  admin: Award,
+  manager: Briefcase,
+  employe: User,
 }
 
 export default function UsersPage() {
@@ -107,158 +91,134 @@ export default function UsersPage() {
   if (status === 'loading' || loading) {
     return (
       <MainLayout>
-        <Center h="50vh">
-          <Spinner size="xl" color="blue.500" />
-        </Center>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       </MainLayout>
     )
   }
-  
+
   if (!canReadUsers) {
     return (
       <MainLayout>
-        <Center py={12}>
-          <VStack>
-            <Icon as={FiShield} boxSize={12} color="muted-foreground" />
-            <Heading size="md" color="card-foreground">Accès refusé</Heading>
-            <Text color="muted-foreground">Vous n'avez pas les permissions nécessaires.</Text>
-          </VStack>
-        </Center>
+        <div className="text-center py-12">
+          <Shield className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-card-foreground mb-2">Accès refusé</h3>
+          <p className="text-muted-foreground">Vous n'avez pas les permissions nécessaires.</p>
+        </div>
       </MainLayout>
     )
   }
-  
+
   return (
     <MainLayout>
-      <VStack spacing={6} align="stretch">
-        <Flex justify="space-between" align="center">
-          <Box>
-            <Heading size="xl" color="card-foreground">Utilisateurs</Heading>
-            <Text color="muted-foreground">Gérez les utilisateurs</Text>
-          </Box>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Utilisateurs</h1>
+            <p className="text-muted-foreground">Gérez les utilisateurs</p>
+          </div>
           {canCreateUsers && (
-            <Button as={Link} href="/users/create" colorScheme="blue" leftIcon={<FiPlus />}>
-              Nouvel utilisateur
+            <Button asChild>
+              <Link href="/users/create">
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvel utilisateur
+              </Link>
             </Button>
           )}
-        </Flex>
+        </div>
 
-        <Flex gap={4}>
-          <InputGroup maxW="sm">
+        <div className="flex gap-4 items-center flex-wrap">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Rechercher..."
+              placeholder="Rechercher un utilisateur..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
             />
-          </InputGroup>
-          
-          <Select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            w="200px"
-          >
-            <option value="all">Tous les rôles</option>
-            <option value="admin">Administrateur</option>
-            <option value="manager">Manager</option>
-            <option value="employe">Employé</option>
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filtrer par rôle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les rôles</SelectItem>
+              <SelectItem value="admin">Administrateur</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="employe">Employé</SelectItem>
+            </SelectContent>
           </Select>
-        </Flex>
+        </div>
 
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredUsers.map((user) => {
-            const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || FiUser
+            const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || User
             return (
-              <Card key={user.id} bg="card" borderColor="border" shadow="lg" borderRadius="xl" p={6} _hover={{ borderColor: 'primary', shadow: 'xl' }}>
-                <CardBody p={0}>
-                  <VStack spacing={4}>
-                    <HStack w="full" justify="space-between">
-                      <HStack>
-                        <Avatar size="md" name={user.name} bg="primary">
+              <Card key={user.id} className="shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2 flex-1">
+                        <h3 className="font-semibold text-card-foreground line-clamp-2">{user.name}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{user.email}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className={roleColors[user.role as keyof typeof roleColors]}>
+                            {roleLabels[user.role as keyof typeof roleLabels]}
+                          </Badge>
+                          <Badge variant="outline" className={user.is_active ? "border-green-500 text-green-700" : "border-gray-500 text-gray-700"}>
+                            {user.is_active ? "Actif" : "Inactif"}
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <span>Créé le:</span>
+                            <span>{new Date(user.created_at).toLocaleDateString("fr-FR")}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Avatar>
+                          <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                         </Avatar>
-                        <VStack align="start" spacing={0}>
-                          <Heading size="sm" color="card-foreground">{user.name}</Heading>
-                          <HStack spacing={1}>
-                            <Icon as={FiMail} boxSize={3} color="muted-foreground" />
-                            <Text fontSize="sm" color="muted-foreground">{user.email}</Text>
-                          </HStack>
-                        </VStack>
-                      </HStack>
-                    </HStack>
-
-                    <Wrap spacing={2} w="full" justify="center">
-                      <WrapItem>
-                        <Badge colorScheme={roleColors[user.role as keyof typeof roleColors]} variant="subtle">
-                          <Icon as={RoleIcon} mr={1} />
-                          {roleLabels[user.role as keyof typeof roleLabels]}
-                        </Badge>
-                      </WrapItem>
-                      <WrapItem>
-                        <Badge colorScheme={user.is_active ? "green" : "gray"} variant="outline">
-                          {user.is_active ? "Actif" : "Inactif"}
-                        </Badge>
-                      </WrapItem>
-                    </Wrap>
-
-                    <Text fontSize="xs" color="muted-foreground">
-                      Créé le {new Date(user.created_at).toLocaleDateString("fr-FR")}
-                    </Text>
-
-                    <HStack w="full" spacing={2}>
-                      <Button
-                        as={Link}
-                        href={`/users/${user.id}/view`}
-                        size="sm"
-                        variant="outline"
-                        flex={1}
-                      >
-                        Voir
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={`/users/${user.id}/view`}>Voir</Link>
                       </Button>
                       {canUpdateUsers && (
-                        <Button
-                          size="sm"
-                          colorScheme="blue"
-                          flex={1}
-                          onClick={() => {
-                            setSelectedUser(user)
-                            setIsEditModalOpen(true)
-                          }}
-                        >
-                          Modifier
-                        </Button>
+                        <Button size="sm" onClick={() => { setSelectedUser(user); setIsEditModalOpen(true); }}>Modifier</Button>
                       )}
                       {canDeleteUsers && (
-                        <Button
-                          size="sm"
-                          colorScheme="red"
-                          flex={1}
-                          onClick={() => {
-                            setSelectedUser(user)
-                            setIsDeleteModalOpen(true)
-                          }}
-                        >
-                          Supprimer
-                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => { setSelectedUser(user); setIsDeleteModalOpen(true); }}>Supprimer</Button>
                       )}
-                    </HStack>
-                  </VStack>
-                </CardBody>
+                    </div>
+                  </div>
+                </CardContent>
               </Card>
             )
           })}
-        </SimpleGrid>
+        </div>
 
         {filteredUsers.length === 0 && (
-          <Center py={12}>
-            <VStack>
-              <Icon as={FiUser} boxSize={12} color="muted-foreground" />
-              <Heading size="md" color="card-foreground">Aucun utilisateur</Heading>
-              <Text color="muted-foreground" textAlign="center">
-                {searchTerm || roleFilter !== "all"
-                  ? "Aucun utilisateur ne correspond à vos critères."
-                  : "Aucun utilisateur créé."}
-              </Text>
-            </VStack>
-          </Center>
+          <div className="text-center py-12">
+            <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-card-foreground mb-2">Aucun utilisateur</h3>
+            <p className="text-muted-foreground">
+              {searchTerm || roleFilter !== "all"
+                ? "Aucun utilisateur ne correspond à vos critères."
+                : "Aucun utilisateur créé."}
+            </p>
+            {canCreateUsers && !searchTerm && roleFilter === "all" && (
+              <Button asChild className="mt-4">
+                <Link href="/users/create">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer un utilisateur
+                </Link>
+              </Button>
+            )}
+          </div>
         )}
 
         {selectedUser && (
@@ -291,7 +251,7 @@ export default function UsersPage() {
             />
           </>
         )}
-      </VStack>
+      </div>
     </MainLayout>
   )
 }
