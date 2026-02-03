@@ -6,9 +6,9 @@ import { tasksApi } from "@/lib/api"
 import { MainLayout } from "@/components/layout/main-layout"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge" // This badge seems to be from components/ui, not Chakra UI
+import { Input } from "@/components/ui/input" // This input seems to be from components/ui, not Chakra UI
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // This select seems to be from components/ui, not Chakra UI
 import { Loader2, Plus, Search, Calendar, User, AlertTriangle, CheckCircle, Clock, MoreVertical, Edit, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -17,6 +17,10 @@ import { useAuth } from "@/contexts/auth-context"
 import { hasPermission } from "@/lib/permissions"
 import TaskEditModal from "@/components/TaskEditModal"
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal"
+import {
+  Center, VStack, Heading, Text, Spinner, Icon, Flex, Box, HStack, Wrap, WrapItem, CardBody
+} from "@chakra-ui/react"
+import { FiAlertTriangle, FiCheckCircle, FiPlus, FiEdit, FiTrash2, FiUser, FiCalendar } from "react-icons/fi"
 
 interface Task {
   id: string
