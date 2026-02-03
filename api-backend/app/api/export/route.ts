@@ -284,5 +284,5 @@ async function convertToXLSX(data: any, types: string[]): Promise<Buffer> {
   }
 
 
-  return await workbook.xlsx.writeBuffer();
+  return await workbook.xlsx.writeBuffer() as Buffer;
 }

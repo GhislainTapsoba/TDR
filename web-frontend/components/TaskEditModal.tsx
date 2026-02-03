@@ -5,7 +5,7 @@ import { Task, tasksApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Calendar, Flag, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context'; // Updated import path for useAuth
-import { hasPermission, mapRole } from '@/lib/permissions'; // Explicitly import hasPermission from lib
+import { hasPermission } from '@/lib/permissions'; // Explicitly import hasPermission from lib
 import {
   Dialog,
   DialogContent,
@@ -43,8 +43,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
   });
   const [loading, setLoading] = useState(false);
 
-  // Corrected permission check
-  const canDelete = hasPermission(mapRole(authUser?.role || ''), 'tasks.delete');
+  const canDelete = hasPermission(authUser?.permissions || [], 'tasks.delete');
 
   useEffect(() => {
     // Mettre à jour le formulaire quand la tâche change
@@ -83,8 +82,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Corrected permission check
-    const canUpdate = hasPermission(mapRole(authUser?.role || ''), 'tasks.update');
+    const canUpdate = hasPermission(authUser?.permissions || [], 'tasks.update');
     const isEmployeeAssignee = authUser?.role === 'employe' && task.assignees?.some((a: any) => a.id === authUser?.id);
 
     console.log('TaskEditModal: authUser', authUser);
@@ -98,7 +96,7 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
     }
 
     // Un utilisateur ne peut modifier que ses propres tâches
-    if (authUser?.role?.toLowerCase() === 'employee' && !task.assignees?.some((a: any) => a.id === authUser?.id)) {
+    if (authUser?.role?.toLowerCase() === 'employe' && !task.assignees?.some((a: any) => a.id === authUser?.id)) {
       toast.error("Vous ne pouvez modifier que les tâches qui vous sont assignées.");
       return;
     }
