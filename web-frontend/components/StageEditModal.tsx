@@ -19,12 +19,12 @@ interface StageEditModalProps {
 export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: StageEditModalProps) {
   const { user: authUser } = useAuth(); // Use authUser for consistency
   const [formData, setFormData] = useState({
-    name: stage.name,
-    description: stage.description || '',
-    position: stage.position,
-    duration: stage.duration?.toString() || '',
-    status: stage.status,
-    project_id: stage.project_id.toString(),
+    name: stage?.name || '',
+    description: stage?.description || '',
+    position: stage?.position || 0,
+    duration: stage?.duration?.toString() || '',
+    status: stage?.status || '',
+    project_id: stage?.project_id || '',
   });
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -35,12 +35,12 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
   useEffect(() => {
     // Mettre à jour le formulaire quand l'étape change
     setFormData({
-      name: stage.name,
-      description: stage.description || '',
-      position: stage.position,
-      duration: stage.duration?.toString() || '',
-      status: stage.status,
-      project_id: stage.project_id.toString(),
+      name: stage?.name || '',
+      description: stage?.description || '',
+      position: stage?.position || 0,
+      duration: stage?.duration?.toString() || '',
+      status: stage?.status || '',
+      project_id: stage?.project_id || '',
     });
   }, [stage]);
 
@@ -60,6 +60,11 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
   };
 
   const handleDelete = async () => {
+    if (!stage?.id) {
+      toast.error("Impossible de supprimer une étape sans ID.");
+      return;
+    }
+
     if (!canDelete) {
       toast.error("Vous n'avez pas la permission de supprimer une étape.");
       return;
@@ -84,6 +89,11 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!stage?.id) {
+      toast.error("Impossible de modifier une étape sans ID.");
+      return;
+    }
 
     // Corrected permission check
     if (!authUser || !hasPermission(authUser.permissions || [], 'stages.update')) {
@@ -128,11 +138,13 @@ export default function StageEditModal({ stage, isOpen, onClose, onSuccess }: St
               <Layers className="text-purple-600" size={24} />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Modifier l'Étape</h2>
-            <Link href={`/stages/${stage.id}/view`}>
-              <Button variant="outline" size="sm">
-                Voir l'étape
-              </Button>
-            </Link>
+            {stage?.id && ( // Only render link if stage.id exists
+              <Link href={`/stages/${stage.id}/view`}>
+                <Button variant="outline" size="sm">
+                  Voir l'étape
+                </Button>
+              </Link>
+            )}
           </div>
           <button
             onClick={onClose}
