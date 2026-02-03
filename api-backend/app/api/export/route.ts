@@ -3,6 +3,7 @@ import { verifyAuth } from '@/lib/verifyAuth';
 import { db } from '@/lib/db';
 import { handleCorsOptions, corsResponse } from '@/lib/cors';
 import { mapDbRoleToUserRole, requirePermission } from '@/lib/permissions';
+import ExcelJS from 'exceljs';
 
 export async function OPTIONS(request: NextRequest) {
   return handleCorsOptions(request);
@@ -114,6 +115,20 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (format === 'xlsx') {
+      const xlsxBuffer = await convertToXLSX(data, types);
+      return new Response(xlsxBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.xlsx"`,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+      });
+    }
+
     return corsResponse(data, request);
 
   } catch (error) {
@@ -180,4 +195,94 @@ function convertToCSV(data: any, types: string[]): string {
   }
 
   return csv;
+}
+
+async function convertToXLSX(data: any, types: string[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+
+  if (data.projects && (types.includes('projects') || types.includes('all'))) {
+    const worksheet = workbook.addWorksheet('Projets');
+    worksheet.columns = [
+      { header: 'Titre', key: 'title', width: 30 },
+      { header: 'Statut', key: 'status', width: 20 },
+      { header: 'Description', key: 'description', width: 50 },
+      { header: 'Date de création', key: 'created_at', width: 20 },
+      { header: 'Créé par', key: 'created_by_name', width: 30 },
+    ];
+    data.projects.forEach((p: any) => {
+      worksheet.addRow({
+        title: p.title,
+        status: p.status,
+        description: p.description || '',
+        created_at: new Date(p.created_at).toLocaleDateString('fr-FR'),
+        created_by_name: p.created_by_name || '',
+      });
+    });
+  }
+
+  if (data.tasks && (types.includes('tasks') || types.includes('all'))) {
+    const worksheet = workbook.addWorksheet('Tâches');
+    worksheet.columns = [
+      { header: 'Titre', key: 'title', width: 30 },
+      { header: 'Statut', key: 'status', width: 20 },
+      { header: 'Priorité', key: 'priority', width: 15 },
+      { header: 'Projet', key: 'project_title', width: 30 },
+      { header: 'Assignés', key: 'assignees', width: 40 },
+      { header: 'Date de création', key: 'created_at', width: 20 },
+    ];
+    data.tasks.forEach((t: any) => {
+      const assignees = t.assignees ? t.assignees.map((a: any) => a.name).join('; ') : '';
+      worksheet.addRow({
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        project_title: t.project_title || '',
+        assignees: assignees,
+        created_at: new Date(t.created_at).toLocaleDateString('fr-FR'),
+      });
+    });
+  }
+
+  if (data.users && (types.includes('users') || types.includes('all'))) {
+    const worksheet = workbook.addWorksheet('Utilisateurs');
+    worksheet.columns = [
+      { header: 'Nom', key: 'name', width: 30 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Rôle', key: 'role', width: 20 },
+      { header: 'Actif', key: 'is_active', width: 15 },
+      { header: 'Date de création', key: 'created_at', width: 20 },
+    ];
+    data.users.forEach((u: any) => {
+      worksheet.addRow({
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        is_active: u.is_active ? 'Oui' : 'Non',
+        created_at: new Date(u.created_at).toLocaleDateString('fr-FR'),
+      });
+    });
+  }
+  
+  if (data.activities && (types.includes('activities') || types.includes('all'))) {
+    const worksheet = workbook.addWorksheet('Activités');
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 30 },
+      { header: 'Type', key: 'type', width: 20 },
+      { header: 'Action', key: 'action', width: 30 },
+      { header: 'Utilisateur', key: 'user_name', width: 30 },
+      { header: 'Date', key: 'created_at', width: 20 },
+    ];
+    data.activities.forEach((a: any) => {
+      worksheet.addRow({
+        id: a.id,
+        type: a.type,
+        action: a.action,
+        user_name: a.user_name || '',
+        created_at: new Date(a.created_at).toLocaleString('fr-FR'),
+      });
+    });
+  }
+
+
+  return await workbook.xlsx.writeBuffer();
 }

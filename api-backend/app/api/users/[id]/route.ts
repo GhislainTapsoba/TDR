@@ -158,9 +158,12 @@ export async function DELETE(
     const projectCount = parseInt(projects[0].count);
     
     if (projectCount > 0) {
+      // Si l'utilisateur a des projets, faire une suppression "douce" (soft delete)
+      await db.query('UPDATE users SET is_active = FALSE WHERE id = $1', [id]);
       return corsResponse({ 
-        error: `Impossible de supprimer cet utilisateur car il a créé ${projectCount} projet(s). Transférez d'abord ses projets à un autre utilisateur.` 
-      }, request, { status: 409 });
+        success: true, 
+        message: `L'utilisateur a été désactivé car il a ${projectCount} projet(s) associé(s).` 
+      }, request);
     }
     
     // Vérifier si l'utilisateur a des tâches assignées

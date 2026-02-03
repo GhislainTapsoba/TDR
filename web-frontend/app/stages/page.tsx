@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, Search, Calendar, User, CheckCircle, Clock, Circle, MoreVertical, Edit, Trash2 } from "lucide-react"
+import { FiPlus, FiSearch, FiCalendar, FiUsers, FiBarChart, FiMoreVertical, FiEdit, FiTrash2 } from 'react-icons/fi'
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
 import StageEditModal from "@/components/StageEditModal" // Import StageEditModal
+import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Import DeleteConfirmationModal
 
 interface Stage extends ApiStage { // Extend ApiStage
   id: string
@@ -37,9 +38,9 @@ const statusLabels = {
 }
 
 const statusColors = {
-  PENDING: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-  IN_PROGRESS: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  COMPLETED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  PENDING: "slate",
+  IN_PROGRESS: "amber",
+  COMPLETED: "emerald",
 }
 
 export default function StagesPage() {
@@ -54,6 +55,8 @@ export default function StagesPage() {
 
   const [showEditStageModal, setShowEditStageModal] = useState(false); // State for edit modal
   const [stageToEdit, setStageToEdit] = useState<Stage | null>(null); // State for stage to edit
+  const [showDeleteModal, setShowDeleteModal] = useState(false); // State for delete modal
+  const [stageToDelete, setStageToDelete] = useState<Stage | null>(null); // State for stage to delete
 
   useEffect(() => {
     fetchStages()
@@ -84,6 +87,24 @@ export default function StagesPage() {
   const handleStageEdit = (stage: Stage) => {
     setStageToEdit(stage);
     setShowEditStageModal(true);
+  };
+
+  const handleDeleteStageClick = (stage: Stage) => {
+    setStageToDelete(stage);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteStageConfirm = async () => {
+    if (stageToDelete) {
+      try {
+        await stagesApi.delete(stageToDelete.id);
+        fetchStages();
+        setShowDeleteModal(false);
+        setStageToDelete(null);
+      } catch (error) {
+        console.error("Erreur lors de la suppression de l'étape:", error);
+      }
+    }
   };
 
   const onStageSave = () => {
@@ -131,34 +152,35 @@ export default function StagesPage() {
 
   return (
     <MainLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-6 flex flex-col items-stretch">
+          <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Étapes</h1>
               <p className="text-muted-foreground">Gérez et suivez toutes vos étapes de projet</p>
             </div>
             {canCreateStages && (
-              <Link href="/stages/new">
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
+              <Button asChild>
+                <Link href="/stages/new">
+                  <FiPlus className="mr-2" />
                   Nouvelle étape
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </div>
 
-          <div className="flex gap-4 items-center flex-wrap">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex gap-4">
+            <div className="relative max-w-sm">
+              <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Rechercher une étape..."
+                placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
+
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Filtrer par statut" />
               </SelectTrigger>
               <SelectContent>
@@ -170,85 +192,90 @@ export default function StagesPage() {
             </Select>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.isArray(filteredStages) &&
               filteredStages.filter(Boolean).map((stage) => (
-                <Card key={stage.id} className="shadow-lg hover:shadow-xl transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between">
+                <Card key={stage.id} className="bg-card border-border shadow-lg hover:border-primary">
+                  <CardContent>
+                    <div className="space-y-4 flex flex-col items-stretch">
+                      <div className="flex justify-between items-start">
                         <div className="space-y-2 flex-1">
-                          <h3 className="font-semibold text-card-foreground line-clamp-2">{stage.name}</h3>
-
+                          <h3 className="text-sm font-medium text-card-foreground">{stage.name}</h3>
                           {stage.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">{stage.description}</p>
+                            <p className="text-muted-foreground text-sm line-clamp-2">{stage.description}</p>
                           )}
-
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className={statusColors[stage.status]}>
-                              {statusLabels[stage.status]}
-                            </Badge>
-                          </div>
-
-                          <div className="space-y-2 text-sm text-muted-foreground">
-                            {stage.project_title && (
-                              <div className="flex items-center gap-2">
-                                <span>Projet:</span>
-                                <Link href={`/projects/${stage.project_id}`} className="text-primary hover:underline">
-                                  {stage.project_title}
-                                </Link>
-                              </div>
-                            )}
-                            {stage.created_by_name && (
-                              <div className="flex items-center gap-2">
-                                <User className="h-3 w-3" />
-                                <span>{stage.created_by_name}</span>
-                              </div>
-                            )}
-                            {stage.duration && (
-                              <div className="flex items-center gap-2">
-                                <Calendar className="h-3 w-3" />
-                                <span>{stage.duration} jours</span>
-                              </div>
-                            )}
-                          </div>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {stage.status === "COMPLETED" ? (
-                            <CheckCircle className="h-6 w-6 text-emerald-400" />
-                          ) : stage.status === "IN_PROGRESS" ? (
-                            <Clock className="h-6 w-6 text-amber-400" />
-                          ) : (
-                            <Circle className="h-6 w-6 text-slate-400" />
-                          )}
+                          {/* No specific alert for stages yet, but keeping structure */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <FiMoreVertical />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {canUpdateStages && (
+                                <DropdownMenuItem onClick={() => handleStageEdit(stage)}>
+                                  <FiEdit className="mr-2 h-4 w-4" />
+                                  Modifier
+                                </DropdownMenuItem>
+                              )}
+                              {canDeleteStages && (
+                                <DropdownMenuItem onClick={() => handleDeleteStageClick(stage)}>
+                                  <FiTrash2 className="mr-2 h-4 w-4 text-red-500" />
+                                  <span className="text-red-500">Supprimer</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          {Object.entries(statusLabels).map(([statusKey, label]) => (
-                            <Button
-                              key={statusKey}
-                              size="sm"
-                              variant={stage.status === statusKey ? "default" : "outline"}
-                              className={statusColors[statusKey as keyof typeof statusColors]}
-                              onClick={() => updateStageStatus(stage.id, statusKey as Stage["status"])}
-                              disabled={!canUpdateStages}
-                            >
-                              {label}
-                            </Button>
-                          ))}
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          {canUpdateStages && (
-                            <Button size="sm" variant="ghost" onClick={() => handleStageEdit(stage)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(statusLabels).map(([statusKey, label]) => (
+                          <Button
+                            key={statusKey}
+                            size="sm"
+                            variant={stage.status === statusKey ? "default" : "outline"}
+                            onClick={() => updateStageStatus(stage.id, statusKey as Stage["status"])}
+                            disabled={!canUpdateStages}
+                            className={stage.status === statusKey ? `bg-${statusColors[statusKey as keyof typeof statusColors]}-500 hover:bg-${statusColors[statusKey as keyof typeof statusColors]}-600 text-white` : ''}
+                          >
+                            {label}
+                          </Button>
+                        ))}
                       </div>
+
+                      <div className="space-y-2 flex flex-col items-stretch">
+                        {stage.project_title && (
+                          <div className="flex items-center gap-2">
+                            <FiBarChart className="text-muted-foreground w-4 h-4" /> {/* Using FiBarChart for project */}
+                            <p className="text-sm text-muted-foreground">
+                                Projet:{" "}
+                                <Link href={`/projects/${stage.project_id}`} className="text-primary hover:underline">
+                                    {stage.project_title}
+                                </Link>
+                            </p>
+                          </div>
+                        )}
+                        {stage.created_by_name && (
+                          <div className="flex items-center gap-2">
+                            <FiUsers className="text-muted-foreground w-4 h-4" />
+                            <p className="text-sm text-muted-foreground">Créé par: {stage.created_by_name}</p>
+                          </div>
+                        )}
+                        {stage.duration && (
+                          <div className="flex items-center gap-2">
+                            <FiCalendar className="text-muted-foreground w-4 h-4" />
+                            <p className="text-sm text-muted-foreground">Durée: {stage.duration} jours</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/stages/${stage.id}/view`}>Voir détails</Link>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -256,24 +283,24 @@ export default function StagesPage() {
           </div>
 
           {filteredStages.length === 0 && (
-            <div className="text-center py-12">
-                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Aucune étape trouvée</h3>
-                <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== "all"
-                    ? "Aucune étape ne correspond à vos critères de recherche."
-                    : "Aucune étape n'est encore créée."}
+            <div className="flex justify-center py-12">
+              <div className="space-y-4 text-center">
+                <FiBarChart className="mx-auto w-12 h-12 text-muted-foreground" />
+                <h2 className="text-xl font-semibold text-card-foreground">Aucune étape</h2>
+                <p className="text-muted-foreground">
+                  {searchTerm || statusFilter !== "all"
+                    ? "Aucune étape ne correspond à vos critères."
+                    : "Commencez par créer votre première étape."}
                 </p>
                 {canCreateStages && !searchTerm && statusFilter === "all" && (
+                  <Button asChild>
                     <Link href="/stages/new">
-                    <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Créer une étape
-                    </Button>
+                      <FiPlus className="mr-2" />
+                      Créer une étape
                     </Link>
+                  </Button>
                 )}
+              </div>
             </div>
           )}
         </div>
@@ -285,6 +312,18 @@ export default function StagesPage() {
             onClose={() => setShowEditStageModal(false)}
             stage={stageToEdit}
             onSuccess={onStageSave}
+          />
+        )}
+
+        {/* Stage Delete Confirmation Modal */}
+        {stageToDelete && (
+          <DeleteConfirmationModal
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={handleDeleteStageConfirm}
+            title="Supprimer l'étape"
+            description={`Êtes-vous sûr de vouloir supprimer l'étape "${stageToDelete.name}" ? Cette action est irréversible.`}
+            itemName={stageToDelete.name}
           />
         )}
     </MainLayout>
