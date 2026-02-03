@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Trash2, AlertTriangle } from 'lucide-react';
+import { Trash2, AlertTriangle, X } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
