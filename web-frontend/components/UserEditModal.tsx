@@ -3,10 +3,27 @@
 import { useState, useEffect } from 'react';
 import { usersApi, User } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { X, User as UserIcon, Mail, Lock, Shield } from 'lucide-react';
+import { User as UserIcon, Mail, Lock, Shield } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/hooks/useAuth';
 import { canManageUsers, mapRole } from '@/lib/permissions';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface UserEditModalProps {
   user: User;
@@ -75,96 +92,85 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
             <div className="p-2 bg-green-100 rounded-lg">
               <UserIcon className="text-green-600" size={24} />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900">Modifier l'Utilisateur</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
+            Modifier l'Utilisateur
+          </DialogTitle>
+        </DialogHeader>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Nom */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <UserIcon size={18} />
               Nom complet *
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
               placeholder="Ex: Jean Dupont"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <Mail size={18} />
               Email *
-            </label>
-            <input
+            </Label>
+            <Input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
               placeholder="jean.dupont@example.com"
             />
           </div>
 
           {/* Mot de passe */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <Lock size={18} />
               Nouveau mot de passe (optionnel)
-            </label>
-            <input
+            </Label>
+            <Input
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               minLength={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
               placeholder="Laissez vide pour ne pas changer"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Laissez ce champ vide si vous ne souhaitez pas modifier le mot de passe
             </p>
           </div>
 
           {/* Rôle */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <Shield size={18} />
               Rôle *
-            </label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-900"
-            >
-              <option value="employe">Employé</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Administrateur</option>
-            </select>
-            <div className="mt-2 text-xs text-gray-600 space-y-1">
+            </Label>
+            <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="employe">Employé</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="admin">Administrateur</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="mt-2 text-xs text-muted-foreground space-y-1">
               <p>• <strong>Employé</strong> : Accès de base, peut gérer ses tâches</p>
               <p>• <strong>Manager</strong> : Peut gérer des projets et des équipes</p>
               <p>• <strong>Administrateur</strong> : Accès complet à toutes les fonctionnalités</p>
@@ -173,20 +179,20 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
 
           {/* Statut actif */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <Shield size={18} />
               Statut actif
-            </label>
+            </Label>
             <div className="flex items-center space-x-2">
               <Switch
                 checked={formData.is_active}
                 onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
               />
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 {formData.is_active ? 'Utilisateur actif' : 'Utilisateur inactif'}
               </span>
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Désactiver pour empêcher l'utilisateur de se connecter.
             </p>
           </div>
@@ -199,24 +205,23 @@ export default function UserEditModal({ user: userToEdit, isOpen, onClose, onSuc
           </div>
 
           {/* Boutons */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-            <button
+          <DialogFooter>
+            <Button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              variant="outline"
             >
               Annuler
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? 'Modification...' : "Modifier l'utilisateur"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

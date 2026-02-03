@@ -3,9 +3,27 @@
 import { useState, useEffect } from 'react';
 import { tasksApi, projectsApi, usersApi, stagesApi, Project, User, Stage } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { X, FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers } from 'lucide-react';
+import { FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { canCreateTask, hasPermission, mapRole } from '@/lib/permissions';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TaskCreateModalProps {
   isOpen: boolean;

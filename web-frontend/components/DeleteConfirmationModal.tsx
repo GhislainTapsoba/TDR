@@ -2,7 +2,18 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { X, Trash2, AlertTriangle } from 'lucide-react';
+import { Trash2, AlertTriangle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface DeleteConfirmationModalProps {
   isOpen: boolean;

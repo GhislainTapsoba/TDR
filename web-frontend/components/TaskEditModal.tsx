@@ -3,9 +3,27 @@
 import { useState, useEffect } from 'react';
 import { Task, tasksApi } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { X, Calendar, Flag, User, FileText } from 'lucide-react';
+import { Calendar, Flag, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context'; // Updated import path for useAuth
 import { hasPermission, mapRole } from '@/lib/permissions'; // Explicitly import hasPermission from lib
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface TaskEditModalProps {
   task: any;
@@ -110,51 +128,40 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Modifier la tâche</h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Modifier la tâche</DialogTitle>
+        </DialogHeader>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Titre */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <FileText size={18} />
               Titre de la tâche
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               placeholder="Ex: Développer la fonctionnalité X"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <FileText size={18} />
               Description
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               placeholder="Décrivez la tâche en détail..."
             />
           </div>
@@ -162,83 +169,81 @@ export default function TaskEditModal({ task, isOpen, onClose, onSave }: TaskEdi
           {/* Statut et Priorité */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                Statut
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              >
-                <option value="TODO">À faire</option>
-                <option value="IN_PROGRESS">En cours</option>
-                <option value="IN_REVIEW">En révision</option>
-                <option value="COMPLETED">Terminée</option>
-                <option value="CANCELLED">Annulée</option>
-              </select>
+              <Label>Statut</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value as any })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TODO">À faire</SelectItem>
+                  <SelectItem value="IN_PROGRESS">En cours</SelectItem>
+                  <SelectItem value="IN_REVIEW">En révision</SelectItem>
+                  <SelectItem value="COMPLETED">Terminée</SelectItem>
+                  <SelectItem value="CANCELLED">Annulée</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <Label className="flex items-center gap-2">
                 <Flag size={18} />
                 Priorité
-              </label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              >
-                <option value="LOW">Basse</option>
-                <option value="MEDIUM">Moyenne</option>
-                <option value="HIGH">Élevée</option>
-                <option value="URGENT">Urgente</option>
-              </select>
+              </Label>
+              <Select value={formData.priority} onValueChange={(value) => setFormData({ ...formData, priority: value as any })}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOW">Basse</SelectItem>
+                  <SelectItem value="MEDIUM">Moyenne</SelectItem>
+                  <SelectItem value="HIGH">Élevée</SelectItem>
+                  <SelectItem value="URGENT">Urgente</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Date d'échéance */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+            <Label className="flex items-center gap-2">
               <Calendar size={18} />
               Date d'échéance
-            </label>
-            <input
+            </Label>
+            <Input
               type="date"
               value={formData.due_date}
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
             />
           </div>
 
           {/* Boutons */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+          <DialogFooter>
             {canDelete && (
-                <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={loading}
-                    className="flex-1 px-6 py-3 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                    {loading ? 'Suppression...' : 'Supprimer'}
-                </button>
+              <Button
+                type="button"
+                onClick={handleDelete}
+                disabled={loading}
+                variant="destructive"
+              >
+                {loading ? 'Suppression...' : 'Supprimer'}
+              </Button>
             )}
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              variant="outline"
             >
               Annuler
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
