@@ -55,7 +55,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <img
@@ -63,36 +63,36 @@ export default function RegisterPage() {
             alt="Logo"
             className="mx-auto h-16 w-16 mb-4"
           />
-          <h2 className="text-3xl font-bold text-white">Inscription</h2>
-          <p className="mt-2 text-gray-400">Créez votre compte</p>
+          <h2 className="text-3xl font-bold text-foreground">Inscription</h2>
+          <p className="mt-2 text-muted-foreground">Créez votre compte</p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div className="bg-destructive/10 border border-destructive text-destructive-foreground px-4 py-3 rounded-lg">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
               {success}
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-foreground mb-2">
                 Nom complet
               </label>
               <div className="relative">
-                <FiUser className="absolute left-3 top-3 text-gray-400" />
+                <FiUser className="absolute left-3 top-3 text-muted-foreground" />
                 <input
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Votre nom complet"
                   required
                 />
@@ -100,17 +100,17 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
                 Email
               </label>
               <div className="relative">
-                <FiMail className="absolute left-3 top-3 text-gray-400" />
+                <FiMail className="absolute left-3 top-3 text-muted-foreground" />
                 <input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="votre@email.com"
                   required
                 />
@@ -118,24 +118,24 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
                 Mot de passe
               </label>
               <div className="relative">
-                <FiLock className="absolute left-3 top-3 text-gray-400" />
+                <FiLock className="absolute left-3 top-3 text-muted-foreground" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-12 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Votre mot de passe"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-300"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
@@ -143,24 +143,24 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
                 Confirmer le mot de passe
               </label>
               <div className="relative">
-                <FiLock className="absolute left-3 top-3 text-gray-400" />
+                <FiLock className="absolute left-3 top-3 text-muted-foreground" />
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-12 py-3 bg-background border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Confirmez votre mot de passe"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-300"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
                 >
                   {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
@@ -171,13 +171,13 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Création..." : "Créer le compte"}
           </button>
 
           <div className="text-center">
-            <Link href="/login" className="text-blue-400 hover:text-blue-300 text-sm">
+            <Link href="/login" className="text-primary hover:text-primary/80 text-sm">
               Déjà un compte ? Se connecter
             </Link>
           </div>

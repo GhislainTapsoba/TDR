@@ -220,8 +220,8 @@ export default function TasksPage() {
       <VStack spacing={6} align="stretch">
         <Flex justify="space-between" align="center">
           <Box>
-            <Heading size="xl" color="white">Tâches</Heading>
-            <Text color="gray.400">Gérez vos tâches</Text>
+            <Heading size="xl">Tâches</Heading>
+            <Text>Gérez vos tâches</Text>
           </Box>
           {permissions.canCreateTasks && (
             <Link href="/tasks/new" passHref>
@@ -238,10 +238,6 @@ export default function TasksPage() {
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              bg="gray.700"
-              borderColor="gray.600"
-              color="white"
-              _placeholder={{ color: 'gray.400' }}
             />
           </InputGroup>
           
@@ -249,9 +245,6 @@ export default function TasksPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             w="200px"
-            bg="gray.700"
-            borderColor="gray.600"
-            color="white"
           >
             <option value="all">Tous les statuts</option>
             <option value="TODO">À faire</option>
@@ -265,9 +258,6 @@ export default function TasksPage() {
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
             w="200px"
-            bg="gray.700"
-            borderColor="gray.600"
-            color="white"
           >
             <option value="all">Toutes priorités</option>
             <option value="URGENT">Urgente</option>
@@ -277,19 +267,19 @@ export default function TasksPage() {
           </Select>
         </Flex>
 
-        <VStack spacing={4} align="stretch">
+        <VStack spacing={6} align="stretch">
           {filteredTasks.map((task) => (
-            <Card key={task.id} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400' }}>
-              <CardBody>
+            <Card key={task.id} shadow="lg" borderRadius="xl" p={6}>
+              <CardBody p={0}>
                 <Flex justify="space-between" align="start">
                   <VStack align="start" spacing={3} flex={1}>
                     <HStack>
-                      <Heading size="sm" color="white">{task.title}</Heading>
-                      {isOverdue(task) && <Icon as={FiAlertTriangle} color="red.400" />}
+                      <Heading size="md" color="card-foreground">{task.title}</Heading>
+                      {isOverdue(task) && <Icon as={FiAlertTriangle} color="destructive" />}
                     </HStack>
-                    
+
                     {task.description && (
-                      <Text color="gray.300" fontSize="sm">{task.description}</Text>
+                      <Text color="muted-foreground" fontSize="sm">{task.description}</Text>
                     )}
                     
                     <Wrap spacing={2}>

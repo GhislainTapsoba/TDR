@@ -119,9 +119,9 @@ export default function UsersPage() {
       <MainLayout>
         <Center py={12}>
           <VStack>
-            <Icon as={FiShield} boxSize={12} color="gray.500" />
-            <Heading size="md" color="white">Accès refusé</Heading>
-            <Text color="gray.400">Vous n'avez pas les permissions nécessaires.</Text>
+            <Icon as={FiShield} boxSize={12} color="muted-foreground" />
+            <Heading size="md" color="card-foreground">Accès refusé</Heading>
+            <Text color="muted-foreground">Vous n'avez pas les permissions nécessaires.</Text>
           </VStack>
         </Center>
       </MainLayout>
@@ -133,8 +133,8 @@ export default function UsersPage() {
       <VStack spacing={6} align="stretch">
         <Flex justify="space-between" align="center">
           <Box>
-            <Heading size="xl" color="white">Utilisateurs</Heading>
-            <Text color="gray.400">Gérez les utilisateurs</Text>
+            <Heading size="xl" color="card-foreground">Utilisateurs</Heading>
+            <Text color="muted-foreground">Gérez les utilisateurs</Text>
           </Box>
           {canCreateUsers && (
             <Button as={Link} href="/users/create" colorScheme="blue" leftIcon={<FiPlus />}>
@@ -149,10 +149,6 @@ export default function UsersPage() {
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              bg="gray.700"
-              borderColor="gray.600"
-              color="white"
-              _placeholder={{ color: 'gray.400' }}
             />
           </InputGroup>
           
@@ -160,9 +156,6 @@ export default function UsersPage() {
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
             w="200px"
-            bg="gray.700"
-            borderColor="gray.600"
-            color="white"
           >
             <option value="all">Tous les rôles</option>
             <option value="admin">Administrateur</option>
@@ -175,18 +168,18 @@ export default function UsersPage() {
           {filteredUsers.map((user) => {
             const RoleIcon = roleIcons[user.role as keyof typeof roleIcons] || FiUser
             return (
-              <Card key={user.id} bg="gray.800" borderColor="gray.700" _hover={{ borderColor: 'blue.400' }}>
-                <CardBody>
+              <Card key={user.id} bg="card" borderColor="border" shadow="lg" borderRadius="xl" p={6} _hover={{ borderColor: 'primary', shadow: 'xl' }}>
+                <CardBody p={0}>
                   <VStack spacing={4}>
                     <HStack w="full" justify="space-between">
                       <HStack>
-                        <Avatar size="md" name={user.name} bg="blue.500">
+                        <Avatar size="md" name={user.name} bg="primary">
                         </Avatar>
                         <VStack align="start" spacing={0}>
-                          <Heading size="sm" color="white">{user.name}</Heading>
+                          <Heading size="sm" color="card-foreground">{user.name}</Heading>
                           <HStack spacing={1}>
-                            <Icon as={FiMail} boxSize={3} color="gray.400" />
-                            <Text fontSize="sm" color="gray.400">{user.email}</Text>
+                            <Icon as={FiMail} boxSize={3} color="muted-foreground" />
+                            <Text fontSize="sm" color="muted-foreground">{user.email}</Text>
                           </HStack>
                         </VStack>
                       </HStack>
@@ -206,7 +199,7 @@ export default function UsersPage() {
                       </WrapItem>
                     </Wrap>
 
-                    <Text fontSize="xs" color="gray.500">
+                    <Text fontSize="xs" color="muted-foreground">
                       Créé le {new Date(user.created_at).toLocaleDateString("fr-FR")}
                     </Text>
 
@@ -257,9 +250,9 @@ export default function UsersPage() {
         {filteredUsers.length === 0 && (
           <Center py={12}>
             <VStack>
-              <Icon as={FiUser} boxSize={12} color="gray.500" />
-              <Heading size="md" color="white">Aucun utilisateur</Heading>
-              <Text color="gray.400" textAlign="center">
+              <Icon as={FiUser} boxSize={12} color="muted-foreground" />
+              <Heading size="md" color="card-foreground">Aucun utilisateur</Heading>
+              <Text color="muted-foreground" textAlign="center">
                 {searchTerm || roleFilter !== "all"
                   ? "Aucun utilisateur ne correspond à vos critères."
                   : "Aucun utilisateur créé."}

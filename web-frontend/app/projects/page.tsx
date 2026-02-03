@@ -133,8 +133,8 @@ export default function ProjectsPage() {
       <div className="space-y-6 flex flex-col items-stretch">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-white">Projets</h1>
-            <p className="text-gray-400">Gérez vos projets</p>
+            <h1 className="text-3xl font-bold text-foreground">Projets</h1>
+            <p className="text-muted-foreground">Gérez vos projets</p>
           </div>
           {hasPermission(authUser?.permissions || [], 'projects.create') && (
             <Button asChild>
@@ -148,17 +148,17 @@ export default function ProjectsPage() {
 
         <div className="flex gap-4">
           <div className="relative max-w-sm">
-            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+              className="pl-10"
             />
           </div>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[200px] bg-gray-700 border-gray-600 text-white">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Tous les statuts" />
             </SelectTrigger>
             <SelectContent>
@@ -174,13 +174,13 @@ export default function ProjectsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project) => (
-            <Card key={project.id} className="bg-gray-800 border-gray-700 hover:border-blue-400">
+            <Card key={project.id} className="bg-card border-border shadow-lg hover:border-primary">
               <CardContent>
                 <div className="space-y-4 flex flex-col items-stretch">
                   <div className="flex justify-between items-start">
                     <div className="space-y-2 flex-1">
-                      <h3 className="text-sm font-medium text-white">{project.title}</h3>
-                      <p className="text-gray-300 text-sm line-clamp-2">{project.description}</p>
+                      <h3 className="text-sm font-medium text-card-foreground">{project.title}</h3>
+                      <p className="text-muted-foreground text-sm line-clamp-2">{project.description}</p>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -208,16 +208,16 @@ export default function ProjectsPage() {
 
                   <div className="space-y-2 flex flex-col items-stretch">
                     <div className="flex items-center gap-2">
-                      <FiCalendar className="text-gray-400 w-4 h-4" />
-                      <p className="text-sm text-gray-400">
+                      <FiCalendar className="text-muted-foreground w-4 h-4" />
+                      <p className="text-sm text-muted-foreground">
                         {format(new Date(project.start_date), "dd MMM", { locale: fr })} -{" "}
                         {format(new Date(project.end_date), "dd MMM yyyy", { locale: fr })}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <FiUsers className="text-gray-400 w-4 h-4" />
-                      <p className="text-sm text-gray-400">
+                      <FiUsers className="text-muted-foreground w-4 h-4" />
+                      <p className="text-sm text-muted-foreground">
                         {project.manager?.name || "Non assigné"}
                       </p>
                     </div>
@@ -225,15 +225,15 @@ export default function ProjectsPage() {
                     {project.stats && (
                       <div>
                         <div className="flex justify-between mb-2">
-                          <p className="text-sm text-gray-400">Progression</p>
-                          <p className="text-sm text-white font-bold">
+                          <p className="text-sm text-muted-foreground">Progression</p>
+                          <p className="text-sm text-card-foreground font-bold">
                             {project.stats.progress_percentage}%
                           </p>
                         </div>
-                        <div className="w-full bg-gray-700 rounded-full h-2">
-                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${project.stats.progress_percentage}%` }}></div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div className="bg-primary h-2 rounded-full" style={{ width: `${project.stats.progress_percentage}%` }}></div>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {project.stats.completed_tasks}/{project.stats.total_tasks} tâches
                         </p>
                       </div>
@@ -252,9 +252,9 @@ export default function ProjectsPage() {
         {filteredProjects.length === 0 && (
           <div className="flex justify-center py-12">
             <div className="space-y-4">
-              <FiBarChart className="w-12 h-12 text-gray-500" />
-              <h2 className="text-xl font-semibold text-white">Aucun projet</h2>
-              <p className="text-gray-400 text-center">
+              <FiBarChart className="w-12 h-12 text-muted-foreground" />
+              <h2 className="text-xl font-semibold text-card-foreground">Aucun projet</h2>
+              <p className="text-muted-foreground text-center">
                 {searchTerm || statusFilter !== "all"
                   ? "Aucun projet ne correspond à vos critères."
                   : "Commencez par créer votre premier projet."}
