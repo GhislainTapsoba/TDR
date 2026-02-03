@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { tasksApi, projectsApi, usersApi, stagesApi, Project, User, Stage } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers } from 'lucide-react';
+import { FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { canCreateTask, hasPermission, mapRole } from '@/lib/permissions';
 import {
