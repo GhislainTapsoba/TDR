@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu" // Add this import
 import { Badge } from "@/components/ui/badge"
 import { FiPlus, FiSearch, FiCalendar, FiUsers, FiBarChart, FiAlertTriangle, FiMoreVertical, FiEdit, FiTrash2 } from 'react-icons/fi'
 import Link from "next/link"

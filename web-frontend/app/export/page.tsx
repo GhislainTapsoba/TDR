@@ -148,7 +148,7 @@ export default function ExportPage() {
       console.error("Erreur lors de l&apos;export:", error)
       toast({
         title: "Erreur d'export",
-        description: "Une erreur est survenue lors de l'export des données.",
+        description: `Une erreur est survenue lors de l'export des données: ${error.response?.data?.details || error.message || error.toString()}. Veuillez réessayer.`,
         variant: "destructive",
       })
     } finally {

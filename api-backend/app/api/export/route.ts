@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Export error:', error);
-    return corsResponse({ error: 'Erreur lors de l\'export' }, request, { status: 500 });
+    return corsResponse({ error: 'Erreur lors de l\'export', details: (error as Error).message }, request, { status: 500 });
   }
 }
 
@@ -170,6 +170,7 @@ function convertToCSV(data: any, types: string[]): string {
     csv += 'PROJETS\n';
     csv += 'Titre,Statut,Description,Date de création,Créé par\n';
     data.projects.forEach((p: any) => {
+      if (!p) return; // Skip if project is null or undefined
       csv += `"${p.title}","${p.status}","${p.description || ''}","${new Date(p.created_at).toLocaleDateString('fr-FR')}","${p.created_by_name || ''}"\n`;
     });
     csv += '\n';
@@ -179,6 +180,7 @@ function convertToCSV(data: any, types: string[]): string {
     csv += 'TÂCHES\n';
     csv += 'Titre,Statut,Priorité,Projet,Assignés,Date de création\n';
     data.tasks.forEach((t: any) => {
+      if (!t) return; // Skip if task is null or undefined
       const assignees = t.assignees ? t.assignees.map((a: any) => a.name).join('; ') : '';
       csv += `"${t.title}","${t.status}","${t.priority}","${t.project_title || ''}","${assignees}","${new Date(t.created_at).toLocaleDateString('fr-FR')}"\n`;
     });
@@ -189,7 +191,18 @@ function convertToCSV(data: any, types: string[]): string {
     csv += 'UTILISATEURS\n';
     csv += 'Nom,Email,Rôle,Actif,Date de création\n';
     data.users.forEach((u: any) => {
+      if (!u) return; // Skip if user is null or undefined
       csv += `"${u.name}","${u.email}","${u.role}","${u.is_active ? 'Oui' : 'Non'}","${new Date(u.created_at).toLocaleDateString('fr-FR')}"\n`;
+    });
+    csv += '\n';
+  }
+
+  if (data.activities && (types.includes('activities') || types.includes('all'))) {
+    csv += 'ACTIVITÉS\n';
+    csv += 'ID,Type,Action,Utilisateur,Date\n';
+    data.activities.forEach((a: any) => {
+      if (!a) return; // Skip if activity is null or undefined
+      csv += `"${a.id || ''}","${a.type || ''}","${a.action || ''}","${a.user_name || ''}","${new Date(a.created_at).toLocaleString('fr-FR')}"\n`;
     });
     csv += '\n';
   }
@@ -210,6 +223,7 @@ async function convertToXLSX(data: any, types: string[]): Promise<Buffer> {
       { header: 'Créé par', key: 'created_by_name', width: 30 },
     ];
     data.projects.forEach((p: any) => {
+      if (!p) return; // Skip if project is null or undefined
       worksheet.addRow({
         title: p.title,
         status: p.status,
@@ -231,6 +245,7 @@ async function convertToXLSX(data: any, types: string[]): Promise<Buffer> {
       { header: 'Date de création', key: 'created_at', width: 20 },
     ];
     data.tasks.forEach((t: any) => {
+      if (!t) return; // Skip if task is null or undefined
       const assignees = t.assignees ? t.assignees.map((a: any) => a.name).join('; ') : '';
       worksheet.addRow({
         title: t.title,
@@ -253,6 +268,7 @@ async function convertToXLSX(data: any, types: string[]): Promise<Buffer> {
       { header: 'Date de création', key: 'created_at', width: 20 },
     ];
     data.users.forEach((u: any) => {
+      if (!u) return; // Skip if user is null or undefined
       worksheet.addRow({
         name: u.name,
         email: u.email,
@@ -273,10 +289,11 @@ async function convertToXLSX(data: any, types: string[]): Promise<Buffer> {
       { header: 'Date', key: 'created_at', width: 20 },
     ];
     data.activities.forEach((a: any) => {
+      if (!a) return; // Skip if activity is null or undefined
       worksheet.addRow({
-        id: a.id,
-        type: a.type,
-        action: a.action,
+        id: a.id || '',
+        type: a.type || '',
+        action: a.action || '',
         user_name: a.user_name || '',
         created_at: new Date(a.created_at).toLocaleString('fr-FR'),
       });
