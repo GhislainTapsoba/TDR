@@ -24,14 +24,20 @@ export async function POST(request: NextRequest) {
 
     const { types, format, dateRange } = await request.json();
 
+    // Validate format
+    const validFormats = ['json', 'csv', 'xlsx'];
+    if (!format || !validFormats.includes(format)) {
+      return corsResponse({ error: 'Format d\'export invalide. Utilisez json, csv ou xlsx.' }, request, { status: 400 });
+    }
+
     // Ensure types is an array
     let typesArray: string[];
-    if (typeof types === 'string') {
-      typesArray = types.split(',').map(t => t.trim());
-    } else if (Array.isArray(types)) {
+    if (typeof types === 'string' && types.trim()) {
+      typesArray = types.split(',').map(t => t.trim()).filter(t => t);
+    } else if (Array.isArray(types) && types.length > 0) {
       typesArray = types;
     } else {
-      return corsResponse({ error: 'Types doit être un tableau ou une chaîne séparée par des virgules' }, request, { status: 400 });
+      return corsResponse({ error: 'Au moins un type de données doit être sélectionné' }, request, { status: 400 });
     }
 
     let data: any = {};
