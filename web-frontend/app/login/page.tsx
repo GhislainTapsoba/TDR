@@ -60,11 +60,11 @@ export default function LoginPage() {
         {/* Login Form */}
         <Card className="shadow-2xl border-0 bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-6">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="mx-auto w-32 h-32 flex items-center justify-center">
               <img
-                src="/favicon.png"
+                src="/logo.png"
                 alt="Logo"
-                className="w-12 h-12"
+                className="w-24 h-24"
               />
             </div>
             <CardTitle className="text-2xl font-semibold text-center">

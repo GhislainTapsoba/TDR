@@ -101,8 +101,12 @@ export function Sidebar() {
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-sidebar-border/30">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-lg">
-            <Briefcase className="h-5 w-5 text-primary-foreground" />
+          <div className="w-10 h-10 flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-8 h-8"
+            />
           </div>
           <div>
             <span className="font-bold text-sidebar-foreground text-lg">
