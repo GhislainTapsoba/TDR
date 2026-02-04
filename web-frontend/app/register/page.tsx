@@ -65,11 +65,11 @@ export default function RegisterPage() {
         {/* Register Form */}
         <Card className="shadow-2xl border-0 bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-6">
-            <div className="mx-auto w-32 h-32 flex items-center justify-center">
+            <div className="mx-auto w-48 h-48 flex items-center justify-center">
               <img
                 src="/logo.png"
                 alt="Logo"
-                className="w-24 h-24"
+                className="w-48 h-48"
               />
             </div>
             <CardTitle className="text-2xl font-semibold text-center">

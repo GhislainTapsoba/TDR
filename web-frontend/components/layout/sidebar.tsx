@@ -105,7 +105,7 @@ export function Sidebar() {
             <img
               src="/logo.png"
               alt="Logo"
-              className="w-8 h-8"
+              className="w-20 h-20"
             />
           </div>
           <div>
@@ -123,7 +123,7 @@ export function Sidebar() {
       {user && (
         <div className="p-4 border-b border-sidebar-border/30 bg-gradient-to-r from-sidebar-accent/20 to-transparent">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center ring-2 ring-primary/20">
+            <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center ring-2 ring-primary/20">
               {/* @ts-ignore */}
               <span className="text-sm font-bold text-primary">{user.name?.charAt(0).toUpperCase()}</span>
             </div>
