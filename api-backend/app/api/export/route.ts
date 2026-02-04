@@ -24,10 +24,20 @@ export async function POST(request: NextRequest) {
 
     const { types, format, dateRange } = await request.json();
 
+    // Ensure types is an array
+    let typesArray: string[];
+    if (typeof types === 'string') {
+      typesArray = types.split(',').map(t => t.trim());
+    } else if (Array.isArray(types)) {
+      typesArray = types;
+    } else {
+      return corsResponse({ error: 'Types doit être un tableau ou une chaîne séparée par des virgules' }, request, { status: 400 });
+    }
+
     let data: any = {};
 
     // Export des projets
-    if (types.includes('projects') || types.includes('all')) {
+    if (typesArray.includes('projects') || typesArray.includes('all')) {
       const projectsQuery = `
         SELECT p.*, u.name as created_by_name 
         FROM projects p 
@@ -40,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Export des tâches
-    if (types.includes('tasks') || types.includes('all')) {
+    if (typesArray.includes('tasks') || typesArray.includes('all')) {
       const tasksQuery = `
         SELECT t.*, 
                c.name as created_by_name,
@@ -62,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Export des utilisateurs
-    if (types.includes('users') || types.includes('all')) {
+    if (typesArray.includes('users') || typesArray.includes('all')) {
       const usersQuery = `
         SELECT id, name, email, role, is_active, created_at, updated_at
         FROM users
@@ -74,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Export des activités
-    if (types.includes('activities') || types.includes('all')) {
+    if (typesArray.includes('activities') || typesArray.includes('all')) {
       const activitiesQuery = `
         SELECT al.*, u.name as user_name
         FROM activity_logs al
@@ -93,7 +103,7 @@ export async function POST(request: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.json"`,
+          'Content-Disposition': `attachment; filename="export_${typesArray.join('_')}_${new Date().toISOString().split('T')[0]}.json"`,
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -102,12 +112,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (format === 'csv') {
-      const csv = convertToCSV(data, types);
+      const csv = convertToCSV(data, typesArray);
       return new Response(csv, {
         status: 200,
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.csv"`,
+          'Content-Disposition': `attachment; filename="export_${typesArray.join('_')}_${new Date().toISOString().split('T')[0]}.csv"`,
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -116,12 +126,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (format === 'xlsx') {
-      const xlsxBuffer = await convertToXLSX(data, types);
-      return new Response(xlsxBuffer, {
+      const xlsxBuffer = await convertToXLSX(data, typesArray);
+      return new Response(xlsxBuffer as any, {
         status: 200,
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          'Content-Disposition': `attachment; filename="export_${types.join('_')}_${new Date().toISOString().split('T')[0]}.xlsx"`,
+          'Content-Disposition': `attachment; filename="export_${typesArray.join('_')}_${new Date().toISOString().split('T')[0]}.xlsx"`,
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization'
@@ -301,5 +311,5 @@ async function convertToXLSX(data: any, types: string[]): Promise<Buffer> {
   }
 
 
-  return await workbook.xlsx.writeBuffer() as Buffer;
+  return workbook.xlsx.writeBuffer() as any;
 }

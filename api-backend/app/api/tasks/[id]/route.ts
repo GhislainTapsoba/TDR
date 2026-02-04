@@ -373,6 +373,9 @@ export async function DELETE(
     // Start transaction
     await db.query('BEGIN');
 
+    // Delete related records first
+    await db.query('DELETE FROM comments WHERE task_id = $1', [taskId]);
+    await db.query('DELETE FROM documents WHERE task_id = $1', [taskId]);
     await db.query('DELETE FROM task_assignees WHERE task_id = $1', [taskId]);
     await db.query('DELETE FROM tasks WHERE id = $1', [taskId]);
 

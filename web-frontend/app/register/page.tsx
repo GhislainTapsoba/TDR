@@ -61,28 +61,17 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Logo and Welcome */}
-        <div className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg">
-            <img
-              src="/favicon.png"
-              alt="Logo"
-              className="w-12 h-12"
-            />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-              Rejoignez-nous
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              Créez votre compte et commencez dès maintenant
-            </p>
-          </div>
-        </div>
 
         {/* Register Form */}
         <Card className="shadow-2xl border-0 bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-6">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center shadow-lg">
+              <img
+                src="/favicon.png"
+                alt="Logo"
+                className="w-12 h-12"
+              />
+            </div>
             <CardTitle className="text-2xl font-semibold text-center">
               Inscription
             </CardTitle>
