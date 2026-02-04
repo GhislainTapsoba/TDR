@@ -36,8 +36,8 @@ export async function POST(req: NextRequest) {
 
     // Insert new user
     const insertQuery = `
-      INSERT INTO users (name, email, password, role)
-      VALUES ($1, $2, $3, 'EMPLOYEE')
+      INSERT INTO users (name, email, password, role, role_id)
+      VALUES ($1, $2, $3, 'employe', (SELECT id FROM roles WHERE name = 'employe'))
       RETURNING id, name, email, role, created_at, updated_at
     `;
     const { rows: newUsers } = await db.query(insertQuery, [name, normalizedEmail, hashedPassword]);

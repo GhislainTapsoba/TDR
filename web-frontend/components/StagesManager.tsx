@@ -14,8 +14,8 @@ import {
   AlertCircle,
   ChevronRight
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context';
+import { hasPermission } from '@/lib/permissions';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface StagesManagerProps {
@@ -24,7 +24,7 @@ interface StagesManagerProps {
 }
 
 export default function StagesManager({ projectId, onStageComplete }: StagesManagerProps) {
-  const { user } = useAuth(false);
+  const { user } = useAuth();
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -47,9 +47,9 @@ export default function StagesManager({ projectId, onStageComplete }: StagesMana
   }>>([]);
 
   // Vérifier les permissions de l'utilisateur
-  const canCreate = user ? hasPermission(mapRole(user.role), 'stages.create') : false;
-  const canUpdate = user ? hasPermission(mapRole(user.role), 'stages.update') : false;
-  const canDelete = user ? hasPermission(mapRole(user.role), 'stages.delete') : false;
+  const canCreate = user ? hasPermission(user.permissions, 'stages.create') : false;
+  const canUpdate = user ? hasPermission(user.permissions, 'stages.update') : false;
+  const canDelete = user ? hasPermission(user.permissions, 'stages.delete') : false;
 
   useEffect(() => {
     loadStages();

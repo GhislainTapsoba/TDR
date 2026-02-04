@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { stagesApi, projectsApi, Project } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, Layers, FileText, Hash, Clock } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context';
+import { hasPermission } from '@/lib/permissions';
 
 interface StageCreateModalProps {
   isOpen: boolean;
@@ -53,7 +53,7 @@ export default function StageCreateModal({ isOpen, onClose, onSuccess, defaultPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !hasPermission(mapRole(user.role), 'stages.create')) {
+    if (!user || !hasPermission(user.permissions, 'stages.create')) {
       toast.error("Vous n'avez pas la permission de créer une étape.");
       return;
     }

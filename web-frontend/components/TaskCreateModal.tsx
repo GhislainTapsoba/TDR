@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { tasksApi, projectsApi, usersApi, stagesApi, Project, User, Stage } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers, X } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { canCreateTask, hasPermission, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context';
+import { canCreateTask, hasPermission } from '@/lib/permissions';
 import {
   Dialog,
   DialogContent,
@@ -52,7 +52,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
   useEffect(() => {
     if (isOpen) {
       loadProjects();
-      if (user && hasPermission(mapRole(user.role), 'users.read')) {
+      if (user && hasPermission(user.permissions, 'users.read')) {
         loadUsers();
       }
     }
@@ -106,7 +106,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !canCreateTask(mapRole(user.role))) {
+    if (!user || !canCreateTask(user.permissions)) {
       toast.error("Vous n'avez pas la permission de créer une tâche.");
       return;
     }
@@ -300,7 +300,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
           </div>
 
           {/* Assigner à */}
-          {user && hasPermission(mapRole(user.role), 'users.read') && (
+          {user && hasPermission(user.permissions, 'users.read') && (
             <div>
               <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
                 <UserIcon size={18} />

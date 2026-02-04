@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/auth-context';
 import { canAccessRoute } from '@/lib/permissions';
 
 interface ProtectedRouteProps {
@@ -13,7 +13,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, loading } = useAuth(true);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     if (loading) return;

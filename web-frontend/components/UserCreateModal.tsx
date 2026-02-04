@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { usersApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { X, User, Mail, Lock, Shield } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { canManageUsers, mapRole } from '@/lib/permissions';
+import { useAuth } from '@/contexts/auth-context';
+import { canManageUsers } from '@/lib/permissions';
 
 interface UserCreateModalProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user || !canManageUsers(mapRole(user.role))) {
+    if (!user || !canManageUsers(user.permissions)) {
       toast.error("Vous n'avez pas la permission de créer un utilisateur.");
       return;
     }
