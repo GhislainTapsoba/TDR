@@ -17,8 +17,8 @@ import { CSS } from '@dnd-kit/utilities';
 interface Task {
   id: string;
   title: string;
-  priority: "low" | "medium" | "high";
-  stage_id: string;
+  priority: string;
+  stage_id: string | null;
 }
 interface Stage {
   id: string;
@@ -59,7 +59,7 @@ function TaskCard({ task }: { task: Task }) {
                 <GripVertical className="h-4 w-4" />
             </div>
           </div>
-          <Badge className={`mt-2 ${priorityColors[task.priority]}`}>{priorityLabels[task.priority] || task.priority}</Badge>
+          <Badge className={`mt-2 ${priorityColors[task.priority.toLowerCase() as keyof typeof priorityColors]}`}>{priorityLabels[task.priority.toLowerCase()] || task.priority}</Badge>
         </CardContent>
       </Card>
     </div>
@@ -69,15 +69,16 @@ function TaskCard({ task }: { task: Task }) {
 // --- Stage Column Component ---
 function StageColumn({ stage }: { stage: Stage }) {
     const { setNodeRef } = useSortable({ id: stage.id, data: { type: 'column' } });
-    const taskIds = useMemo(() => stage.tasks?.filter(Boolean).map(t => t.id) ?? [], [stage.tasks]);
+    const validTasks = useMemo(() => stage.tasks?.filter(t => t && t.id) ?? [], [stage.tasks]);
+    const taskIds = useMemo(() => validTasks.map(t => t.id), [validTasks]);
 
     return (
         <div ref={setNodeRef} className="w-72 flex-shrink-0">
             <div className="bg-muted/40 rounded-lg p-3 h-full">
-                <h3 className="font-semibold text-foreground mb-3 px-1">{stage.name} ({stage.tasks.length})</h3>
+                <h3 className="font-semibold text-foreground mb-3 px-1">{stage.name} ({validTasks.length})</h3>
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                     <div className="space-y-3 min-h-[50px]">
-                        {Array.isArray(stage.tasks) && stage.tasks.filter(Boolean).map(task => <TaskCard key={task.id} task={task} />)}
+                        {validTasks.map(task => <TaskCard key={task.id} task={task} />)}
                     </div>
                 </SortableContext>
             </div>
@@ -96,12 +97,20 @@ export default function ProjectBoardPage() {
   
   const fetchBoardData = useCallback(async () => {
     try {
-        const [projectResponse, stagesResponse] = await Promise.all([
+        const [projectResponse, stagesResponse, tasksResponse] = await Promise.all([
             projectsApi.getById(projectId.toString()),
-            stagesApi.getAll({ project_id: projectId.toString() })
+            stagesApi.getAll({ project_id: projectId.toString() }),
+            tasksApi.getAll({ project_id: projectId.toString() })
         ]);
         setProject(projectResponse.data as any);
-        setStages(stagesResponse.data as any || []);
+        const stages = stagesResponse.data as any || [];
+        const tasks = tasksResponse.data as any || [];
+        // Group tasks by stage_id
+        const stagesWithTasks = stages.map((stage: any) => ({
+            ...stage,
+            tasks: tasks.filter((task: any) => task.stage_id === stage.id)
+        }));
+        setStages(stagesWithTasks);
     } catch (error) {
       console.error("Erreur lors du chargement du tableau de bord du projet:", error);
     } finally {

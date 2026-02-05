@@ -101,17 +101,6 @@ export async function GET(request: NextRequest) {
 
     const { rows: tasks } = await db.query(queryText, queryParams);
 
-    // DEBUG: Log query results
-    console.log('=== TASKS API DEBUG ===');
-    console.log('User ID:', user.id, 'Role:', userRole);
-    console.log('Query:', queryText.replace(/\s+/g, ' '));
-    console.log('Params:', queryParams);
-    console.log('Raw tasks found:', tasks.length);
-    tasks.forEach(task => {
-      console.log(`Task ${task.id}: "${task.title}"`);
-    });
-    console.log('=== END DEBUG ===');
-
     const transformedTasks = tasks.map(task => ({
       ...task,
       project: task.project_id ? { id: task.project_id, title: task.project_title } : null,

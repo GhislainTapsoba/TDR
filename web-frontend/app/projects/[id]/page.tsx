@@ -147,6 +147,7 @@ export default function ProjectDetailPage() {
 
   // State for project modals
   const [showEditProjectModal, setShowEditProjectModal] = useState(false);
+  const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
   // State for stage modals
   const [showDeleteStageModal, setShowDeleteStageModal] = useState(false);
   const [stageToDelete, setStageToDelete] = useState<Stage | null>(null);
@@ -227,16 +228,17 @@ export default function ProjectDetailPage() {
   }
 
   // Corrected permission checks for Project Edit/Delete
-  const canUpdateProject = hasPermission(authUser?.permissions || [], 'projects.update');
-  const canDeleteProject = hasPermission(authUser?.permissions || [], 'projects.delete');
-  const canReadDocuments = hasPermission(authUser?.permissions || [], 'documents.read');
-  const canCreateDocuments = hasPermission(authUser?.permissions || [], 'documents.create');
-  const canCreateStage = hasPermission(authUser?.permissions || [], 'stages.create');
-  const canUpdateStage = hasPermission(authUser?.permissions || [], 'stages.update');
-  const canDeleteStage = hasPermission(authUser?.permissions || [], 'stages.delete');
-  const canCreateTask = hasPermission(authUser?.permissions || [], 'tasks.create');
-  const canUpdateTask = hasPermission(authUser?.permissions || [], 'tasks.update');
-  const canDeleteTask = hasPermission(authUser?.permissions || [], 'tasks.delete');
+  const isAdmin = authUser?.role === 'admin';
+  const canUpdateProject = isAdmin || hasPermission(authUser?.permissions || [], 'projects.update');
+  const canDeleteProject = isAdmin || hasPermission(authUser?.permissions || [], 'projects.delete');
+  const canReadDocuments = isAdmin || hasPermission(authUser?.permissions || [], 'documents.read');
+  const canCreateDocuments = isAdmin || hasPermission(authUser?.permissions || [], 'documents.create');
+  const canCreateStage = isAdmin || hasPermission(authUser?.permissions || [], 'stages.create');
+  const canUpdateStage = isAdmin || hasPermission(authUser?.permissions || [], 'stages.update');
+  const canDeleteStage = isAdmin || hasPermission(authUser?.permissions || [], 'stages.delete');
+  const canCreateTask = isAdmin || hasPermission(authUser?.permissions || [], 'tasks.create');
+  const canUpdateTask = isAdmin || hasPermission(authUser?.permissions || [], 'tasks.update');
+  const canDeleteTask = isAdmin || hasPermission(authUser?.permissions || [], 'tasks.delete');
 
 
   const getTaskProgress = (stage: any) => {
@@ -249,6 +251,17 @@ export default function ProjectDetailPage() {
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     
     return { completed, total, percentage };
+  };
+
+  const handleDeleteProject = async () => {
+    if (project) {
+      try {
+        await projectsApi.delete(project.id);
+        router.push('/projects'); // Redirect to projects list
+      } catch (error) {
+        console.error("Erreur lors de la suppression du projet:", error);
+      }
+    }
   };
 
   const handleDeleteStage = async () => {
@@ -310,7 +323,7 @@ export default function ProjectDetailPage() {
                 </Button>
             )}
             {canDeleteProject && (
-                <Button variant="destructive">
+                <Button variant="destructive" onClick={() => setShowDeleteProjectModal(true)}>
                     <Trash2 className="h-4 w-4 mr-2" />
                     Supprimer Projet
                 </Button>

@@ -373,7 +373,7 @@ export default function ProjectStagesPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
-                              onClick={() => router.push(`/projects/${projectId}/stages/${stage.id}/edit`)}
+                              onClick={() => router.push(`/stages/${stage.id}/edit`)}
                             >
                               <Edit className="h-3 w-3 mr-2" />
                               Modifier

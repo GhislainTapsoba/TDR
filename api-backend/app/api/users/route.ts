@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const roleFilter = searchParams.get('role');
 
     let queryText = `
-      SELECT DISTINCT u.id, u.name, u.email, u.role, u.created_at, u.updated_at, u.is_active
+      SELECT DISTINCT u.id, u.name, u.email, LOWER(u.role) as role, u.created_at, u.updated_at, u.is_active
       FROM users u
     `;
     const queryParams: (string | number)[] = [];
