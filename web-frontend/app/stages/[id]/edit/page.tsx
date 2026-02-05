@@ -41,7 +41,7 @@ export default function StageEditPage() {
   const fetchStage = async () => {
     setLoading(true)
     try {
-      const response = await stagesApi.get(stageId)
+      const response = await stagesApi.getById(stageId)
       setStage(response.data as Stage)
       setIsModalOpen(true) // Open the modal once the stage data is fetched
     } catch (error) {
