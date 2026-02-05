@@ -329,15 +329,15 @@ export default function StagesPage() {
             title="Supprimer l'étape"
             description={`Êtes-vous sûr de vouloir supprimer l'étape "${stageToDelete.name}" ? Cette action est irréversible.`}
                       itemName={stageToDelete.name}
-                    />
-                  )}
-            
-                  {/* Stage Create Modal */}
-                  <StageCreateModal
-                    isOpen={showCreateStageModal}
-                    onClose={() => setShowCreateStageModal(false)}
-                    onSuccess={onStageCreated}
-                  />
-                </MainLayout>
-              )
-            }
+        />
+      )}
+
+      {/* Stage Create Modal */}
+      <StageCreateModal
+        isOpen={showCreateStageModal}
+        onClose={() => setShowCreateStageModal(false)}
+        onSuccess={onStageCreated}
+      />
+    </MainLayout>
+  )
+}
