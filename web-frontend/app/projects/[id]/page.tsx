@@ -675,6 +675,17 @@ export default function ProjectDetailPage() {
         />
       )}
 
+      {project && (
+        <DeleteConfirmationModal
+          isOpen={showDeleteProjectModal}
+          onClose={() => setShowDeleteProjectModal(false)}
+          onConfirm={handleDeleteProject}
+          title="Supprimer le projet"
+          description={`Êtes-vous sûr de vouloir supprimer le projet "${project.title}" ? Cette action est irréversible.`}
+          itemName={project.title}
+        />
+      )}
+
       {stageToDelete && (
         <DeleteConfirmationModal
           isOpen={showDeleteStageModal}

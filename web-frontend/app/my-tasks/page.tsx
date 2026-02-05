@@ -30,7 +30,7 @@ interface Task extends ApiTask { // Extend the ApiTask interface
   project: {
     id: string
     title: string
-  }
+  } | null
   stage: {
     id: string
     name: string
@@ -281,9 +281,13 @@ export default function MyTasksPage() {
 
                       <div className="flex items-center gap-2">
                         <span>Projet:</span>
-                        <Link href={`/projects/${task.project.id}`} className="text-primary hover:underline">
-                          {task.project.title}
-                        </Link>
+                        {task.project ? (
+                          <Link href={`/projects/${task.project.id}`} className="text-primary hover:underline">
+                            {task.project.title}
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
                       </div>
 
                       {task.stage && (
