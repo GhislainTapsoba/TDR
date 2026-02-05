@@ -18,7 +18,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal"
 import ProjectEditModal from "@/components/ProjectEditModal"
-import ProjectCreateModal from "@/components/ProjectCreateModal"
+import { ProjectCreateModal } from "@/components/ProjectCreateModal"
 
 interface Project {
   id: string
@@ -117,8 +117,6 @@ export default function ProjectsPage() {
     setShowCreateModal(false)
     fetchProjects()
   }
-
-  const filteredProjects = projects.filter((project) => {
 
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =

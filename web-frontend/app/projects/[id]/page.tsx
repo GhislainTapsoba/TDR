@@ -720,7 +720,7 @@ export default function ProjectDetailPage() {
           isOpen={showCreateStageModal}
           onClose={() => setShowCreateStageModal(false)}
           onSuccess={onStageUpdated}
-          projectId={project.id}
+          defaultProjectId={project.id}
         />
       )}
     </MainLayout>

@@ -121,8 +121,6 @@ export default function StagesPage() {
   };
 
   const filteredStages = stages.filter((stage) => {
-
-  const filteredStages = stages.filter((stage) => {
     const matchesSearch =
       (stage.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       stage.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
