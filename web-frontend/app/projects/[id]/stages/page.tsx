@@ -461,7 +461,7 @@ export default function ProjectStagesPage() {
           isOpen={showCreateStageModal}
           onClose={() => setShowCreateStageModal(false)}
           onSuccess={onStageCreated}
-          projectId={projectId}
+          defaultProjectId={projectId}
         />
       </div>
     </MainLayout>

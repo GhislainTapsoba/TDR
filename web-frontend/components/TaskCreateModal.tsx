@@ -18,7 +18,6 @@ import {
   MenuItem,
   Box,
   Typography,
-  Grid,
 } from '@mui/material';
 
 interface TaskCreateModalProps {
@@ -176,34 +175,30 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
 
       <form onSubmit={handleSubmit}>
         <DialogContent sx={{ pt: 1 }}>
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'grid', gap: 3 }}>
             {/* Titre */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Titre de la tâche"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                variant="outlined"
-              />
-            </Grid>
+            <TextField
+              fullWidth
+              label="Titre de la tâche"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              required
+              variant="outlined"
+            />
 
             {/* Description */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                multiline
-                rows={4}
-                variant="outlined"
-              />
-            </Grid>
+            <TextField
+              fullWidth
+              label="Description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              multiline
+              rows={4}
+              variant="outlined"
+            />
 
             {/* Projet */}
-            <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <FormControl fullWidth required>
                 <InputLabel>Projet</InputLabel>
                 <Select
@@ -221,10 +216,8 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
 
-            {/* Étape */}
-            <Grid item xs={12} md={6}>
+              {/* Étape */}
               <FormControl fullWidth>
                 <InputLabel>Étape (optionnel)</InputLabel>
                 <Select
@@ -242,10 +235,10 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
                   ))}
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
             {/* Statut et Priorité */}
-            <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <FormControl fullWidth>
                 <InputLabel>Statut</InputLabel>
                 <Select
@@ -260,9 +253,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
                   <MenuItem value="CANCELLED">Annulée</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
 
-            <Grid item xs={12} md={6}>
               <FormControl fullWidth>
                 <InputLabel>Priorité</InputLabel>
                 <Select
@@ -276,22 +267,20 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
                   <MenuItem value="URGENT">Urgente</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
+            </Box>
 
             {/* Date d'échéance */}
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Date d'échéance"
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-          </Grid>
+            <TextField
+              fullWidth
+              label="Date d'échéance"
+              type="date"
+              value={formData.due_date}
+              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+          </Box>
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 3 }}>
