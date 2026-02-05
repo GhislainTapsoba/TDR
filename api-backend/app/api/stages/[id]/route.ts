@@ -260,6 +260,9 @@ export async function DELETE(
       return corsResponse({ error: 'Vous ne pouvez supprimer que les étapes de vos propres projets' }, request, { status: 403 });
     }
 
+    // Delete all tasks associated with this stage first to avoid foreign key constraint issues
+    await db.query('DELETE FROM tasks WHERE stage_id = $1', [id]);
+
     await db.query('DELETE FROM stages WHERE id = $1', [id]);
 
     await db.query(
