@@ -1,29 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { tasksApi, projectsApi, usersApi, stagesApi, Project, User, Stage } from '@/lib/api';
 import toast from 'react-hot-toast';
-import { FileText, Calendar, Flag, User as UserIcon, FolderKanban, Layers, X } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { canCreateTask, hasPermission } from '@/lib/permissions';
 import {
   Dialog,
-  DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  MenuItem,
+  Box,
+  Typography,
+  Grid,
+} from '@mui/material';
 
 interface TaskCreateModalProps {
   isOpen: boolean;
@@ -120,7 +116,7 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
     const toastId = toast.loading('Création de la tâche en cours...');
 
     try {
-      await tasksApi.create({
+      const response = await tasksApi.create({
         title: formData.title,
         description: formData.description || null,
         status: formData.status as any,
@@ -130,6 +126,13 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
         stage_id: formData.stage_id || null,
         assignee_ids: formData.assignees,
       } as any);
+
+      // Validate response
+      if (!response.data || typeof response.data !== 'object' || !response.data.id) {
+        console.error('Invalid task creation response:', response.data);
+        toast.error('Réponse invalide du serveur lors de la création de la tâche', { id: toastId });
+        return;
+      }
 
       toast.success('Tâche créée avec succès !', { id: toastId });
       setFormData({
@@ -153,199 +156,159 @@ export default function TaskCreateModal({ isOpen, onClose, onSuccess, defaultPro
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Nouvelle Tâche</h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          borderRadius: 3,
+        },
+      }}
+    >
+      <DialogTitle sx={{ pb: 1 }}>
+        <Typography variant="h6">
+          Nouvelle Tâche
+        </Typography>
+      </DialogTitle>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Titre */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <FileText size={18} />
-              Titre de la tâche *
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              placeholder="Ex: Développer la fonctionnalité X"
-            />
-          </div>
+      <form onSubmit={handleSubmit}>
+        <DialogContent sx={{ pt: 1 }}>
+          <Grid container spacing={3}>
+            {/* Titre */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Titre de la tâche"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                required
+                variant="outlined"
+              />
+            </Grid>
 
-          {/* Description */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <FileText size={18} />
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              placeholder="Décrivez la tâche en détail..."
-            />
-          </div>
+            {/* Description */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                multiline
+                rows={4}
+                variant="outlined"
+              />
+            </Grid>
 
-          {/* Projet */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <FolderKanban size={18} />
-              Projet *
-            </label>
-            <select
-              value={formData.project_id}
-              onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-            >
-              <option value="">Sélectionner un projet</option>
-              {Array.isArray(projects) && projects.filter(Boolean).map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.title}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* Projet */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel>Projet</InputLabel>
+                <Select
+                  value={formData.project_id}
+                  onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                  label="Projet"
+                >
+                  <MenuItem value="">
+                    <em>Sélectionner un projet</em>
+                  </MenuItem>
+                  {Array.isArray(projects) && projects.filter(Boolean).map((project) => (
+                    <MenuItem key={project.id} value={project.id}>
+                      {project.title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
 
-          {/* Étape (optionnel) */}
-          {stages.length > 0 && (
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <Layers size={18} />
-                Étape (optionnel)
-              </label>
-              <select
-                value={formData.stage_id}
-                onChange={(e) => setFormData({ ...formData, stage_id: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              >
-                <option value="">Aucune étape</option>
-                {Array.isArray(stages) && stages.filter(Boolean).map((stage) => (
-                  <option key={stage.id} value={stage.id}>
-                    {stage.name}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                Liez cette tâche à une étape spécifique du projet (facultatif)
-              </p>
-            </div>
-          )}
+            {/* Étape */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Étape (optionnel)</InputLabel>
+                <Select
+                  value={formData.stage_id}
+                  onChange={(e) => setFormData({ ...formData, stage_id: e.target.value })}
+                  label="Étape (optionnel)"
+                >
+                  <MenuItem value="">
+                    <em>Aucune étape</em>
+                  </MenuItem>
+                  {Array.isArray(stages) && stages.filter(Boolean).map((stage) => (
+                    <MenuItem key={stage.id} value={stage.id}>
+                      {stage.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
 
-          {/* Statut et Priorité */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Statut
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              >
-                <option value="TODO">À faire</option>
-                <option value="IN_PROGRESS">En cours</option>
-                <option value="IN_REVIEW">En révision</option>
-                <option value="COMPLETED">Terminée</option>
-                <option value="CANCELLED">Annulée</option>
-              </select>
-            </div>
+            {/* Statut et Priorité */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Statut</InputLabel>
+                <Select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  label="Statut"
+                >
+                  <MenuItem value="TODO">À faire</MenuItem>
+                  <MenuItem value="IN_PROGRESS">En cours</MenuItem>
+                  <MenuItem value="IN_REVIEW">En révision</MenuItem>
+                  <MenuItem value="COMPLETED">Terminée</MenuItem>
+                  <MenuItem value="CANCELLED">Annulée</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <Flag size={18} />
-                Priorité
-              </label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              >
-                <option value="LOW">Basse</option>
-                <option value="MEDIUM">Moyenne</option>
-                <option value="HIGH">Élevée</option>
-                <option value="URGENT">Urgente</option>
-              </select>
-            </div>
-          </div>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Priorité</InputLabel>
+                <Select
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  label="Priorité"
+                >
+                  <MenuItem value="LOW">Basse</MenuItem>
+                  <MenuItem value="MEDIUM">Moyenne</MenuItem>
+                  <MenuItem value="HIGH">Élevée</MenuItem>
+                  <MenuItem value="URGENT">Urgente</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-          {/* Date d'échéance */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-              <Calendar size={18} />
-              Date d'échéance
-            </label>
-            <input
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-            />
-          </div>
-
-          {/* Assigner à */}
-          {user && hasPermission(user.permissions, 'users.read') && (
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <UserIcon size={18} />
-                Assigner à
-              </label>
-              <select
-                multiple
-                value={formData.assignees}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions, option => option.value);
-                  setFormData({ ...formData, assignees: selected });
+            {/* Date d'échéance */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Date d'échéance"
+                type="date"
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                InputLabelProps={{
+                  shrink: true,
                 }}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
-              >
-                {Array.isArray(users) && users.filter(Boolean).map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} ({user.email}) - {user.role}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-1 text-xs text-gray-500">
-                Maintenez Ctrl (ou Cmd) pour sélectionner plusieurs utilisateurs
-              </p>
-            </div>
-          )}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
 
-          {/* Boutons */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Création...' : 'Créer la tâche'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={onClose} variant="outlined" size="large">
+            Annuler
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={loading}
+            sx={{ minWidth: 120 }}
+          >
+            {loading ? 'Création...' : 'Créer la tâche'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 }

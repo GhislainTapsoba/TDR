@@ -27,6 +27,7 @@ import {
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { MainLayout } from "@/components/layout/main-layout"
+import StageCreateModal from "@/components/StageCreateModal"
 
 interface Project {
   id: string
@@ -62,6 +63,7 @@ export default function ProjectStagesPage() {
     stage: null
   })
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [showCreateStageModal, setShowCreateStageModal] = useState(false)
 
   const projectId = params.id as string
 
@@ -135,6 +137,11 @@ export default function ProjectStagesPage() {
     } finally {
       setUpdatingStatus(null)
     }
+  }
+
+  const onStageCreated = () => {
+    setShowCreateStageModal(false)
+    loadData()
   }
 
   const getStatusIcon = (status: Stage['status']) => {
@@ -241,7 +248,7 @@ export default function ProjectStagesPage() {
               <p className="text-muted-foreground">{project.title}</p>
             </div>
           </div>
-          <Button onClick={() => router.push(`/projects/${projectId}/stages/new`)}>
+          <Button onClick={() => setShowCreateStageModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nouvelle étape
           </Button>
@@ -302,7 +309,7 @@ export default function ProjectStagesPage() {
               <p className="text-muted-foreground mb-4">
                 Commencez par créer la première étape de votre projet.
               </p>
-              <Button onClick={() => router.push(`/projects/${projectId}/stages/new`)}>
+              <Button onClick={() => setShowCreateStageModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Créer la première étape
               </Button>
@@ -448,6 +455,14 @@ export default function ProjectStagesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Stage Create Modal */}
+        <StageCreateModal
+          isOpen={showCreateStageModal}
+          onClose={() => setShowCreateStageModal(false)}
+          onSuccess={onStageCreated}
+          projectId={projectId}
+        />
       </div>
     </MainLayout>
   )

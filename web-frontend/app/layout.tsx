@@ -5,6 +5,7 @@ import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/toaster"
 import { NextAuthProvider } from "@/components/providers/next-auth-provider";
+import { MuiThemeProvider } from "@/components/mui-theme-provider";
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -28,10 +29,12 @@ export default function RootLayout({
     <html lang="fr">
       <body className={`font-sans`}>
         <Suspense fallback={null}>
-          <NextAuthProvider>
-            {children}
-            <Toaster />
-          </NextAuthProvider>
+          <MuiThemeProvider>
+            <NextAuthProvider>
+              {children}
+              <Toaster />
+            </NextAuthProvider>
+          </MuiThemeProvider>
         </Suspense>
         {/* <Analytics /> Désactivé en développement local */}
       </body>

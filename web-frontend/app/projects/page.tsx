@@ -18,6 +18,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal"
 import ProjectEditModal from "@/components/ProjectEditModal"
+import ProjectCreateModal from "@/components/ProjectCreateModal"
 
 interface Project {
   id: string
@@ -67,6 +68,7 @@ export default function ProjectsPage() {
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     fetchProjects()
@@ -111,6 +113,13 @@ export default function ProjectsPage() {
     fetchProjects()
   }
 
+  const handleCreateProject = () => {
+    setShowCreateModal(false)
+    fetchProjects()
+  }
+
+  const filteredProjects = projects.filter((project) => {
+
   const filteredProjects = projects.filter((project) => {
     const matchesSearch =
       project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,11 +147,9 @@ export default function ProjectsPage() {
             <p className="text-muted-foreground">Gérez vos projets</p>
           </div>
           {hasPermission(authUser?.permissions || [], 'projects.create') && (
-            <Button asChild>
-              <Link href="/projects/new">
-                <FiPlus className="mr-2" />
-                Nouveau projet
-              </Link>
+            <Button onClick={() => setShowCreateModal(true)}>
+              <FiPlus className="mr-2" />
+              Nouveau projet
             </Button>
           )}
         </div>
@@ -261,11 +268,9 @@ export default function ProjectsPage() {
                   : "Commencez par créer votre premier projet."}
               </p>
               {hasPermission(authUser?.permissions || [], 'projects.create') && !searchTerm && statusFilter === "all" && (
-                <Button asChild>
-                  <Link href="/projects/new">
-                    <FiPlus className="mr-2" />
-                    Créer un projet
-                  </Link>
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <FiPlus className="mr-2" />
+                  Créer un projet
                 </Button>
               )}
             </div>
@@ -292,6 +297,12 @@ export default function ProjectsPage() {
           onProjectUpdated={handleEditProject}
         />
       )}
+
+      <ProjectCreateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onProjectCreated={handleCreateProject}
+      />
     </MainLayout>
   )
 }

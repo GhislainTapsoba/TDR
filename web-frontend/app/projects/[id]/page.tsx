@@ -21,6 +21,7 @@ import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Im
 import ProjectEditModal from "@/components/ProjectEditModal" // Import ProjectEditModal
 import StageEditModal from "@/components/StageEditModal" // Import StageEditModal for inline editing
 import TaskEditModal from "@/components/TaskEditModal" // Import TaskEditModal
+import StageCreateModal from "@/components/StageCreateModal"
 
 // Interfaces remain largely the same, but we expect teamMembers to be populated
 interface TeamMember {
@@ -156,6 +157,7 @@ export default function ProjectDetailPage() {
   // State for task modals
   const [showEditTaskModal, setShowEditTaskModal] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+  const [showCreateStageModal, setShowCreateStageModal] = useState(false);
 
   const fetchData = useCallback(async (id: string) => {
     setLoading(true);
@@ -442,12 +444,10 @@ export default function ProjectDetailPage() {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground">Étapes du projet</h3>
               {canCreateStage && (
-                <Link href={`/projects/${project.id}/stages/new`}>
-                  <Button variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nouvelle étape
-                  </Button>
-                </Link>
+                <Button variant="outline" onClick={() => setShowCreateStageModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouvelle étape
+                </Button>
               )}
             </div>
             <div className="space-y-4">
@@ -712,6 +712,15 @@ export default function ProjectDetailPage() {
           onClose={() => setShowEditTaskModal(false)}
           task={taskToEdit as any}
           onSave={onTaskSave}
+        />
+      )}
+
+      {project && (
+        <StageCreateModal
+          isOpen={showCreateStageModal}
+          onClose={() => setShowCreateStageModal(false)}
+          onSuccess={onStageUpdated}
+          projectId={project.id}
         />
       )}
     </MainLayout>

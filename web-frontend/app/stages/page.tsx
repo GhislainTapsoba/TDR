@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth-context" // Import useAuth
 import { hasPermission } from "@/lib/permissions" // Import hasPermission
 import StageEditModal from "@/components/StageEditModal" // Import StageEditModal
 import DeleteConfirmationModal from "@/components/DeleteConfirmationModal" // Import DeleteConfirmationModal
+import StageCreateModal from "@/components/StageCreateModal"
 
 interface Stage extends ApiStage { // Extend ApiStage
   id: string
@@ -57,6 +58,7 @@ export default function StagesPage() {
   const [stageToEdit, setStageToEdit] = useState<Stage | null>(null); // State for stage to edit
   const [showDeleteModal, setShowDeleteModal] = useState(false); // State for delete modal
   const [stageToDelete, setStageToDelete] = useState<Stage | null>(null); // State for stage to delete
+  const [showCreateStageModal, setShowCreateStageModal] = useState(false); // State for create modal
 
   useEffect(() => {
     fetchStages()
@@ -113,6 +115,13 @@ export default function StagesPage() {
     fetchStages(); // Refresh stages after edit/delete
   };
 
+  const onStageCreated = () => {
+    setShowCreateStageModal(false);
+    fetchStages();
+  };
+
+  const filteredStages = stages.filter((stage) => {
+
   const filteredStages = stages.filter((stage) => {
     const matchesSearch =
       (stage.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -159,11 +168,9 @@ export default function StagesPage() {
               <p className="text-muted-foreground">Gérez et suivez toutes vos étapes de projet</p>
             </div>
             {canCreateStages && (
-              <Button asChild>
-                <Link href="/stages/new">
+              <Button onClick={() => setShowCreateStageModal(true)}>
                   <FiPlus className="mr-2" />
                   Nouvelle étape
-                </Link>
               </Button>
             )}
           </div>
@@ -293,11 +300,9 @@ export default function StagesPage() {
                     : "Commencez par créer votre première étape."}
                 </p>
                 {canCreateStages && !searchTerm && statusFilter === "all" && (
-                  <Button asChild>
-                    <Link href="/stages/new">
-                      <FiPlus className="mr-2" />
-                      Créer une étape
-                    </Link>
+                  <Button onClick={() => setShowCreateStageModal(true)}>
+                    <FiPlus className="mr-2" />
+                    Créer une étape
                   </Button>
                 )}
               </div>
@@ -323,9 +328,16 @@ export default function StagesPage() {
             onConfirm={handleDeleteStageConfirm}
             title="Supprimer l'étape"
             description={`Êtes-vous sûr de vouloir supprimer l'étape "${stageToDelete.name}" ? Cette action est irréversible.`}
-            itemName={stageToDelete.name}
-          />
-        )}
-    </MainLayout>
-  )
-}
+                      itemName={stageToDelete.name}
+                    />
+                  )}
+            
+                  {/* Stage Create Modal */}
+                  <StageCreateModal
+                    isOpen={showCreateStageModal}
+                    onClose={() => setShowCreateStageModal(false)}
+                    onSuccess={onStageCreated}
+                  />
+                </MainLayout>
+              )
+            }
